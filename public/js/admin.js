@@ -933,28 +933,6 @@ async function addSpinsToUser() {
 // ═══════════════════════════════════════════════════════════════
 // 🔧 HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
-    
-    try {
-        showLoading();
-        const API_BASE_URL = window.CONFIG?.API_BASE_URL || '/api';
-        const response = await fetch(`${API_BASE_URL}/admin/tasks?task_id=${taskId}`, {
-            method: 'DELETE'
-        });
-        
-        const result = await response.json();
-        hideLoading();
-        
-        if (result.success) {
-            showToast('✅ تم حذف المهمة', 'success');
-            loadTasks();
-        } else {
-            showToast('❌ فشل الحذف', 'error');
-        }
-    } catch (error) {
-        hideLoading();
-        showToast('❌ خطأ في الاتصال', 'error');
-    }
-
 
 async function deleteChannel(channelId) {
     if (!confirm('هل تريد حذف هذه القناة؟')) return;
