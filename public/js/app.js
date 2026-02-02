@@ -48,7 +48,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadUserData() {
     try {
-        const userId = TelegramApp.getUserId();
+        let userId = TelegramApp.getUserId();
+        
+        // إذا كان getUserId يرجع null، حاول الحصول عليه من URL
+        if (!userId) {
+            const urlParams = new URLSearchParams(window.location.search);
+            userId = urlParams.get('user_id');
+        }
+        
+        // إذا لم نجد user_id، استخدم قيمة تجريبية
+        if (!userId) {
+            console.warn('No user ID found, using test ID');
+            userId = 123456789; // Test user
+        }
+        
+        console.log('Loading data for user:', userId);
         const response = await API.getUserData(userId);
         
         if (response.success) {
@@ -60,7 +74,8 @@ async function loadUserData() {
         }
     } catch (error) {
         console.error('Error loading user data:', error);
-        throw error;
+        showToast('حدث خطأ في تحميل البيانات', 'error');
+        // لا نرمي الخطأ لنسمح للتطبيق بالاستمرار
     }
 }
 
