@@ -1220,10 +1220,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # زر لوحة الأدمن (للأدمن فقط)
     if is_admin(user_id):
-        keyboard.append([InlineKeyboardButton(
-            "⚙️ لوحة المالكين",
-            callback_data="admin_panel"
-        )])
+        keyboard.append([
+            InlineKeyboardButton("⚙️ لوحة المالكين", callback_data="admin_panel"),
+            InlineKeyboardButton("🖥️ لوحة الأدمن", web_app=WebAppInfo(url=f"{MINI_APP_URL}/admin?user_id={user_id}"))
+        ])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
@@ -1546,10 +1546,10 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
     )])
     
     if is_admin(user_id):
-        keyboard.append([InlineKeyboardButton(
-            "⚙️ لوحة المالكين",
-            callback_data="admin_panel"
-        )])
+        keyboard.append([
+            InlineKeyboardButton("⚙️ لوحة المالكين", callback_data="admin_panel"),
+            InlineKeyboardButton("🖥️ لوحة الأدمن", web_app=WebAppInfo(url=f"{MINI_APP_URL}/admin?user_id={user_id}"))
+        ])
     
     await query.edit_message_text(
         welcome_text,

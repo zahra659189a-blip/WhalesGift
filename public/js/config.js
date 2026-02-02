@@ -4,7 +4,7 @@
 
 const CONFIG = {
     // API Endpoints
-    API_BASE_URL: 'https://your-backend-api.com/api',  // سيتم تغييره للسيرفر
+    API_BASE_URL: 'https://pandagiveawaays.onrender.com/api',
     BOT_USERNAME: 'PandaGiveawaysBot',
     
     // Wheel Configuration
