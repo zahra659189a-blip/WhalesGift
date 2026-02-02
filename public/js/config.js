@@ -2,10 +2,15 @@
 // 🔧 CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
+console.log('🔧 Loading CONFIG...');
+
 const CONFIG = {
     // API Endpoints
     API_BASE_URL: 'https://pandagiveawaays.onrender.com/api',
     BOT_USERNAME: 'PandaGiveawaysBot',
+    
+    // Admin IDs
+    ADMIN_IDS: [1797127532, 6603009212],
     
     // Wheel Configuration
     WHEEL_PRIZES: [
@@ -422,6 +427,12 @@ window.TelegramApp = TelegramApp;
 window.RateLimiter = RateLimiter;
 window.isValidTonAddress = isValidTonAddress;
 window.isValidVodafoneNumber = isValidVodafoneNumber;
+
+console.log('✅ CONFIG loaded successfully:', {
+    API_BASE_URL: CONFIG.API_BASE_URL,
+    ADMIN_IDS: CONFIG.ADMIN_IDS,
+    BOT_USERNAME: CONFIG.BOT_USERNAME
+});
 window.sanitizeInput = sanitizeInput;
 window.hashData = hashData;
 

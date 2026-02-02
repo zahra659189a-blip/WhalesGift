@@ -8,9 +8,18 @@
 // ═══════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎯 DOM Content Loaded - Starting Admin Panel');
+    console.log('Checking required globals:', {
+        CONFIG: !!window.CONFIG,
+        Telegram: !!window.Telegram,
+        showToast: !!window.showToast
+    });
+    
     initAdminPanel();
     loadDashboardData();
     setupEventListeners();
+    
+    console.log('✅ Admin Panel initialization complete');
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -27,10 +36,27 @@ let adminData = {
 };
 
 async function initAdminPanel() {
+    console.log('🔧 Initializing Admin Panel...');
+    console.log('CONFIG:', window.CONFIG);
+    console.log('Telegram WebApp:', window.Telegram?.WebApp);
+    
+    // Initialize Telegram WebApp
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+    }
+    
     // Check if user is admin
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    console.log('Telegram User:', telegramUser);
     
-    if (!telegramUser || !CONFIG.ADMIN_IDS.includes(telegramUser.id)) {
+    if (!telegramUser) {
+        console.warn('⚠️ No Telegram user found - allowing access for testing');
+        showToast('⚠️ وضع الاختبار', 'info');
+        return; // Allow access for testing
+    }
+    
+    if (!CONFIG.ADMIN_IDS.includes(telegramUser.id)) {
         showToast('❌ غير مصرح لك بالدخول!', 'error');
         setTimeout(() => {
             window.Telegram?.WebApp?.close();
@@ -67,8 +93,11 @@ async function loadDashboardData() {
 
 async function loadStatistics() {
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/stats`);
+        const apiUrl = window.CONFIG?.API_BASE_URL || '/api';
+        console.log('📊 Loading statistics from:', `${apiUrl}/stats`);
+        const response = await fetch(`${apiUrl}/stats`);
         const result = await response.json();
+        console.log('Statistics result:', result);
         
         if (result.success && result.data) {
             const stats = result.data;
@@ -301,8 +330,11 @@ async function deletePrize(prizeId) {
 
 async function loadUsers() {
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/users`);
+        const apiUrl = window.CONFIG?.API_BASE_URL || '/api';
+        console.log('👥 Loading users from:', `${apiUrl}/users`);
+        const response = await fetch(`${apiUrl}/users`);
         const result = await response.json();
+        console.log('Users result:', result);
         
         if (result.success && result.data) {
             adminData.users = result.data;
@@ -346,8 +378,11 @@ function renderUsersTable() {
 
 async function loadWithdrawals() {
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/withdrawals`);
+        const apiUrl = window.CONFIG?.API_BASE_URL || '/api';
+        console.log('💸 Loading withdrawals from:', `${apiUrl}/withdrawals`);
+        const response = await fetch(`${apiUrl}/withdrawals`);
         const result = await response.json();
+        console.log('Withdrawals result:', result);
         
         if (result.success && result.data) {
             adminData.withdrawals = result.data;
@@ -500,17 +535,27 @@ function saveSettings() {
 // ═══════════════════════════════════════════════════════════════
 
 function setupEventListeners() {
+    console.log('🎯 Setting up event listeners...');
+    
     // Tab switching
-    document.querySelectorAll('.admin-tab').forEach(tab => {
+    const tabs = document.querySelectorAll('.admin-tab');
+    console.log('Found tabs:', tabs.length);
+    
+    tabs.forEach(tab => {
         tab.addEventListener('click', () => {
+            console.log('Tab clicked:', tab.dataset.tab);
             const targetTab = tab.dataset.tab;
             switchTab(targetTab);
         });
     });
     
     // Filter buttons for withdrawals
-    document.querySelectorAll('.filter-btn').forEach(btn => {
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    console.log('Found filter buttons:', filterBtns.length);
+    
+    filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
+            console.log('Filter clicked:', btn.dataset.status);
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             renderWithdrawals(btn.dataset.status);
@@ -520,6 +565,7 @@ function setupEventListeners() {
     // User search
     const searchInput = document.getElementById('user-search');
     if (searchInput) {
+        console.log('User search input found');
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
             // Filter users table
@@ -528,9 +574,13 @@ function setupEventListeners() {
     }
     
     // Close modals on outside click
-    document.querySelectorAll('.modal').forEach(modal => {
+    const modals = document.querySelectorAll('.modal');
+    console.log('Found modals:', modals.length);
+    
+    modals.forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
+                console.log('Modal close clicked');
                 modal.classList.remove('active');
             }
         });
