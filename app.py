@@ -20,6 +20,113 @@ CORS(app)  # السماح بـ CORS
 
 DATABASE_PATH = os.getenv('DATABASE_PATH', 'panda_giveaways.db')
 
+def init_database():
+    """إنشاء قاعدة البيانات إذا لم تكن موجودة"""
+    conn = sqlite3.connect(DATABASE_PATH, timeout=30.0)
+    cursor = conn.cursor()
+    
+    # جدول المستخدمين
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT,
+            full_name TEXT NOT NULL,
+            balance REAL DEFAULT 0.0,
+            total_spins INTEGER DEFAULT 0,
+            available_spins INTEGER DEFAULT 0,
+            total_referrals INTEGER DEFAULT 0,
+            valid_referrals INTEGER DEFAULT 0,
+            referrer_id INTEGER,
+            created_at TEXT NOT NULL,
+            last_active TEXT,
+            is_banned INTEGER DEFAULT 0,
+            last_spin_time TEXT,
+            spin_count_today INTEGER DEFAULT 0,
+            last_withdrawal_time TEXT,
+            ton_wallet TEXT,
+            vodafone_number TEXT
+        )
+    """)
+    
+    # جدول الإحالات
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS referrals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            referrer_id INTEGER NOT NULL,
+            referred_id INTEGER NOT NULL,
+            is_valid INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            validated_at TEXT,
+            UNIQUE(referrer_id, referred_id)
+        )
+    """)
+    
+    # جدول اللفات
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS spins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            prize_name TEXT NOT NULL,
+            prize_amount REAL NOT NULL,
+            spin_time TEXT NOT NULL,
+            spin_hash TEXT NOT NULL UNIQUE,
+            ip_address TEXT
+        )
+    """)
+    
+    # جدول السحوبات
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS withdrawals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            withdrawal_type TEXT NOT NULL,
+            wallet_address TEXT,
+            phone_number TEXT,
+            status TEXT NOT NULL DEFAULT 'pending',
+            requested_at TEXT NOT NULL,
+            processed_at TEXT,
+            processed_by INTEGER,
+            tx_hash TEXT,
+            rejection_reason TEXT
+        )
+    """)
+    
+    # جدول المهام
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_type TEXT NOT NULL,
+            task_name TEXT NOT NULL,
+            task_description TEXT,
+            channel_id TEXT,
+            link_url TEXT,
+            reward_amount REAL DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            added_by INTEGER NOT NULL,
+            added_at TEXT NOT NULL
+        )
+    """)
+    
+    # جدول إنجاز المهام
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            task_id INTEGER NOT NULL,
+            completed_at TEXT NOT NULL,
+            verified INTEGER DEFAULT 0,
+            UNIQUE(user_id, task_id)
+        )
+    """)
+    
+    conn.commit()
+    conn.close()
+    print("✅ Database initialized")
+
+# تهيئة قاعدة البيانات عند بدء التشغيل
+init_database()
+
 def get_db_connection():
     """إنشاء اتصال بقاعدة البيانات"""
     conn = sqlite3.connect(DATABASE_PATH, timeout=30.0)
@@ -55,32 +162,42 @@ def create_user_if_not_exists(user_id, username="", full_name="User"):
 
 def get_user_referrals_db(user_id):
     """الحصول على إحالات المستخدم"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT r.*, u.username, u.full_name, u.created_at as joined_at
-        FROM referrals r
-        JOIN users u ON r.referred_id = u.user_id
-        WHERE r.referrer_id = ?
-        ORDER BY r.created_at DESC
-    """, (user_id,))
-    referrals = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return referrals
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT r.*, u.username, u.full_name, u.created_at as joined_at
+            FROM referrals r
+            LEFT JOIN users u ON r.referred_id = u.user_id
+            WHERE r.referrer_id = ?
+            ORDER BY r.created_at DESC
+        """, (user_id,))
+        referrals = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return referrals
+    except Exception as e:
+        print(f"Error in get_user_referrals_db: {e}")
+        conn.close()
+        return []
 
 def get_user_spins_db(user_id, limit=50):
     """الحصول على تاريخ اللفات"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT * FROM spins
-        WHERE user_id = ?
-        ORDER BY spin_time DESC
-        LIMIT ?
-    """, (user_id, limit))
-    spins = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return spins
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM spins
+            WHERE user_id = ?
+            ORDER BY spin_time DESC
+            LIMIT ?
+        """, (user_id, limit))
+        spins = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return spins
+    except Exception as e:
+        print(f"Error in get_user_spins_db: {e}")
+        conn.close()
+        return []
 
 def get_bot_stats():
     """إحصائيات البوت"""
@@ -234,6 +351,67 @@ def get_bot_stats_route():
         print(f"Error in get_bot_stats: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/tasks', methods=['GET'])
+def get_tasks():
+    """الحصول على المهام النشطة"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tasks WHERE is_active = 1 ORDER BY added_at DESC")
+        tasks = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return jsonify({
+            'success': True,
+            'data': tasks
+        })
+    except Exception as e:
+        print(f"Error in get_tasks: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/user/<int:user_id>/tasks', methods=['GET'])
+def get_user_tasks(user_id):
+    """الحصول على المهام المكتملة للمستخدم"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT ut.*, t.task_name, t.reward_amount 
+            FROM user_tasks ut
+            JOIN tasks t ON ut.task_id = t.id
+            WHERE ut.user_id = ?
+            ORDER BY ut.completed_at DESC
+        """, (user_id,))
+        tasks = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return jsonify({
+            'success': True,
+            'data': tasks
+        })
+    except Exception as e:
+        print(f"Error in get_user_tasks: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/user/<int:user_id>/withdrawals', methods=['GET'])
+def get_user_withdrawals(user_id):
+    """الحصول على طلبات السحب للمستخدم"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM withdrawals
+            WHERE user_id = ?
+            ORDER BY requested_at DESC
+        """, (user_id,))
+        withdrawals = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return jsonify({
+            'success': True,
+            'data': withdrawals
+        })
+    except Exception as e:
+        print(f"Error in get_user_withdrawals: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/health')
 def health():
     """Health check لـ Render"""
@@ -241,5 +419,6 @@ def health():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
+    print(f"🌐 Starting Flask Server on port {port}...")
     app.run(host='0.0.0.0', port=port, debug=False)
 
