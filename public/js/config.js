@@ -215,10 +215,18 @@ function showToast(message, type = 'info', duration = CONFIG.TOAST_DURATION) {
 // عرض/إخفاء Loading
 function showLoading(show = true) {
     const loading = document.getElementById('loading-overlay');
+    if (!loading) {
+        console.error('⚠️ Loading overlay element not found');
+        return;
+    }
+    
+    console.log(`🔄 Loading: ${show ? 'Show' : 'Hide'}`);
     if (show) {
         loading.classList.remove('hidden');
+        loading.style.display = 'flex';
     } else {
         loading.classList.add('hidden');
+        loading.style.display = 'none';
     }
 }
 

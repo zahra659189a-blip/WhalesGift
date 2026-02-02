@@ -24,9 +24,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // تحميل بيانات المستخدم
         await loadUserData();
         
-        // التحقق من القنوات الإجبارية
-        const channelsVerified = await checkRequiredChannels();
-        
         // تهيئة UI
         initUI();
         
@@ -40,6 +37,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         showLoading(false);
         
         console.log('✅ App Initialized Successfully');
+        
+        // التحقق من القنوات الإجبارية (بعد تحميل كل شيء)
+        checkRequiredChannels();
         
     } catch (error) {
         console.error('❌ App Initialization Error:', error);

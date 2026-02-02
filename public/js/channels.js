@@ -29,9 +29,9 @@ async function checkRequiredChannels() {
             return true;
         }
         
-        // Show channels modal
+        // Show channels modal (non-blocking)
         console.log('📢 Showing channels verification modal');
-        await showChannelsModal(channels);
+        showChannelsModal(channels);
         
         return true;
         
@@ -43,10 +43,15 @@ async function checkRequiredChannels() {
 }
 
 async function showChannelsModal(channels) {
-    return new Promise((resolve) => {
+    try {
         const modal = document.getElementById('channels-modal');
         const channelsList = document.getElementById('channels-list');
         const verifyBtn = document.getElementById('verify-channels-btn');
+        
+        if (!modal || !channelsList || !verifyBtn) {
+            console.error('📢 Channel modal elements not found');
+            return;
+        }
         
         // Store subscription status for each channel
         const channelStatus = {};
@@ -128,8 +133,8 @@ async function showChannelsModal(channels) {
             modal.style.display = 'none';
             showToast('✅ تم التحقق من الاشتراك بنجاح!', 'success');
             TelegramApp.hapticFeedback('success');
-            
-            resolve(true);
         };
-    });
+    } catch (error) {
+        console.error('📢 Error showing channels modal:', error);
+    }
 }
