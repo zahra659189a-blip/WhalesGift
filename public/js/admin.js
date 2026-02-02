@@ -43,22 +43,28 @@ async function initAdminPanel() {
     console.log('CONFIG:', window.CONFIG);
     console.log('Telegram WebApp:', window.Telegram?.WebApp);
     
+    // Initialize Telegram WebApp if available
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+    }
+    
     // Check if user is admin
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     console.log('Telegram User:', telegramUser);
     
     if (!telegramUser) {
         console.warn('⚠️ No Telegram user found - allowing access for testing');
-        showToast('⚠️ وضع الاختبار', 'info');
-        return;
+        showToast('⚠️ وضع الاختبار - يمكنك التصفح', 'info');
+        // Don't return - allow testing mode
+        return; // Continue to allow UI to work
     }
     
     const adminIds = window.CONFIG?.ADMIN_IDS || [];
     if (!adminIds.includes(telegramUser.id)) {
         showToast('❌ غير مصرح لك بالدخول!', 'error');
-        setTimeout(() => {
-            window.Telegram?.WebApp?.close();
-        }, 2000);
+        // Don't close immediately - let them see the message
+        console.error('User not authorized:', telegramUser.id);
         return;
     }
 
@@ -557,17 +563,33 @@ function setupEventListeners() {
 }
 
 function switchTab(tabName) {
+    console.log('🔀 Switching to tab:', tabName);
+    
     // Update tab buttons
     document.querySelectorAll('.admin-tab').forEach(tab => {
         tab.classList.remove('active');
     });
-    document.querySelector(`.admin-tab[data-tab="${tabName}"]`).classList.add('active');
+    
+    const targetTab = document.querySelector(`.admin-tab[data-tab="${tabName}"]`);
+    if (targetTab) {
+        targetTab.classList.add('active');
+        console.log('✅ Tab button activated');
+    } else {
+        console.error('❌ Tab button not found for:', tabName);
+    }
     
     // Update tab content
     document.querySelectorAll('.admin-tab-content').forEach(content => {
         content.classList.remove('active');
     });
-    document.getElementById(`tab-${tabName}`).classList.add('active');
+    
+    const targetContent = document.getElementById(`tab-${tabName}`);
+    if (targetContent) {
+        targetContent.classList.add('active');
+        console.log('✅ Tab content activated');
+    } else {
+        console.error('❌ Tab content not found for:', tabName);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -593,11 +615,25 @@ function logout() {
 }
 
 function showLoading() {
-    document.getElementById('loading-overlay').classList.add('active');
+    console.log('🔄 Showing loading overlay');
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.classList.add('active');
+        console.log('✅ Loading overlay activated');
+    } else {
+        console.error('❌ Loading overlay element not found!');
+    }
 }
 
 function hideLoading() {
-    document.getElementById('loading-overlay').classList.remove('active');
+    console.log('🔄 Hiding loading overlay');
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+        console.log('✅ Loading overlay deactivated', 'Has active class:', overlay.classList.contains('active'));
+    } else {
+        console.error('❌ Loading overlay element not found!');
+    }
 }
 
 function showToast(message, type = 'info') {
@@ -918,7 +954,7 @@ async function addSpinsToUser() {
         hideLoading();
         showToast('❌ خطأ في الاتصال', 'error');
     }
-}
+
 
 async function deleteChannel(channelId) {
     if (!confirm('هل تريد حذف هذه القناة؟')) return;
