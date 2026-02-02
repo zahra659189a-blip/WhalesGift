@@ -364,12 +364,21 @@ async function deletePrize(prizeId) {
 // ═══════════════════════════════════════════════════════════════
 
 async function loadUsers() {
-    // Mock users data
-    adminData.users = [
-        { id: 123456, name: 'أحمد محمد', username: '@ahmed123', balance: 5.42, spins: 3, referrals: 12, joined: '2026-01-15' },
-        { id: 234567, name: 'محمد علي', username: '@mohamed', balance: 2.18, spins: 1, referrals: 5, joined: '2026-01-20' },
-        { id: 345678, name: 'فاطمة أحمد', username: '@fatima', balance: 8.95, spins: 5, referrals: 25, joined: '2026-01-10' }
-    ];
+    // تحميل المستخدمين من API
+    try {
+        const API_BASE_URL = window.CONFIG?.API_BASE_URL || '/api';
+        const response = await fetch(`${API_BASE_URL}/users`);
+        const result = await response.json();
+        
+        if (result.success) {
+            adminData.users = result.data || [];
+        } else {
+            adminData.users = [];
+        }
+    } catch (error) {
+        console.error('Error loading users:', error);
+        adminData.users = [];
+    }
     
     renderUsersTable();
 }
@@ -400,11 +409,21 @@ function renderUsersTable() {
 // ═══════════════════════════════════════════════════════════════
 
 async function loadWithdrawals() {
-    // Mock withdrawals data
-    adminData.withdrawals = [
-        { id: 1, user_id: 123456, user_name: 'أحمد محمد', amount: 5.0, method: 'TON', address: 'UQxx...xxxx', status: 'pending', date: '2026-02-02 10:30' },
-        { id: 2, user_id: 234567, user_name: 'محمد علي', amount: 2.0, method: 'Vodafone', number: '01012345678', status: 'pending', date: '2026-02-02 09:15' }
-    ];
+    // تحميل طلبات السحب من API
+    try {
+        const API_BASE_URL = window.CONFIG?.API_BASE_URL || '/api';
+        const response = await fetch(`${API_BASE_URL}/withdrawals`);
+        const result = await response.json();
+        
+        if (result.success) {
+            adminData.withdrawals = result.data || [];
+        } else {
+            adminData.withdrawals = [];
+        }
+    } catch (error) {
+        console.error('Error loading withdrawals:', error);
+        adminData.withdrawals = [];
+    }
     
     renderWithdrawals('pending');
 }
@@ -931,7 +950,7 @@ async function addSpinsToUser() {
     }
     
     try {
-        showLoading(true);
+        showLoading();
         
         const API_BASE_URL = window.CONFIG?.API_BASE_URL || '/api';
         const response = await fetch(`${API_BASE_URL}/admin/add-spins`, {
@@ -948,7 +967,7 @@ async function addSpinsToUser() {
         
         const result = await response.json();
         
-        showLoading(false);
+        hideLoading();
         
         if (result.success) {
             showToast(`✅ تم إضافة ${spinsAmount} لفة لـ ${username}`, 'success');
@@ -963,7 +982,7 @@ async function addSpinsToUser() {
         }
     } catch (error) {
         console.error('Error adding spins:', error);
-        showLoading(false);
+        hideLoading();
         showToast('❌ خطأ في إضافة اللفات', 'error');
     }
 }

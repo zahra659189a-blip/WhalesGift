@@ -61,6 +61,16 @@ from telegram.constants import ParseMode
 from telegram.error import RetryAfter, TimedOut, NetworkError, Forbidden, BadRequest
 import re
 
+# استيراد نظام الأيقونات المودرن
+try:
+    from bot_icons import icon, button_text, title, QUICK
+except ImportError:
+    # Fallback إذا الملف مش موجود
+    def icon(name, fallback='•'): return fallback
+    def button_text(i, t): return t
+    def title(i, t): return t
+    QUICK = {}
+
 # ═══════════════════════════════════════════════════════════════
 # 🔧 CONFIGURATION - من ملف .env
 # ═══════════════════════════════════════════════════════════════
@@ -95,7 +105,10 @@ WHEEL_PRIZES = [
 ]
 
 # 💰 إعدادات الإحالات والمهام
-SPINS_PER_REFERRALS = int(os.getenv("SPINS_PER_REFERRALS", "5"))
+SPINS_PER_REFERRALS = 5  # عدد الإحالات للحصول على لفة
+TICKETS_PER_TASK = 1  # عدد التذاكر لكل مهمة
+TICKETS_FOR_SPIN = 5  # عدد التذاكر للحصول على لفة
+REFERRALS_FOR_SPIN = 5  # عدد الإحالات للحصول على لفة
 MIN_WITHDRAWAL_AMOUNT = 0.1  # 0.1 TON لكل طرق السحب
 
 # 💳 إعدادات محفظة TON (للسحوبات الأوتوماتيكية)
@@ -127,7 +140,13 @@ BROADCAST_BATCH_DELAY = 1.0  # تأخير بين الدفعات (ثانية)
 BROADCAST_PRUNE_BLOCKED = True  # حذف المستخدمين المحظورين تلقائياً
 
 # 📊 States للـ ConversationHandler
-ADMIN_MENU, BROADCAST_MESSAGE, BROADCAST_BUTTON_NAME, BROADCAST_BUTTON_URL = range(4)
+(
+    ADMIN_MENU, 
+    BROADCAST_MESSAGE, 
+    BROADCAST_BUTTON_NAME, 
+    BROADCAST_BUTTON_URL,
+    ADD_CHANNEL_LINK,  # جديد: لإضافة قناة
+) = range(5)
 
 # ═══════════════════════════════════════════════════════════════
 # 🔧 LOGGING
@@ -1438,12 +1457,12 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 """
     
     keyboard = [
-        [InlineKeyboardButton("💸 طلبات السحب", callback_data="admin_withdrawals")],
-        [InlineKeyboardButton("📢 إرسال برودكاست", callback_data="start_broadcast")],
-        [InlineKeyboardButton("📝 إدارة المهام", callback_data="admin_tasks")],
-        [InlineKeyboardButton("👤 فحص مستخدم", callback_data="admin_check_user")],
-        [InlineKeyboardButton("📊 إحصائيات تفصيلية", callback_data="admin_detailed_stats")],
-        [InlineKeyboardButton("🔙 رجوع", callback_data="back_to_start")]
+        [InlineKeyboardButton(f"{icon('wallet')} طلبات السحب", callback_data="admin_withdrawals")],
+        [InlineKeyboardButton(f"{icon('broadcast')} إرسال برودكاست", callback_data="start_broadcast")],
+        [InlineKeyboardButton(f"{icon('tasks')} إدارة المهام", callback_data="admin_tasks")],
+        [InlineKeyboardButton(f"{icon('view')} فحص مستخدم", callback_data="admin_check_user")],
+        [InlineKeyboardButton(f"{icon('chart')} إحصائيات تفصيلية", callback_data="admin_detailed_stats")],
+        [InlineKeyboardButton(f"{icon('back')} رجوع", callback_data="back_to_start")]
     ]
     
     await query.edit_message_text(
@@ -1453,15 +1472,42 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     )
 
 async def admin_tasks_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إدارة المهام"""
+    """إدارة المهام والقنوات"""
     query = update.callback_query
     await query.answer()
     if not is_admin(query.from_user.id):
-        await query.answer("❌ غير مصرح لك!", show_alert=True)
+        await query.answer(f"{icon('error')} غير مصرح لك!", show_alert=True)
         return
+    
+    # جلب القنوات والمهام من API
+    try:
+        response = requests.get(f"{MINI_APP_URL}/api/admin/channels")
+        channels_data = response.json()
+        channels = channels_data.get('data', [])
+    except:
+        channels = []
+    
+    tasks_text = f"""
+{icon('tasks')} <b>إدارة المهام والقنوات</b>
+
+{icon('info')} القنوات المضافة: {len(channels)}
+
+{icon('bullet')} اضغط على إضافة قناة لإضافة قناة جديدة
+{icon('bullet')} سيتم التحقق تلقائياً من أن البوت أدمن في القناة
+{icon('bullet')} كل قناة = {TICKETS_PER_TASK} تذكرة للمستخدم
+{icon('bullet')} {TICKETS_FOR_SPIN} تذاكر = 1 لفة
+"""
+    
+    keyboard = [
+        [InlineKeyboardButton(f"{icon('add')} إضافة قناة جديدة", callback_data="add_channel_start")],
+        [InlineKeyboardButton(f"{icon('view')} عرض جميع القنوات", callback_data="view_all_channels")],
+        [InlineKeyboardButton(f"{icon('back')} رجوع", callback_data="admin_panel")]
+    ]
+    
     await query.edit_message_text(
-        "🚧 قريباً: إدارة المهام",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="admin_panel")]])
+        tasks_text,
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 async def admin_check_user_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2237,11 +2283,158 @@ async def reject_withdrawal_callback(update: Update, context: ContextTypes.DEFAU
             pass
     
     await query.edit_message_text(
-        f"❌ تم رفض الطلب #{withdrawal_id} وإعادة المبلغ",
+        f"{icon('cross')} تم رفض الطلب #{withdrawal_id} وإعادة المبلغ",
         reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("🔙 رجوع لطلبات السحب", callback_data="admin_withdrawals")
+            InlineKeyboardButton(f"{icon('back')} رجوع لطلبات السحب", callback_data="admin_withdrawals")
         ]])
     )
+
+# ═══════════════════════════════════════════════════════════════
+# 📢 إضافة قناة/مهمة - نظام مبسط
+# ═══════════════════════════════════════════════════════════════
+
+async def add_channel_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بدء إضافة قناة جديدة"""
+    query = update.callback_query
+    await query.answer()
+    
+    if not is_admin(query.from_user.id):
+        await query.answer(f"{icon('error')} غير مصرح لك!", show_alert=True)
+        return
+    
+    # طلب رابط القناة فقط
+    await query.edit_message_text(
+        f"""
+{icon('channel')} <b>إضافة قناة/مهمة جديدة</b>
+
+{icon('info')} <b>نوع المهمة:</b> channel/link
+
+{icon('edit')} <b>أرسل رابط القناة:</b>
+<code>https://t.me/YourChannel</code>
+أو
+<code>@YourChannel</code>
+
+{icon('bullet')} سيتم التحقق تلقائياً من أن البوت أدمن في القناة
+{icon('bullet')} المكافأة: {TICKETS_PER_TASK} تذكرة لكل قناة
+""",
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton(f"{icon('cross')} إلغاء", callback_data="admin_tasks")
+        ]])
+    )
+    
+    return ADD_CHANNEL_LINK
+
+async def add_channel_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """استقبال رابط القناة والتحقق منه"""
+    user_id = update.message.from_user.id
+    
+    if not is_admin(user_id):
+        return ConversationHandler.END
+    
+    channel_link = update.message.text.strip()
+    
+    # استخراج username القناة
+    if 't.me/' in channel_link:
+        channel_username = '@' + channel_link.split('t.me/')[1].strip('/')
+    elif channel_link.startswith('@'):
+        channel_username = channel_link
+    else:
+        await update.message.reply_text(
+            f"{icon('error')} رابط غير صحيح! أرسل الرابط بالشكل الصحيح.",
+            parse_mode=ParseMode.HTML
+        )
+        return ADD_CHANNEL_LINK
+    
+    # التحقق من أن البوت أدمن في القناة
+    try:
+        chat = await context.bot.get_chat(channel_username)
+        bot_member = await context.bot.get_chat_member(chat.id, context.bot.id)
+        
+        if bot_member.status not in ['administrator', 'creator']:
+            await update.message.reply_text(
+                f"""
+{icon('error')} <b>البوت ليس أدمن في القناة!</b>
+
+{icon('info')} يرجى:
+1. إضافة البوت كأدمن في القناة
+2. إعطاء صلاحية "Invite Users" على الأقل
+3. المحاولة مرة أخرى
+""",
+                parse_mode=ParseMode.HTML
+            )
+            return ADD_CHANNEL_LINK
+        
+        # إضافة القناة إلى API
+        try:
+            response = requests.post(
+                f"{MINI_APP_URL}/api/admin/channels",
+                json={
+                    'chat_id': chat.id,
+                    'username': channel_username.replace('@', ''),
+                    'name': chat.title,
+                    'mandatory': True,
+                    'admin_id': user_id
+                }
+            )
+            result = response.json()
+            
+            if result.get('success'):
+                await update.message.reply_text(
+                    f"""
+{icon('success')} <b>تم إضافة القناة بنجاح!</b>
+
+{icon('channel')} <b>القناة:</b> {chat.title}
+{icon('link')} <b>الرابط:</b> {channel_username}
+{icon('ticket')} <b>المكافأة:</b> {TICKETS_PER_TASK} تذكرة
+
+{icon('check')} البوت أدمن في القناة
+{icon('check')} القناة نشطة الآن
+""",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton(f"{icon('tasks')} إدارة المهام", callback_data="admin_tasks"),
+                        InlineKeyboardButton(f"{icon('add')} إضافة أخرى", callback_data="add_channel_start")
+                    ]])
+                )
+            else:
+                await update.message.reply_text(
+                    f"{icon('error')} خطأ في حفظ القناة: {result.get('error')}",
+                    parse_mode=ParseMode.HTML
+                )
+        except Exception as e:
+            logger.error(f"Error saving channel: {e}")
+            await update.message.reply_text(
+                f"{icon('error')} خطأ في الاتصال بالخادم",
+                parse_mode=ParseMode.HTML
+            )
+        
+    except Forbidden:
+        await update.message.reply_text(
+            f"{icon('error')} البوت محظور أو غير موجود في القناة!",
+            parse_mode=ParseMode.HTML
+        )
+        return ADD_CHANNEL_LINK
+    except BadRequest:
+        await update.message.reply_text(
+            f"{icon('error')} رابط القناة غير صحيح!",
+            parse_mode=ParseMode.HTML
+        )
+        return ADD_CHANNEL_LINK
+    except Exception as e:
+        logger.error(f"Error checking channel: {e}")
+        await update.message.reply_text(
+            f"{icon('error')} خطأ في التحقق من القناة",
+            parse_mode=ParseMode.HTML
+        )
+        return ADD_CHANNEL_LINK
+    
+    return ConversationHandler.END
+
+async def cancel_add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إلغاء إضافة قناة"""
+    await admin_tasks_callback(update, context)
+    return ConversationHandler.END
 
 # ═══════════════════════════════════════════════════════════════
 # 🚀 MAIN FUNCTION
@@ -2282,6 +2475,20 @@ def main():
     application.add_handler(CallbackQueryHandler(back_to_start_callback, pattern="^back_to_start$"))
     application.add_handler(CallbackQueryHandler(approve_withdrawal_callback, pattern="^approve_withdrawal_"))
     application.add_handler(CallbackQueryHandler(reject_withdrawal_callback, pattern="^reject_withdrawal_"))
+    
+    # ConversationHandler لإضافة القنوات
+    add_channel_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(add_channel_start, pattern="^add_channel_start$")],
+        states={
+            ADD_CHANNEL_LINK: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_channel_link)],
+        },
+        fallbacks=[
+            CallbackQueryHandler(cancel_add_channel, pattern="^admin_tasks$"),
+            CommandHandler("cancel", cancel_add_channel)
+        ],
+        allow_reentry=True
+    )
+    application.add_handler(add_channel_handler)
     
     # معالجات البرودكاست
     broadcast_handler = ConversationHandler(

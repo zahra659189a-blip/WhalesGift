@@ -20,9 +20,9 @@ const CONFIG = {
     
     // Referral & Tasks (تذاكر بدلاً من عملات)
     SPINS_PER_REFERRALS: 5,        // عدد الإحالات للحصول على لفة
-    TASKS_FOR_TICKET: 5,           // عدد المهام للحصول على تذكرة
-    REFERRALS_FOR_TICKET: 2,       // عدد الإحالات للحصول على تذكرة
-    TICKETS_FOR_SPIN: 1,           // عدد التذاكر للحصول على لفة
+    TICKETS_PER_TASK: 1,           // عدد التذاكر لكل مهمة
+    TICKETS_FOR_SPIN: 5,           // عدد التذاكر للحصول على لفة
+    REFERRALS_FOR_SPIN: 5,         // عدد الإحالات للحصول على لفة
     MIN_WITHDRAWAL_AMOUNT: 0.1,    // 0.1 TON لكل طرق السحب
     
     // Required Channels
