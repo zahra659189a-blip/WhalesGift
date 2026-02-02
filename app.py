@@ -36,18 +36,26 @@ def start_telegram_bot():
     except Exception as e:
         print(f"❌ Failed to start bot: {e}")
 
-# تشغيل البوت في thread منفصل عند بدء التشغيل
-if os.environ.get('RENDER'):
-    # على Render، شغل البوت في الخلفية
+# تشغيل البوت في thread منفصل عند بدء التشغيل (للتطوير المحلي فقط)
+if not os.environ.get('RENDER'):
+    # محلياً فقط، شغل البوت في الخلفية
     bot_thread = threading.Thread(target=start_telegram_bot, daemon=True)
     bot_thread.start()
-    print("🎉 Bot thread started on Render")
+    print("🎉 Bot thread started locally")
+else:
+    print("ℹ️ Running on Render - Bot will be started by start_render.sh")
 
 # ═══════════════════════════════════════════════════════════════
 # 🗄️ DATABASE MANAGER
 # ═══════════════════════════════════════════════════════════════
 
-DATABASE_PATH = os.getenv('DATABASE_PATH', 'panda_giveaways.db')
+# Use absolute path on Render to ensure both bot and Flask use same database
+if os.environ.get('RENDER'):
+    DATABASE_PATH = os.getenv('DATABASE_PATH', '/opt/render/project/src/panda_giveaways.db')
+else:
+    DATABASE_PATH = os.getenv('DATABASE_PATH', 'panda_giveaways.db')
+
+print(f"📂 Using database at: {DATABASE_PATH}")
 
 def init_database():
     """إنشاء قاعدة البيانات إذا لم تكن موجودة"""
