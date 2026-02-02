@@ -22,7 +22,16 @@ const CONFIG = {
     SPINS_PER_REFERRALS: 5,
     TASKS_FOR_TICKET: 5,
     REFERRALS_FOR_TICKET: 2,
-    MIN_WITHDRAWAL_AMOUNT: 1.0,
+    MIN_WITHDRAWAL_AMOUNT: 0.1,  // 10 سنت TON
+    
+    // Required Channels
+    REQUIRED_CHANNELS: [
+        { id: '@PandaAdds', name: 'Panda Adds', url: 'https://t.me/PandaAdds' },
+        { id: '@CRYPTO_FLASSH', name: 'Crypto Flash', url: 'https://t.me/CRYPTO_FLASSH' }
+    ],
+    
+    // Admin IDs
+    ADMIN_IDS: [1797127532, 6603009212],
     
     // Security
     MAX_SPINS_PER_DAY: 100,  // حد أقصى للفات اليومية

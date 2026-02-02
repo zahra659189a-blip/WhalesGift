@@ -44,6 +44,12 @@ async function initAdminPanel() {
 async function loadDashboardData() {
     showLoading();
     
+    // Safety timeout to hide loading after 10 seconds max
+    const loadingTimeout = setTimeout(() => {
+        console.warn('⏱️ Loading timeout - force hiding loading overlay');
+        hideLoading();
+    }, 10000);
+    
     try {
         // Load all data
         await Promise.all([
@@ -56,9 +62,11 @@ async function loadDashboardData() {
             loadSettings()
         ]);
         
+        clearTimeout(loadingTimeout);
         hideLoading();
         showToast('✅ تم تحميل البيانات بنجاح', 'success');
     } catch (error) {
+        clearTimeout(loadingTimeout);
         hideLoading();
         showToast('❌ خطأ في تحميل البيانات', 'error');
         console.error(error);

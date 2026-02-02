@@ -21,23 +21,41 @@ async function checkRequiredChannels() {
             }
         }
 
-        // Fetch required channels from API
-        console.log('📡 Fetching required channels from API...');
-        const response = await fetch('/api/admin/channels');
-        const result = await response.json();
+        // Use required channels from CONFIG
+        const requiredChannels = window.CONFIG?.REQUIRED_CHANNELS || [];
         
-        console.log('📊 API Response:', result);
+        console.log(`📢 Found ${requiredChannels.length} required channels from CONFIG`);
         
-        if (!result.success || !result.data || result.data.length === 0) {
-            console.log('ℹ️ No required channels found');
+        if (requiredChannels.length === 0) {
+            console.log('ℹ️ No required channels configured');
             localStorage.setItem('channelsChecked', new Date().toISOString());
             return true;
         }
 
-        console.log(`📢 Found ${result.data.length} required channels`);
-        
+        // Also fetch additional channels from admin panel
+        try {
+            const response = await fetch(`${window.CONFIG?.API_BASE_URL || '/api'}/admin/channels`);
+            const result = await response.json();
+            
+            if (result.success && result.data && result.data.length > 0) {
+                console.log(`📡 Found ${result.data.length} additional channels from admin`);
+                // Merge with required channels
+                result.data.forEach(channel => {
+                    if (!requiredChannels.find(c => c.id === channel.channel_id)) {
+                        requiredChannels.push({
+                            id: channel.channel_id,
+                            name: channel.channel_name,
+                            url: channel.channel_url
+                        });
+                    }
+                });
+            }
+        } catch (apiError) {
+            console.warn('⚠️ Could not fetch admin channels:', apiError);
+        }
+
         // Show channels modal
-        showChannelsModal(result.data);
+        showChannelsModal(requiredChannels);
         return false;
 
     } catch (error) {
@@ -54,7 +72,8 @@ function showChannelsModal(channels) {
     // Track which channels user opened
     const channelStatus = {};
     channels.forEach(channel => {
-        channelStatus[channel.channel_id] = false;
+        const channelId = channel.id || channel.channel_id;
+        channelStatus[channelId] = false;
     });
 
     const modalHTML = `
@@ -64,25 +83,29 @@ function showChannelsModal(channels) {
                 <p>يرجى الانضمام إلى القنوات التالية للمتابعة:</p>
                 
                 <div class="channels-list">
-                    ${channels.map(channel => `
-                        <div class="channel-item" data-channel-id="${channel.channel_id}">
+                    ${channels.map(channel => {
+                        const channelId = channel.id || channel.channel_id;
+                        const channelName = channel.name || channel.channel_name;
+                        const channelUrl = channel.url || channel.channel_url;
+                        return `
+                        <div class="channel-item" data-channel-id="${channelId}">
                             <div class="channel-info">
-                                <h3>${channel.channel_name}</h3>
-                                <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">${channel.channel_id}</p>
+                                <h3>${channelName}</h3>
+                                <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">${channelId}</p>
                             </div>
                             <div class="channel-actions">
-                                <a href="${channel.channel_url}" 
+                                <a href="${channelUrl}" 
                                    target="_blank" 
                                    class="channel-link"
-                                   onclick="markChannelAsOpened('${channel.channel_id}')">
-                                    📢 فتح القناة
+                                   onclick="markChannelAsOpened('${channelId}')">
+                                    📢 اشترك هنا
                                 </a>
-                                <span class="channel-status not-subscribed" id="status-${channel.channel_id}">
+                                <span class="channel-status not-subscribed" id="status-${channelId}">
                                     ❌
                                 </span>
                             </div>
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
                 
                 <button class="verify-btn" onclick="verifySubscriptions()">
