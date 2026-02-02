@@ -1,7 +1,7 @@
 # Panda Giveaways Bot Dependencies
 
 # Core
-python-telegram-bot==20.7
+python-telegram-bot==20.3
 python-dotenv==1.0.0
 
 # Database
