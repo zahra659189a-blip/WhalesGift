@@ -412,6 +412,68 @@ def get_user_withdrawals(user_id):
         print(f"Error in get_user_withdrawals: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/referral/register', methods=['POST'])
+def register_referral():
+    """تسجيل إحالة جديدة"""
+    try:
+        data = request.get_json()
+        referrer_id = data.get('referrer_id')
+        referred_id = data.get('referred_id')
+        
+        if not referrer_id or not referred_id:
+            return jsonify({'success': False, 'error': 'Missing parameters'}), 400
+        
+        # التحقق من عدم إحالة نفسه
+        if referrer_id == referred_id:
+            return jsonify({'success': False, 'error': 'Cannot refer yourself'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        now = datetime.now().isoformat()
+        
+        try:
+            # تسجيل الإحالة
+            cursor.execute("""
+                INSERT INTO referrals (referrer_id, referred_id, is_valid, created_at, validated_at)
+                VALUES (?, ?, 1, ?, ?)
+            """, (referrer_id, referred_id, now, now))
+            
+            # تحديث عدد الإحالات للـ referrer
+            cursor.execute("""
+                UPDATE users 
+                SET total_referrals = total_referrals + 1,
+                    valid_referrals = valid_referrals + 1
+                WHERE user_id = ?
+            """, (referrer_id,))
+            
+            # إضافة لفة مجانية كل 5 إحالات
+            cursor.execute("SELECT valid_referrals FROM users WHERE user_id = ?", (referrer_id,))
+            result = cursor.fetchone()
+            if result and result['valid_referrals'] % 5 == 0:
+                cursor.execute("""
+                    UPDATE users 
+                    SET available_spins = available_spins + 1
+                    WHERE user_id = ?
+                """, (referrer_id,))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Referral registered successfully'
+            })
+        except sqlite3.IntegrityError:
+            conn.close()
+            return jsonify({
+                'success': False,
+                'error': 'Referral already exists'
+            }), 400
+            
+    except Exception as e:
+        print(f"Error in register_referral: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/health')
 def health():
     """Health check لـ Render"""

@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // عرض Loading
         showLoading(true);
         
+        // معالجة الإحالة إذا موجودة
+        await handleReferral();
+        
         // تحميل بيانات المستخدم
         await loadUserData();
         
@@ -41,6 +44,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast('حدث خطأ في تحميل التطبيق', 'error');
     }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// 🔗 REFERRAL HANDLING
+// ═══════════════════════════════════════════════════════════════
+
+async function handleReferral() {
+    try {
+        // الحصول على معامل الإحالة من URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const startParam = urlParams.get('tgWebAppStartParam');
+        
+        if (startParam && startParam.startsWith('ref_')) {
+            const referrerId = parseInt(startParam.replace('ref_', ''));
+            const currentUserId = TelegramApp.getUserId() || urlParams.get('user_id');
+            
+            if (referrerId && currentUserId && referrerId !== parseInt(currentUserId)) {
+                console.log('📎 Registering referral:', referrerId, '->', currentUserId);
+                
+                // تسجيل الإحالة
+                const response = await fetch(`${CONFIG.API_BASE_URL}/referral/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        referrer_id: referrerId,
+                        referred_id: parseInt(currentUserId)
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    console.log('✅ Referral registered successfully');
+                    showToast('تم تسجيل الإحالة بنجاح! 🎉', 'success');
+                } else {
+                    console.log('⚠️ Referral registration failed:', result.error);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error handling referral:', error);
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // 👤 USER DATA

@@ -3,26 +3,15 @@
 
 echo "🐼 Starting Panda Giveaways Services..."
 
-# Start Flask web server in background
-echo "🌐 Starting Flask Server on port $PORT..."
-gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 &
-WEB_PID=$!
-
-# Wait for web server to start
-sleep 3
-
-# Start Telegram Bot in background
+# Start Telegram Bot in background (with nohup to keep it running)
 echo "🤖 Starting Telegram Bot..."
-python panda_giveaways_bot.py &
+nohup python panda_giveaways_bot.py > bot.log 2>&1 &
 BOT_PID=$!
+echo "✅ Bot started with PID: $BOT_PID"
 
-echo "✅ All services started!"
-echo "   Web Server PID: $WEB_PID"
-echo "   Bot PID: $BOT_PID"
+# Wait for bot to initialize
+sleep 2
 
-# Keep script running and monitor processes
-wait -n
-
-# If any process exits, kill the other and exit
-kill $WEB_PID $BOT_PID 2>/dev/null
-exit $?
+# Start Flask web server (this will block and keep the container alive)
+echo "🌐 Starting Flask Server on port $PORT..."
+exec gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --access-logfile - --error-logfile -
