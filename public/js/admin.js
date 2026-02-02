@@ -66,11 +66,36 @@ async function loadDashboardData() {
 }
 
 async function loadStatistics() {
-    // Mock data - replace with real API call
-    document.getElementById('total-users').textContent = '1,234';
-    document.getElementById('total-spins').textContent = '5,678';
-    document.getElementById('total-balance').textContent = '123.45';
-    document.getElementById('pending-withdrawals').textContent = '15';
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/stats`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            const stats = result.data;
+            document.getElementById('total-users').textContent = formatNumber(stats.total_users || 0);
+            document.getElementById('total-spins').textContent = formatNumber(stats.total_spins || 0);
+            document.getElementById('total-balance').textContent = (stats.total_distributed || 0).toFixed(2);
+            document.getElementById('pending-withdrawals').textContent = formatNumber(stats.pending_withdrawals || 0);
+        } else {
+            console.error('Failed to load statistics:', result.error);
+            // Set default values on error
+            document.getElementById('total-users').textContent = '0';
+            document.getElementById('total-spins').textContent = '0';
+            document.getElementById('total-balance').textContent = '0.00';
+            document.getElementById('pending-withdrawals').textContent = '0';
+        }
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+        // Set default values on error
+        document.getElementById('total-users').textContent = '0';
+        document.getElementById('total-spins').textContent = '0';
+        document.getElementById('total-balance').textContent = '0.00';
+        document.getElementById('pending-withdrawals').textContent = '0';
+    }
+}
+
+function formatNumber(num) {
+    return new Intl.NumberFormat('ar-EG').format(num);
 }
 
 // ═══════════════════════════════════════════════════════════════

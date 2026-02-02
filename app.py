@@ -9,6 +9,8 @@ import sqlite3
 from datetime import datetime
 import threading
 import subprocess
+import random
+import hashlib
 
 # إضافة المسار الحالي لـ Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -348,6 +350,8 @@ def get_user_spins(user_id):
 @app.route('/api/spin', methods=['POST'])
 def perform_spin():
     """تنفيذ لفة العجلة"""
+    import random
+    import hashlib
     try:
         data = request.get_json()
         user_id = data.get('user_id')
@@ -355,11 +359,89 @@ def perform_spin():
         if not user_id:
             return jsonify({'success': False, 'error': 'User ID required'}), 400
         
-        # TODO: تنفيذ منطق اللفة هنا
-        return jsonify({
-            'success': False,
-            'error': 'Spin functionality coming soon'
-        }), 501
+        # Get user
+        user = get_user(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        # Check if user is banned
+        if user['is_banned']:
+            return jsonify({'success': False, 'error': 'تم حظرك من البوت'}), 403
+        
+        # Check available spins
+        if user['available_spins'] <= 0:
+            return jsonify({'success': False, 'error': 'ليس لديك لفات متاحة'}), 400
+        
+        # Define prizes with probabilities
+        prizes = [
+            {'name': '0.01 TON', 'amount': 0.01, 'probability': 40, 'color': '#ffa500', 'emoji': '🪙'},
+            {'name': '0.05 TON', 'amount': 0.05, 'probability': 25, 'color': '#4a9eff', 'emoji': '💎'},
+            {'name': '0.1 TON', 'amount': 0.1, 'probability': 15, 'color': '#66bb6a', 'emoji': '💰'},
+            {'name': '0.5 TON', 'amount': 0.5, 'probability': 10, 'color': '#ef5350', 'emoji': '🎁'},
+            {'name': '1.0 TON', 'amount': 1.0, 'probability': 5, 'color': '#ab47bc', 'emoji': '🏆'},
+            {'name': 'حظ أوفر', 'amount': 0.0, 'probability': 5, 'color': '#90a4ae', 'emoji': '😔'}
+        ]
+        
+        # Select prize based on probability
+        total_probability = sum(p['probability'] for p in prizes)
+        rand = random.uniform(0, total_probability)
+        cumulative = 0
+        selected_prize = prizes[-1]  # Default to last prize
+        
+        for prize in prizes:
+            cumulative += prize['probability']
+            if rand <= cumulative:
+                selected_prize = prize
+                break
+        
+        # Generate unique spin hash
+        now = datetime.now().isoformat()
+        spin_hash = hashlib.sha256(f"{user_id}{now}{random.random()}".encode()).hexdigest()
+        
+        # Update database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Add spin record
+            cursor.execute("""
+                INSERT INTO spins (user_id, prize_name, prize_amount, spin_time, spin_hash, ip_address)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_id, selected_prize['name'], selected_prize['amount'], now, spin_hash, request.remote_addr))
+            
+            # Update user
+            new_balance = user['balance'] + selected_prize['amount']
+            new_spins = user['available_spins'] - 1
+            new_total_spins = user['total_spins'] + 1
+            
+            cursor.execute("""
+                UPDATE users 
+                SET balance = ?,
+                    available_spins = ?,
+                    total_spins = ?,
+                    last_spin_time = ?,
+                    last_active = ?
+                WHERE user_id = ?
+            """, (new_balance, new_spins, new_total_spins, now, now, user_id))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'prize': selected_prize,
+                    'new_balance': new_balance,
+                    'new_spins': new_spins,
+                    'spin_hash': spin_hash
+                }
+            })
+            
+        except Exception as db_error:
+            conn.rollback()
+            conn.close()
+            print(f"Database error in spin: {db_error}")
+            return jsonify({'success': False, 'error': 'خطأ في قاعدة البيانات'}), 500
         
     except Exception as e:
         print(f"Error in perform_spin: {e}")
