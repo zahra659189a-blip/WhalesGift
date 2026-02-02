@@ -1315,8 +1315,8 @@ body {
     border-radius: var(--radius-md);
     padding: var(--spacing-md);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: var(--spacing-sm);
     transition: all 0.3s ease;
 }
 
@@ -1335,6 +1335,7 @@ body {
     width: 40px;
     height: 40px;
     color: var(--accent-color);
+    flex-shrink: 0;
 }
 
 .channel-name {
@@ -1349,21 +1350,49 @@ body {
     margin-top: 2px;
 }
 
+.channel-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
 .channel-join-btn {
     background: var(--accent-color);
     color: white;
-    padding: 8px 16px;
+    padding: 10px 16px;
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: 14px;
     text-decoration: none;
     transition: all 0.3s ease;
-    white-space: nowrap;
+    flex: 1;
+    text-align: center;
 }
 
 .channel-join-btn:hover {
     background: var(--accent-hover);
-    transform: scale(1.05);
+    transform: scale(1.02);
+}
+
+.channel-status {
+    font-size: 24px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.channel-status.subscribed {
+    background: rgba(102, 187, 106, 0.2);
+}
+
+.channel-status.not-subscribed {
+    background: rgba(239, 83, 80, 0.2);
 }
 
 /* ═══════════════════════════════════════════════════════════════

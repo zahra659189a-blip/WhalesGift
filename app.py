@@ -22,30 +22,26 @@ CORS(app)  # السماح بـ CORS
 # 🤖 BOT STARTUP IN BACKGROUND
 # ═══════════════════════════════════════════════════════════════
 
-# تم تعطيل التشغيل التلقائي للبوت من app.py
-# البوت الأصلي panda_giveaways_bot.py يعمل بالفعل
-# لتجنب Conflict: terminated by other getUpdates request
+def start_telegram_bot():
+    """تشغيل البوت في thread منفصل"""
+    try:
+        print("🤖 Starting Telegram Bot in background...")
+        # تشغيل البوت كـ subprocess
+        subprocess.Popen(
+            [sys.executable, "panda_giveaways_bot.py"],
+            stdout=sys.stdout,
+            stderr=sys.stderr
+        )
+        print("✅ Bot process started")
+    except Exception as e:
+        print(f"❌ Failed to start bot: {e}")
 
-# def start_telegram_bot():
-#     """تشغيل البوت في thread منفصل"""
-#     try:
-#         print("🤖 Starting Telegram Bot in background...")
-#         # تشغيل البوت كـ subprocess
-#         subprocess.Popen(
-#             [sys.executable, "panda_giveaways_bot.py"],
-#             stdout=sys.stdout,
-#             stderr=sys.stderr
-#         )
-#         print("✅ Bot process started")
-#     except Exception as e:
-#         print(f"❌ Failed to start bot: {e}")
-
-# # تشغيل البوت في thread منفصل عند بدء التشغيل
-# if os.environ.get('RENDER'):
-#     # على Render، شغل البوت في الخلفية
-#     bot_thread = threading.Thread(target=start_telegram_bot, daemon=True)
-#     bot_thread.start()
-#     print("🎉 Bot thread started on Render")
+# تشغيل البوت في thread منفصل عند بدء التشغيل
+if os.environ.get('RENDER'):
+    # على Render، شغل البوت في الخلفية
+    bot_thread = threading.Thread(target=start_telegram_bot, daemon=True)
+    bot_thread.start()
+    print("🎉 Bot thread started on Render")
 
 # ═══════════════════════════════════════════════════════════════
 # 🗄️ DATABASE MANAGER
