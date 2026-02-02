@@ -162,6 +162,22 @@ def init_database():
         )
     """)
     
+    # جدول جوائز العجلة
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS wheel_prizes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            value REAL NOT NULL,
+            probability REAL NOT NULL,
+            color TEXT NOT NULL,
+            emoji TEXT NOT NULL,
+            is_active INTEGER DEFAULT 1,
+            position INTEGER DEFAULT 0,
+            added_at TEXT NOT NULL,
+            updated_at TEXT
+        )
+    """)
+    
     # إضافة القنوات الإجبارية الافتراضية إذا لم تكن موجودة
     cursor.execute("SELECT COUNT(*) FROM required_channels")
     count = cursor.fetchone()[0]  # الوصول بالـ index وليس بالـ key
@@ -176,6 +192,26 @@ def init_database():
                 INSERT INTO required_channels (channel_id, channel_name, channel_url, is_active, added_by, added_at)
                 VALUES (?, ?, ?, 1, ?, ?)
             """, (channel_id, name, url, admin_id, now))
+    
+    # إضافة الجوائز الافتراضية إذا لم تكن موجودة
+    cursor.execute("SELECT COUNT(*) FROM wheel_prizes")
+    count = cursor.fetchone()[0]
+    if count == 0:
+        now = datetime.now().isoformat()
+        default_prizes = [
+            ('0.01 TON', 0.01, 30, '#9370db', '🪙', 0),
+            ('0.05 TON', 0.05, 10, '#00bfff', '💎', 1),
+            ('0.1 TON', 0.1, 5, '#ffa500', '💰', 2),
+            ('0.2 TON', 0.2, 3, '#ff6347', '🎁', 3),
+            ('0.5 TON', 0.5, 1, '#32cd32', '🏆', 4),
+            ('1.0 TON', 1.0, 0.5, '#ff1493', '👑', 5),
+            ('حظ أوفر', 0, 50.5, '#808080', '😔', 6)
+        ]
+        for name, value, prob, color, emoji, pos in default_prizes:
+            cursor.execute("""
+                INSERT INTO wheel_prizes (name, value, probability, color, emoji, position, is_active, added_at)
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+            """, (name, value, prob, color, emoji, pos, now))
     
     conn.commit()
     conn.close()
@@ -770,6 +806,188 @@ def manage_tasks():
             
             cursor.execute("""
                 INSERT INTO tasks (task_type, task_name, task_description, channel_id, link_url, reward_amount, is_active, added_by, added_at)
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+            """, (task_type, task_name, task_description, channel_id, link_url, reward_amount, admin_id, now))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({'success': True, 'message': 'Task added successfully'})
+            
+        elif request.method == 'DELETE':
+            # Delete task
+            task_id = request.args.get('task_id')
+            if not task_id:
+                return jsonify({'success': False, 'error': 'Task ID required'}), 400
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE tasks 
+                SET is_active = 0 
+                WHERE id = ?
+            """, (task_id,))
+            conn.commit()
+            conn.close()
+            
+            return jsonify({'success': True, 'message': 'Task removed'})
+            
+    except Exception as e:
+        print(f"Error in manage_tasks: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ═══════════════════════════════════════════════════════════════
+# 🎁 WHEEL PRIZES MANAGEMENT
+# ═══════════════════════════════════════════════════════════════
+
+@app.route('/api/admin/prizes', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def manage_prizes():
+    """إدارة جوائز العجلة"""
+    try:
+        if request.method == 'GET':
+            # Get all active prizes
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM wheel_prizes 
+                WHERE is_active = 1 
+                ORDER BY position ASC
+            """)
+            prizes = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+            return jsonify({'success': True, 'data': prizes})
+        
+        elif request.method == 'POST':
+            # Add new prize
+            data = request.get_json()
+            name = data.get('name')
+            value = data.get('value')
+            probability = data.get('probability')
+            color = data.get('color')
+            emoji = data.get('emoji')
+            position = data.get('position', 0)
+            
+            if not all([name, value is not None, probability is not None, color, emoji]):
+                return jsonify({'success': False, 'error': 'Missing parameters'}), 400
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            now = datetime.now().isoformat()
+            
+            cursor.execute("""
+                INSERT INTO wheel_prizes (name, value, probability, color, emoji, position, is_active, added_at)
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+            """, (name, value, probability, color, emoji, position, now))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({'success': True, 'message': 'Prize added successfully'})
+        
+        elif request.method == 'PUT':
+            # Update prize
+            data = request.get_json()
+            prize_id = data.get('id')
+            name = data.get('name')
+            value = data.get('value')
+            probability = data.get('probability')
+            color = data.get('color')
+            emoji = data.get('emoji')
+            position = data.get('position', 0)
+            
+            if not prize_id:
+                return jsonify({'success': False, 'error': 'Prize ID required'}), 400
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            now = datetime.now().isoformat()
+            
+            cursor.execute("""
+                UPDATE wheel_prizes 
+                SET name = ?, value = ?, probability = ?, color = ?, emoji = ?, position = ?, updated_at = ?
+                WHERE id = ?
+            """, (name, value, probability, color, emoji, position, now, prize_id))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({'success': True, 'message': 'Prize updated successfully'})
+        
+        elif request.method == 'DELETE':
+            # Delete prize
+            prize_id = request.args.get('id')
+            if not prize_id:
+                return jsonify({'success': False, 'error': 'Prize ID required'}), 400
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE wheel_prizes 
+                SET is_active = 0 
+                WHERE id = ?
+            """, (prize_id,))
+            conn.commit()
+            conn.close()
+            
+            return jsonify({'success': True, 'message': 'Prize removed'})
+            
+    except Exception as e:
+        print(f"Error in manage_prizes: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ═══════════════════════════════════════════════════════════════
+# 👤 ADD SPINS TO USER
+# ═══════════════════════════════════════════════════════════════
+
+@app.route('/api/admin/add-spins', methods=['POST'])
+def add_spins_to_user():
+    """إضافة لفات لمستخدم معين"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        spins_count = data.get('spins_count')
+        admin_id = data.get('admin_id')
+        
+        if not all([username, spins_count, admin_id]):
+            return jsonify({'success': False, 'error': 'Missing parameters'}), 400
+        
+        # Remove @ if present
+        username = username.replace('@', '')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Find user by username
+        cursor.execute("SELECT user_id, username FROM users WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        
+        if not user:
+            conn.close()
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        user_id = user['user_id']
+        
+        # Add spins
+        cursor.execute("""
+            UPDATE users 
+            SET available_spins = available_spins + ?
+            WHERE user_id = ?
+        """, (spins_count, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Added {spins_count} spins to @{username}',
+            'user_id': user_id
+        })
+        
+    except Exception as e:
+        print(f"Error in add_spins_to_user: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+if __name__ == '__main__':
                 VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
             """, (task_type, task_name, task_description, channel_id, link_url, reward_amount, admin_id, now))
             

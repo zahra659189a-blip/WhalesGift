@@ -103,15 +103,22 @@ function formatNumber(num) {
 // ═══════════════════════════════════════════════════════════════
 
 async function loadPrizes() {
-    // Mock prizes data
-    adminData.prizes = [
-        { id: 1, name: '0.01 TON', value: 0.01, probability: 40, color: '#ffa500', emoji: '🪙' },
-        { id: 2, name: '0.05 TON', value: 0.05, probability: 25, color: '#4a9eff', emoji: '💎' },
-        { id: 3, name: '0.1 TON', value: 0.1, probability: 15, color: '#66bb6a', emoji: '💰' },
-        { id: 4, name: '0.5 TON', value: 0.5, probability: 10, color: '#ef5350', emoji: '🎁' },
-        { id: 5, name: '1.0 TON', value: 1.0, probability: 5, color: '#ab47bc', emoji: '🏆' },
-        { id: 6, name: 'حظ أوفر', value: 0, probability: 5, color: '#90a4ae', emoji: '😔' }
-    ];
+    try {
+        console.log('🎁 Loading prizes from API...');
+        const response = await fetch('/api/admin/prizes');
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            adminData.prizes = result.data;
+            console.log(`✅ Loaded ${adminData.prizes.length} prizes`);
+        } else {
+            console.error('❌ Failed to load prizes:', result.error);
+            showToast('فشل تحميل الجوائز', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Error loading prizes:', error);
+        showToast('خطأ في تحميل الجوائز', 'error');
+    }
     
     renderPrizesList();
     updatePrizesInfo();
@@ -180,7 +187,7 @@ function openEditPrizeModal(prizeId) {
     modal.classList.add('active');
 }
 
-function addPrize() {
+async function addPrize() {
     const name = document.getElementById('prize-name').value;
     const value = parseFloat(document.getElementById('prize-value').value);
     const probability = parseFloat(document.getElementById('prize-probability').value);
@@ -192,57 +199,100 @@ function addPrize() {
         return;
     }
     
-    const newPrize = {
-        id: Date.now(),
-        name,
-        value,
-        probability,
-        color,
-        emoji
-    };
-    
-    adminData.prizes.push(newPrize);
-    renderPrizesList();
-    updatePrizesInfo();
-    closeModal('add-prize-modal');
-    showToast('✅ تم إضافة الجائزة بنجاح', 'success');
-    
-    // Clear form
-    document.getElementById('prize-name').value = '';
-    document.getElementById('prize-value').value = '';
-    document.getElementById('prize-probability').value = '';
-    document.getElementById('prize-color').value = '#ffa500';
-    document.getElementById('prize-emoji').value = '';
+    try {
+        const response = await fetch('/api/admin/prizes', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name,
+                value,
+                probability,
+                color,
+                emoji,
+                position: adminData.prizes.length
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await loadPrizes();
+            closeModal('add-prize-modal');
+            showToast('✅ تم إضافة الجائزة بنجاح', 'success');
+            
+            // Clear form
+            document.getElementById('prize-name').value = '';
+            document.getElementById('prize-value').value = '';
+            document.getElementById('prize-probability').value = '';
+            document.getElementById('prize-color').value = '#ffa500';
+            document.getElementById('prize-emoji').value = '';
+        } else {
+            showToast('❌ فشل إضافة الجائزة: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error adding prize:', error);
+        showToast('❌ خطأ في إضافة الجائزة', 'error');
+    }
 }
 
-function updatePrize() {
+async function updatePrize() {
     const id = parseInt(document.getElementById('edit-prize-id').value);
-    const prizeIndex = adminData.prizes.findIndex(p => p.id === id);
+    const prize = adminData.prizes.find(p => p.id === id);
     
-    if (prizeIndex === -1) return;
+    if (!prize) return;
     
-    adminData.prizes[prizeIndex] = {
+    const updatedData = {
         id,
         name: document.getElementById('edit-prize-name').value,
         value: parseFloat(document.getElementById('edit-prize-value').value),
         probability: parseFloat(document.getElementById('edit-prize-probability').value),
         color: document.getElementById('edit-prize-color').value,
-        emoji: document.getElementById('edit-prize-emoji').value
+        emoji: document.getElementById('edit-prize-emoji').value,
+        position: prize.position
     };
     
-    renderPrizesList();
-    updatePrizesInfo();
-    closeModal('edit-prize-modal');
-    showToast('✅ تم تحديث الجائزة بنجاح', 'success');
+    try {
+        const response = await fetch('/api/admin/prizes', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(updatedData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await loadPrizes();
+            closeModal('edit-prize-modal');
+            showToast('✅ تم تحديث الجائزة بنجاح', 'success');
+        } else {
+            showToast('❌ فشل تحديث الجائزة: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error updating prize:', error);
+        showToast('❌ خطأ في تحديث الجائزة', 'error');
+    }
 }
 
-function deletePrize(prizeId) {
+async function deletePrize(prizeId) {
     if (!confirm('هل أنت متأكد من حذف هذه الجائزة؟')) return;
     
-    adminData.prizes = adminData.prizes.filter(p => p.id !== prizeId);
-    renderPrizesList();
-    updatePrizesInfo();
-    showToast('✅ تم حذف الجائزة بنجاح', 'success');
+    try {
+        const response = await fetch(`/api/admin/prizes?id=${prizeId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await loadPrizes();
+            showToast('✅ تم حذف الجائزة بنجاح', 'success');
+        } else {
+            showToast('❌ فشل حذف الجائزة: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting prize:', error);
+        showToast('❌ خطأ في حذف الجائزة', 'error');
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -691,6 +741,114 @@ function displayChannels(channels) {
 
 async function deleteTask(taskId) {
     if (!confirm('هل تريد حذف هذه المهمة؟')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/tasks?task_id=${taskId}`, {
+            method: 'DELETE'
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('✅ تم حذف المهمة بنجاح', 'success');
+            loadTasks();
+        } else {
+            showToast('❌ فشل حذف المهمة', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        showToast('❌ خطأ في حذف المهمة', 'error');
+    }
+}
+
+async function deleteChannel(channelId) {
+    if (!confirm('هل تريد حذف هذه القناة؟')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/channels?channel_id=${channelId}`, {
+            method: 'DELETE'
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('✅ تم حذف القناة بنجاح', 'success');
+            loadChannels();
+        } else {
+            showToast('❌ فشل حذف القناة', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting channel:', error);
+        showToast('❌ خطأ في حذف القناة', 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🎰 ADD SPINS TO USER
+// ═══════════════════════════════════════════════════════════════
+
+function openAddSpinsModal() {
+    const modal = document.getElementById('add-spins-modal');
+    if (modal) {
+        modal.classList.add('active');
+        // Clear previous inputs
+        document.getElementById('target-username').value = '';
+        document.getElementById('spins-amount').value = '';
+    }
+}
+
+async function addSpinsToUser() {
+    const username = document.getElementById('target-username').value.trim();
+    const spinsAmount = parseInt(document.getElementById('spins-amount').value);
+    
+    if (!username) {
+        showToast('❌ يرجى إدخال اسم المستخدم', 'error');
+        return;
+    }
+    
+    if (!spinsAmount || spinsAmount < 1) {
+        showToast('❌ يرجى إدخال عدد صحيح من اللفات', 'error');
+        return;
+    }
+    
+    try {
+        showLoading(true);
+        
+        const response = await fetch('/api/admin/add-spins', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                spins_count: spinsAmount,
+                admin_id: TelegramApp.getUserId() || 1797127532
+            })
+        });
+        
+        const result = await response.json();
+        
+        showLoading(false);
+        
+        if (result.success) {
+            showToast(`✅ تم إضافة ${spinsAmount} لفة لـ ${username}`, 'success');
+            closeModal('add-spins-modal');
+            
+            // Reload users list if on users tab
+            if (document.getElementById('tab-users').classList.contains('active')) {
+                loadUsers();
+            }
+        } else {
+            showToast('❌ فشل إضافة اللفات: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error adding spins:', error);
+        showLoading(false);
+        showToast('❌ خطأ في إضافة اللفات', 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🔧 HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
     
     try {
         showLoading();

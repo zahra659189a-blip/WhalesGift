@@ -147,8 +147,11 @@
         <section id="tab-users" class="admin-tab-content">
             <div class="content-header">
                 <h2>👥 إدارة المستخدمين</h2>
-                <div class="search-box">
-                    <input type="text" id="user-search" placeholder="🔍 ابحث عن مستخدم...">
+                <div class="header-actions">
+                    <button class="add-btn" onclick="openAddSpinsModal()">➕ إضافة لفات</button>
+                    <div class="search-box">
+                        <input type="text" id="user-search" placeholder="🔍 ابحث عن مستخدم...">
+                    </div>
                 </div>
             </div>
 
@@ -400,6 +403,31 @@
             <div class="modal-footer">
                 <button class="secondary-btn" onclick="closeModal('edit-prize-modal')">إلغاء</button>
                 <button class="primary-btn" onclick="updatePrize()">💾 حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎰 Add Spins Modal -->
+    <div id="add-spins-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎰 إضافة لفات لمستخدم</h2>
+                <span class="close-btn" onclick="closeModal('add-spins-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>اسم المستخدم (Username)</label>
+                    <input type="text" id="target-username" placeholder="@username">
+                    <small>أدخل اسم المستخدم مع أو بدون @</small>
+                </div>
+                <div class="form-group">
+                    <label>عدد اللفات</label>
+                    <input type="number" id="spins-amount" min="1" max="1000" placeholder="مثال: 10">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="closeModal('add-spins-modal')">إلغاء</button>
+                <button class="primary-btn" onclick="addSpinsToUser()">➕ إضافة اللفات</button>
             </div>
         </div>
     </div>

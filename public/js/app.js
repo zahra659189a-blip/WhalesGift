@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // تحميل بيانات المستخدم
         await loadUserData();
         
+        // تحميل جوائز العجلة من API
+        await loadWheelPrizes();
+        
         // تهيئة UI
         initUI();
         
@@ -44,6 +47,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast('حدث خطأ في تحميل التطبيق', 'error');
     }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// 🎁 WHEEL PRIZES LOADER
+// ═══════════════════════════════════════════════════════════════
+
+async function loadWheelPrizes() {
+    try {
+        console.log('🎁 Loading wheel prizes from API...');
+        const response = await fetch('/api/admin/prizes');
+        const result = await response.json();
+        
+        if (result.success && result.data && result.data.length > 0) {
+            // تحويل صيغة الجوائز من DB إلى صيغة العجلة
+            CONFIG.WHEEL_PRIZES = result.data.map(prize => ({
+                name: prize.name,
+                amount: prize.value,
+                probability: prize.probability,
+                color: prize.color
+            }));
+            console.log(`✅ Loaded ${CONFIG.WHEEL_PRIZES.length} prizes from database`);
+        } else {
+            console.log('⚠️ Using default prizes from config');
+        }
+    } catch (error) {
+        console.error('❌ Error loading prizes:', error);
+        console.log('⚠️ Using default prizes from config');
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // 🔗 REFERRAL HANDLING

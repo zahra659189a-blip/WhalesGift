@@ -16,11 +16,34 @@ class WheelOfFortune {
         this.centerY = this.canvas.height / 2;
         this.radius = Math.min(this.centerX, this.centerY) - 10;
         
+        // Sound effects
+        this.sounds = {
+            spin: null, // يمكن إضافة صوت لاحقاً
+            win: null
+        };
+        
         // رسم العجلة الأولية
         this.draw();
         
         // إضافة مستمع للنقر
         this.spinButton.addEventListener('click', () => this.spin());
+    }
+    
+    // ═══════════════════════════════════════════════════════════
+    // 🔊 SOUND EFFECTS
+    // ═══════════════════════════════════════════════════════════
+    
+    playSound(type) {
+        // Placeholder for sound effects
+        // يمكن إضافة أصوات لاحقاً
+        if (this.sounds[type]) {
+            try {
+                this.sounds[type].currentTime = 0;
+                this.sounds[type].play();
+            } catch (e) {
+                console.log('Sound play failed:', e);
+            }
+        }
     }
     
     // ═══════════════════════════════════════════════════════════
@@ -32,6 +55,12 @@ class WheelOfFortune {
         
         // مسح الـ canvas
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Add subtle shadow to canvas
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 5;
         
         // حساب زاوية كل قطاع
         const anglePerSegment = (2 * Math.PI) / prizes.length;
@@ -185,13 +214,24 @@ class WheelOfFortune {
             const duration = CONFIG.SPIN_DURATION;
             const startRotation = this.rotation;
             
+            // Play spinning sound if available
+            this.playSound('spin');
+            
             const animate = () => {
                 const now = Date.now();
                 const elapsed = now - startTime;
                 const progress = Math.min(elapsed / duration, 1);
                 
-                // Easing function (ease-out cubic)
-                const easeOut = 1 - Math.pow(1 - progress, 3);
+                // Enhanced easing function (ease-out cubic with bounce)
+                let easeOut;
+                if (progress < 0.9) {
+                    // Smooth acceleration
+                    easeOut = 1 - Math.pow(1 - progress / 0.9, 3);
+                } else {
+                    // Slight deceleration at the end
+                    const bounceProgress = (progress - 0.9) / 0.1;
+                    easeOut = 1 - (0.05 * Math.sin(bounceProgress * Math.PI * 4) * (1 - bounceProgress));
+                }
                 
                 // تحديث الدوران
                 this.rotation = startRotation + (totalRotation * easeOut);
