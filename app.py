@@ -36,14 +36,15 @@ def start_telegram_bot():
     except Exception as e:
         print(f"❌ Failed to start bot: {e}")
 
-# تشغيل البوت في thread منفصل عند بدء التشغيل (للتطوير المحلي فقط)
-if not os.environ.get('RENDER'):
-    # محلياً فقط، شغل البوت في الخلفية
+# تشغيل البوت في thread منفصل عند بدء التشغيل
+if os.environ.get('RENDER'):
+    # على Render، شغل البوت في الخلفية
     bot_thread = threading.Thread(target=start_telegram_bot, daemon=True)
     bot_thread.start()
-    print("🎉 Bot thread started locally")
+    print("🎉 Bot thread started on Render")
 else:
-    print("ℹ️ Running on Render - Bot will be started by start_render.sh")
+    # محلياً فقط
+    print("ℹ️ Running locally - Bot not started from Flask")
 
 # ═══════════════════════════════════════════════════════════════
 # 🗄️ DATABASE MANAGER

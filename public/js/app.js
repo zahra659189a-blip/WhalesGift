@@ -21,6 +21,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         // معالجة الإحالة إذا موجودة
         await handleReferral();
         
+        // Check required channels FIRST before loading anything
+        const channelsVerified = await checkRequiredChannels();
+        
+        if (!channelsVerified) {
+            // Hide loading - channels modal will be shown
+            showLoading(false);
+            console.log('⏸️ Waiting for channel verification...');
+            return;
+        }
+        
         // تحميل بيانات المستخدم
         await loadUserData();
         
@@ -193,14 +203,7 @@ function updateUI() {
 // ═══════════════════════════════════════════════════════════════
 
 async function loadInitialData() {
-    // Check required channels first
-    const channelsVerified = await checkRequiredChannels();
-    
-    // If not verified, don't load other data (modal will handle it)
-    if (!channelsVerified) {
-        return;
-    }
-    
+    // Channels already verified in main init
     await Promise.all([
         loadSpinHistory(),
         loadReferrals(),
