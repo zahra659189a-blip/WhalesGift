@@ -55,7 +55,7 @@ if os.environ.get('RENDER'):
 else:
     DATABASE_PATH = os.getenv('DATABASE_PATH', 'panda_giveaways.db')
 
-logger.info(f"📊 Using database: {DATABASE_PATH}")
+print(f"📊 Using database: {DATABASE_PATH}")
 
 def init_database():
     """إنشاء قاعدة البيانات إذا لم تكن موجودة"""
