@@ -26,15 +26,14 @@ def start_telegram_bot():
     """تشغيل البوت في thread منفصل"""
     try:
         print("🤖 Starting Telegram Bot in background...")
-        # تشغيل البوت كـ subprocess
-        subprocess.Popen(
-            [sys.executable, "panda_giveaways_bot.py"],
-            stdout=sys.stdout,
-            stderr=sys.stderr
-        )
-        print("✅ Bot process started")
+        # Import and run bot directly instead of subprocess
+        import panda_giveaways_bot
+        panda_giveaways_bot.main()
+        print("✅ Bot started successfully")
     except Exception as e:
         print(f"❌ Failed to start bot: {e}")
+        import traceback
+        traceback.print_exc()
 
 # تشغيل البوت في thread منفصل عند بدء التشغيل
 if os.environ.get('RENDER'):
