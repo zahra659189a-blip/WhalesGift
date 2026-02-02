@@ -43,7 +43,9 @@ from telegram import (
     InlineKeyboardButton, 
     InlineKeyboardMarkup,
     WebAppInfo,
-    ChatMember
+    ChatMember,
+    InlineQueryResultArticle,
+    InputTextMessageContent
 )
 from telegram.ext import (
     Application,
@@ -52,7 +54,8 @@ from telegram.ext import (
     MessageHandler,
     ContextTypes,
     filters,
-    ConversationHandler
+    ConversationHandler,
+    InlineQueryHandler
 )
 from telegram.constants import ParseMode
 from telegram.error import RetryAfter, TimedOut, NetworkError, Forbidden, BadRequest
@@ -851,6 +854,23 @@ class DatabaseManager:
     # 📊 STATISTICS & ANALYTICS
     # ═══════════════════════════════════════════════════════════
     
+    def get_all_users(self) -> List[Dict]:
+        """الحصول على جميع المستخدمين للبرودكاست"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id as telegram_id FROM users WHERE is_banned = 0")
+        users = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return users
+    
+    def delete_user(self, user_id: int):
+        """حذف مستخدم (للمحظورين)"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET is_banned = 1 WHERE user_id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+    
     def get_bot_statistics(self) -> Dict:
         """إحصائيات البوت الكاملة"""
         conn = self.get_connection()
@@ -1100,7 +1120,34 @@ def generate_mini_app_link(user_id: int) -> str:
     return f"https://t.me/{BOT_USERNAME}?startapp=ref_{user_id}"
 
 # ═══════════════════════════════════════════════════════════════
-# 📱 COMMAND HANDLERS
+# � INLINE QUERY HANDLER
+# ═══════════════════════════════════════════════════════════════
+
+async def inline_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالج Inline Query لمشاركة رابط الدعوة"""
+    query = update.inline_query.query
+    user_id = update.inline_query.from_user.id
+    
+    # إذا كان النص فارغاً، استخدم النص الافتراضي
+    if not query:
+        ref_link = generate_mini_app_link(user_id)
+        query = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    
+    results = [
+        InlineQueryResultArticle(
+            id="1",
+            title="🎁 شارك رابط الدعوة",
+            description="انقر لمشاركة رابط الدعوة مع أصدقائك",
+            input_message_content=InputTextMessageContent(
+                message_text=query
+            )
+        )
+    ]
+    
+    await update.inline_query.answer(results, cache_time=0)
+
+# ═══════════════════════════════════════════════════════════════
+# �📱 COMMAND HANDLERS
 # ═══════════════════════════════════════════════════════════════
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1157,11 +1204,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
-    # زر رابط الدعوة
+    # زر مشاركة رابط الدعوة (نسخ)
     ref_link = generate_mini_app_link(user_id)
+    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
-        "🔗 رابط الدعوة",
-        url=ref_link
+        "📤 مشاركة رابط الدعوة",
+        switch_inline_query=ref_text
     )])
     
     # زر إثباتات الدفع
@@ -1385,6 +1433,126 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await query.edit_message_text(
         admin_text,
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def admin_tasks_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إدارة المهام"""
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        await query.answer("❌ غير مصرح لك!", show_alert=True)
+        return
+    await query.edit_message_text(
+        "🚧 قريباً: إدارة المهام",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="admin_panel")]])
+    )
+
+async def admin_check_user_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """فحص مستخدم"""
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        await query.answer("❌ غير مصرح لك!", show_alert=True)
+        return
+    await query.edit_message_text(
+        "🚧 قريباً: فحص المستخدمين",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="admin_panel")]])
+    )
+
+async def admin_detailed_stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إحصائيات تفصيلية"""
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        await query.answer("❌ غير مصرح لك!", show_alert=True)
+        return
+    stats = db.get_bot_statistics()
+    detailed_text = f"""
+📊 <b>إحصائيات تفصيلية</b>
+
+👥 <b>المستخدمون:</b>
+• الإجمالي: {stats['total_users']}
+• النشطون (7 أيام): {stats['active_users']}
+• معدل النشاط: {(stats['active_users']/stats['total_users']*100) if stats['total_users'] > 0 else 0:.1f}%
+
+🔗 <b>الإحالات:</b>
+• الإجمالي: {stats['total_referrals']}
+• متوسط الإحالات/مستخدم: {(stats['total_referrals']/stats['total_users']) if stats['total_users'] > 0 else 0:.2f}
+
+🎰 <b>اللفات:</b>
+• الإجمالي: {stats['total_spins']}
+• متوسط اللفات/مستخدم: {(stats['total_spins']/stats['total_users']) if stats['total_users'] > 0 else 0:.2f}
+
+💰 <b>المالية:</b>
+• الأرباح الموزعة: {stats['total_distributed']:.2f} TON
+• السحوبات المكتملة: {stats['total_withdrawn']:.2f} TON
+• طلبات السحب المعلقة: {stats['pending_withdrawals']}
+"""
+    await query.edit_message_text(
+        detailed_text,
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="admin_panel")]])
+    )
+
+async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """العودة للبداية"""
+    query = update.callback_query
+    await query.answer()
+    user = query.from_user
+    user_id = user.id
+    username = user.username or f"user_{user_id}"
+    full_name = user.full_name or username
+    
+    db_user = db.get_user(user_id)
+    if not db_user:
+        db_user = db.create_or_update_user(user_id, username, full_name)
+    
+    welcome_text = f"""
+🐼 <b>مرحباً بك في Panda Giveaways!</b> 🎁
+
+<b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! 🌟
+
+💰 <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
+🎰 <b>لفاتك المتاحة:</b> {db_user.available_spins}
+👥 <b>إحالاتك:</b> {db_user.total_referrals}
+
+<b>🎯 كيف تربح؟</b>
+• قم بدعوة أصدقائك (كل {SPINS_PER_REFERRALS} إحالات = لفة مجانية)
+• أكمل المهام اليومية
+• إلعب عجلة الحظ واربح TON!
+• إسحب أرباحك مباشرة إلى محفظتك
+
+<b>🚀 ابدأ الآن واستمتع بالأرباح!</b>
+"""
+    
+    keyboard = []
+    keyboard.append([InlineKeyboardButton(
+        "🎰 افتح Panda Giveaway",
+        web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
+    )])
+    
+    ref_link = generate_mini_app_link(user_id)
+    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    keyboard.append([InlineKeyboardButton(
+        "📤 مشاركة رابط الدعوة",
+        switch_inline_query=ref_text
+    )])
+    
+    keyboard.append([InlineKeyboardButton(
+        "💎 إثباتات الدفع",
+        url=PAYMENT_PROOF_CHANNEL
+    )])
+    
+    if is_admin(user_id):
+        keyboard.append([InlineKeyboardButton(
+            "⚙️ لوحة المالكين",
+            callback_data="admin_panel"
+        )])
+    
+    await query.edit_message_text(
+        welcome_text,
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -2087,9 +2255,16 @@ def main():
     application.add_handler(CommandHandler("referrals", referrals_command))
     application.add_handler(CommandHandler("balance", balance_command))
     
+    # معالج Inline Query
+    application.add_handler(InlineQueryHandler(inline_query_handler))
+    
     # معالجات Callback
     application.add_handler(CallbackQueryHandler(admin_panel_callback, pattern="^admin_panel$"))
     application.add_handler(CallbackQueryHandler(admin_withdrawals_callback, pattern="^admin_withdrawals$"))
+    application.add_handler(CallbackQueryHandler(admin_tasks_callback, pattern="^admin_tasks$"))
+    application.add_handler(CallbackQueryHandler(admin_check_user_callback, pattern="^admin_check_user$"))
+    application.add_handler(CallbackQueryHandler(admin_detailed_stats_callback, pattern="^admin_detailed_stats$"))
+    application.add_handler(CallbackQueryHandler(back_to_start_callback, pattern="^back_to_start$"))
     application.add_handler(CallbackQueryHandler(approve_withdrawal_callback, pattern="^approve_withdrawal_"))
     application.add_handler(CallbackQueryHandler(reject_withdrawal_callback, pattern="^reject_withdrawal_"))
     
