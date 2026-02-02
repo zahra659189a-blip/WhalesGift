@@ -1,0 +1,21 @@
+# Panda Giveaways Bot Dependencies
+
+# Core
+python-telegram-bot==20.7
+python-dotenv==1.0.0
+
+# Database
+psycopg2-binary==2.9.9  # PostgreSQL
+sqlite3  # Built-in (احتياطي)
+
+# TON SDK
+tonsdk==1.0.13
+requests==2.31.0
+
+# Web Server (للـ Mini App API)
+flask==3.0.0
+flask-cors==4.0.0
+gunicorn==21.2.0
+
+# Security
+cryptography==41.0.7
