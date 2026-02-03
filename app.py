@@ -965,6 +965,109 @@ def complete_task():
         print(f"Error in complete_task: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/required-channels', methods=['GET'])
+def get_required_channels():
+    """الحصول على القنوات الإجبارية النشطة للمستخدمين"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, channel_id, channel_name, channel_url
+            FROM required_channels 
+            WHERE is_active = 1 
+            ORDER BY added_at DESC
+        """)
+        
+        channels = []
+        for row in cursor.fetchall():
+            channels.append({
+                'id': row[0],
+                'channel_id': row[1],
+                'channel_name': row[2],
+                'channel_url': row[3]
+            })
+        
+        conn.close()
+        return jsonify({
+            'success': True,
+            'channels': channels
+        })
+        
+    except Exception as e:
+        print(f"Error in get_required_channels: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/verify-channels', methods=['POST'])
+def verify_all_channels():
+    """التحقق من اشتراك المستخدم في جميع القنوات الإجبارية"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({'success': False, 'message': 'معرف المستخدم مطلوب'}), 400
+        
+        # جلب القنوات النشطة
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT channel_id, channel_name
+            FROM required_channels 
+            WHERE is_active = 1
+        """)
+        
+        channels = cursor.fetchall()
+        conn.close()
+        
+        if not channels:
+            return jsonify({
+                'success': True,
+                'all_subscribed': True,
+                'not_subscribed': []
+            })
+        
+        # التحقق من كل قناة
+        not_subscribed = []
+        
+        for channel in channels:
+            channel_id = channel[0]
+            channel_name = channel[1]
+            
+            try:
+                import requests as req
+                bot_url = 'http://localhost:8081/verify-subscription'
+                verify_response = req.post(bot_url, json={
+                    'user_id': user_id,
+                    'channel_username': channel_id
+                }, timeout=5)
+                
+                verify_data = verify_response.json()
+                
+                if not verify_data.get('is_subscribed', False):
+                    not_subscribed.append({
+                        'channel_id': channel_id,
+                        'channel_name': channel_name
+                    })
+                    
+            except Exception as e:
+                print(f"Error verifying channel {channel_id}: {e}")
+                not_subscribed.append({
+                    'channel_id': channel_id,
+                    'channel_name': channel_name
+                })
+        
+        return jsonify({
+            'success': True,
+            'all_subscribed': len(not_subscribed) == 0,
+            'not_subscribed': not_subscribed
+        })
+        
+    except Exception as e:
+        print(f"Error in verify_all_channels: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/api/admin/channels', methods=['GET', 'POST', 'DELETE'])
 def manage_channels():
     """إدارة القنوات الإجبارية"""
@@ -980,7 +1083,7 @@ def manage_channels():
             """)
             channels = [dict(row) for row in cursor.fetchall()]
             conn.close()
-            return jsonify({'success': True, 'data': channels})
+            return jsonify({'success': True, 'channels': channels})
         
         elif request.method == 'POST':
             # Add new channel
@@ -988,30 +1091,54 @@ def manage_channels():
             channel_id = data.get('channel_id')
             channel_name = data.get('channel_name')
             channel_url = data.get('channel_url')
-            admin_id = data.get('admin_id')
+            admin_id = data.get('admin_id', 1797127532)
             
-            if not all([channel_id, channel_name, channel_url, admin_id]):
-                return jsonify({'success': False, 'error': 'Missing parameters'}), 400
+            if not all([channel_id, channel_name, channel_url]):
+                return jsonify({'success': False, 'message': 'جميع الحقول مطلوبة'}), 400
+            
+            # التحقق من أن البوت مشرف في القناة
+            try:
+                import requests as req
+                bot_url = 'http://localhost:8081/check-bot-admin'
+                check_response = req.post(bot_url, json={
+                    'channel_username': channel_id
+                }, timeout=5)
+                
+                check_data = check_response.json()
+                
+                if not check_data.get('is_admin', False):
+                    return jsonify({
+                        'success': False,
+                        'message': '❌ البوت ليس مشرف في هذه القناة! أضف البوت كمشرف أولاً'
+                    }), 400
+            except Exception as e:
+                print(f"Error checking bot admin: {e}")
+                # نكمل حتى لو فشل التحقق
+                pass
             
             conn = get_db_connection()
             cursor = conn.cursor()
             now = datetime.now().isoformat()
             
-            cursor.execute("""
-                INSERT INTO required_channels (channel_id, channel_name, channel_url, added_by, added_at, is_active)
-                VALUES (?, ?, ?, ?, ?, 1)
-            """, (channel_id, channel_name, channel_url, admin_id, now))
-            
-            conn.commit()
-            conn.close()
-            
-            return jsonify({'success': True, 'message': 'Channel added successfully'})
+            try:
+                cursor.execute("""
+                    INSERT INTO required_channels (channel_id, channel_name, channel_url, added_by, added_at, is_active)
+                    VALUES (?, ?, ?, ?, ?, 1)
+                """, (channel_id, channel_name, channel_url, admin_id, now))
+                
+                conn.commit()
+                conn.close()
+                
+                return jsonify({'success': True, 'message': 'تم إضافة القناة بنجاح'})
+            except sqlite3.IntegrityError:
+                conn.close()
+                return jsonify({'success': False, 'message': 'القناة موجودة بالفعل'}), 400
         
         elif request.method == 'DELETE':
             # Delete channel
             channel_id = request.args.get('channel_id')
             if not channel_id:
-                return jsonify({'success': False, 'error': 'Channel ID required'}), 400
+                return jsonify({'success': False, 'message': 'معرف القناة مطلوب'}), 400
             
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -1023,7 +1150,7 @@ def manage_channels():
             conn.commit()
             conn.close()
             
-            return jsonify({'success': True, 'message': 'Channel removed'})
+            return jsonify({'success': True, 'message': 'تم حذف القناة بنجاح'})
             
     except Exception as e:
         print(f"Error in manage_channels: {e}")

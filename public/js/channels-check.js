@@ -1,0 +1,166 @@
+// ═══════════════════════════════════════════════════════════════
+// 📢 REQUIRED CHANNELS CHECK MODULE
+// ═══════════════════════════════════════════════════════════════
+
+const ChannelsCheck = {
+    channels: [],
+    
+    async init() {
+        console.log('📢 Initializing Required Channels Check...');
+        await this.loadChannels();
+        await this.verifySubscription();
+    },
+    
+    async loadChannels() {
+        try {
+            const response = await fetch('/api/required-channels');
+            const data = await response.json();
+            
+            if (data.success && data.channels) {
+                this.channels = data.channels;
+                console.log(`✅ Loaded ${this.channels.length} required channels`);
+            }
+        } catch (error) {
+            console.error('❌ Error loading channels:', error);
+        }
+    },
+    
+    async verifySubscription() {
+        if (this.channels.length === 0) {
+            console.log('✅ No required channels');
+            return true;
+        }
+        
+        try {
+            const userId = TelegramApp.getUserId();
+            const response = await fetch('/api/verify-channels', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id: userId})
+            });
+            
+            const data = await response.json();
+            
+            if (!data.all_subscribed) {
+                this.showSubscriptionModal(data.not_subscribed);
+                return false;
+            }
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Error verifying channels:', error);
+            return false;
+        }
+    },
+    
+    showSubscriptionModal(notSubscribed) {
+        // إنشاء modal للقنوات غير المشترك فيها
+        let channelsHTML = '';
+        
+        notSubscribed.forEach(channel => {
+            const channelLink = channel.channel_id.startsWith('@') 
+                ? `https://t.me/${channel.channel_id.substring(1)}`
+                : `https://t.me/${channel.channel_id}`;
+            
+            channelsHTML += `
+                <div class="required-channel-item">
+                    <div class="channel-info">
+                        <span class="channel-icon">📢</span>
+                        <span class="channel-name">${channel.channel_name}</span>
+                    </div>
+                    <button class="subscribe-channel-btn" onclick="ChannelsCheck.openChannel('${channelLink}')">
+                        اشترك الآن
+                    </button>
+                </div>
+            `;
+        });
+        
+        const modalHTML = `
+            <div id="channels-modal" class="channels-modal">
+                <div class="channels-modal-content">
+                    <div class="channels-modal-header">
+                        <h2>🔔 اشتراك إجباري</h2>
+                        <p>للاستمرار، يجب الاشتراك في القنوات التالية:</p>
+                    </div>
+                    <div class="channels-modal-body">
+                        ${channelsHTML}
+                    </div>
+                    <div class="channels-modal-footer">
+                        <button class="btn-verify-channels" onclick="ChannelsCheck.recheckSubscription()">
+                            ✅ تحققت من الاشتراك
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // إضافة المودال للصفحة
+        const existingModal = document.getElementById('channels-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // منع التفاعل مع بقية الصفحة
+        document.body.style.overflow = 'hidden';
+    },
+    
+    openChannel(link) {
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.openLink(link);
+        } else {
+            window.open(link, '_blank');
+        }
+    },
+    
+    async recheckSubscription() {
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '⏳ جاري التحقق...';
+        
+        const result = await this.verifySubscription();
+        
+        if (result) {
+            // نجح الاشتراك
+            const modal = document.getElementById('channels-modal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+            
+            if (typeof showToast !== 'undefined') {
+                showToast('✅ تم التحقق من الاشتراك بنجاح!', 'success');
+            }
+            
+            // إعادة تحميل بيانات المستخدم
+            if (typeof loadUserData !== 'undefined') {
+                await loadUserData();
+            }
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            
+            if (typeof showToast !== 'undefined') {
+                showToast('❌ يجب الاشتراك في جميع القنوات أولاً', 'error');
+            }
+        }
+    }
+};
+
+// تشغيل الفحص عند تحميل الصفحة
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        // انتظار تهيئة Telegram App أولاً
+        setTimeout(() => {
+            ChannelsCheck.init();
+        }, 500);
+    });
+} else {
+    setTimeout(() => {
+        ChannelsCheck.init();
+    }, 500);
+}

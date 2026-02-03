@@ -1,0 +1,130 @@
+/* ═══════════════════════════════════════════════════════════════
+   📢 REQUIRED CHANNELS MODAL
+   ═══════════════════════════════════════════════════════════════ */
+
+.channels-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+}
+
+.channels-modal-content {
+    background: var(--bg-card);
+    border-radius: 24px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.channels-modal-header {
+    padding: 30px 24px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.channels-modal-header h2 {
+    font-size: 24px;
+    margin: 0 0 12px 0;
+    color: var(--text-primary);
+}
+
+.channels-modal-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 15px;
+}
+
+.channels-modal-body {
+    padding: 20px;
+}
+
+.required-channel-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+}
+
+.required-channel-item:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 212, 54, 0.2);
+}
+
+.channel-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.channel-icon {
+    font-size: 24px;
+}
+
+.channel-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.subscribe-channel-btn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.subscribe-channel-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.channels-modal-footer {
+    padding: 20px 24px 30px;
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-verify-channels {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+    color: #000;
+    border: none;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-verify-channels:hover:not(:disabled) {
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px rgba(255, 212, 54, 0.4);
+}
+
+.btn-verify-channels:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
