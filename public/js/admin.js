@@ -502,10 +502,10 @@ function renderWithdrawals(status = 'pending') {
             ${w.status === 'pending' ? `
                 <div class="withdrawal-actions">
                     <button class="approve-btn" onclick="approveWithdrawal(${w.id})"><img src="/img/payment-success.svg" alt="✓" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> قبول</button>
-                    <button class="reject-btn" onclick="rejectWithdrawal(${w.id})">❌ رفض</button>
+                    <button class="reject-btn" onclick="rejectWithdrawal(${w.id})"><img src="/img/payment-failure.svg" alt="✗" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> رفض</button>
                 </div>
             ` : `
-                <span class="status-badge ${w.status}">${w.status === 'completed' ? '<img src="/img/payment-success.svg" alt="✓" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> مقبول' : '❌ مرفوض'}</span>
+                <span class="status-badge ${w.status}">${w.status === 'completed' ? '<img src="/img/payment-success.svg" alt="✓" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> مقبول' : '<img src="/img/payment-failure.svg" alt="✗" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> مرفوض'}</span>
             `}
         </div>
         `;

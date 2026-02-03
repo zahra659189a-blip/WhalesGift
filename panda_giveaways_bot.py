@@ -2018,7 +2018,7 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
     
     keyboard.append([InlineKeyboardButton(
         "💎 إثباتات الدفع",
-        url=PAYMENT_PROOF_CHANNEL
+        url="https://t.me/PandaGiveawaays"
     )])
     
     if is_admin(user_id):
@@ -3291,6 +3291,55 @@ def main():
     )
     application.add_handler(add_channel_handler)
     
+    # معالج الرسائل النصية للسحب التلقائي من API (يجب أن يكون قبل broadcast handler)
+    async def handle_auto_withdrawal_trigger(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """معالجة طلبات السحب التلقائي من API"""
+        if update.message and update.message.text:
+            text = update.message.text
+            
+            # التحقق من أن المستخدم أدمن
+            if not is_admin(update.message.from_user.id):
+                return
+            
+            # التحقق من صيغة الرسالة
+            if text.startswith('🤖 AUTO_PROCESS_WITHDRAWAL_'):
+                try:
+                    withdrawal_id = int(text.split('_')[-1])
+                    logger.info(f"🤖 Processing auto-withdrawal request for #{withdrawal_id}")
+                    
+                    # حذف الرسالة فوراً لتجنب الازدواجية
+                    try:
+                        await update.message.delete()
+                    except:
+                        pass
+                    
+                    # معالجة السحب تلقائياً
+                    success = await db.process_auto_withdrawal(withdrawal_id, context)
+                    
+                    if success:
+                        logger.info(f"✅ Auto-withdrawal #{withdrawal_id} processed successfully")
+                        # إرسال تأكيد للأدمن
+                        await context.bot.send_message(
+                            chat_id=update.message.from_user.id,
+                            text=f"✅ تم معالجة السحب #{withdrawal_id} تلقائياً بنجاح"
+                        )
+                    else:
+                        logger.error(f"❌ Auto-withdrawal #{withdrawal_id} failed")
+                        # إرسال رسالة خطأ
+                        await context.bot.send_message(
+                            chat_id=update.message.from_user.id,
+                            text=f"❌ فشلت معالجة السحب #{withdrawal_id} تلقائياً"
+                        )
+                        
+                except Exception as e:
+                    logger.error(f"❌ Error processing auto-withdrawal: {e}")
+    
+    # إضافة handler للسحب التلقائي
+    application.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND & filters.Regex(r'^🤖 AUTO_PROCESS_WITHDRAWAL_\d+$'),
+        handle_auto_withdrawal_trigger
+    ))
+    
     # معالجات البرودكاست
     broadcast_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(start_broadcast, pattern="^start_broadcast$")],
@@ -3314,35 +3363,6 @@ def main():
     application.add_handler(CallbackQueryHandler(cancel_broadcast_run, pattern="^cancel_broadcast_run$"))
     application.add_handler(CallbackQueryHandler(pause_broadcast_run, pattern="^pause_broadcast_run$"))
     application.add_handler(CallbackQueryHandler(resume_broadcast_run, pattern="^resume_broadcast_run$"))
-    
-    # معالج الرسائل النصية للسحب التلقائي من API
-    async def handle_auto_withdrawal_trigger(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """معالجة طلبات السحب التلقائي من API"""
-        if update.message and update.message.text:
-            text = update.message.text
-            
-            # التحقق من أن المستخدم أدمن
-            if not is_admin(update.message.from_user.id):
-                return
-            
-            # التحقق من صيغة الرسالة
-            if text.startswith('🤖 AUTO_PROCESS_WITHDRAWAL_'):
-                try:
-                    withdrawal_id = int(text.split('_')[-1])
-                    logger.info(f"🤖 Processing auto-withdrawal request for #{withdrawal_id}")
-                    
-                    # معالجة السحب تلقائياً
-                    success = await db.process_auto_withdrawal(withdrawal_id, context)
-                    
-                    if success:
-                        logger.info(f"✅ Auto-withdrawal #{withdrawal_id} processed successfully")
-                    else:
-                        logger.error(f"❌ Auto-withdrawal #{withdrawal_id} failed")
-                        
-                except Exception as e:
-                    logger.error(f"❌ Error processing auto-withdrawal: {e}")
-    
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_auto_withdrawal_trigger))
     
     # تشغيل البوت
     logger.info("✅ Bot is running!")

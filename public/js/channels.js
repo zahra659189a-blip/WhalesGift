@@ -101,7 +101,7 @@ function showChannelsModal(channels) {
                                     📢 اشترك هنا
                                 </a>
                                 <span class="channel-status not-subscribed" id="status-${channelId}">
-                                    ❌
+                                    <img src="/img/payment-failure.svg" alt="✗" style="width: 18px; height: 18px;">
                                 </span>
                             </div>
                         </div>

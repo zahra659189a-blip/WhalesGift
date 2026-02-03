@@ -867,7 +867,7 @@ function displayWithdrawals(withdrawals) {
         } else if (w.status === 'completed') {
             status.innerHTML = '<img src="/img/payment-success.svg" alt="✓" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> مكتمل';
         } else {
-            status.textContent = '❌ مرفوض';
+            status.innerHTML = '<img src="/img/payment-failure.svg" alt="✗" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> مرفوض';
         }
         
         header.appendChild(amount);

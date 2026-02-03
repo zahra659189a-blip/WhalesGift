@@ -42,12 +42,17 @@ def calculate_egp_amount(ton_amount):
     return round(egp_amount, 2)
 
 # BOT TOKEN & ADMIN IDS
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '8481889290:AAHpTFQYm-261ra5lu4HXVsjYNmCp7uHqqk')
+BOT_TOKEN = os.environ.get('BOT_TOKEN')
 ADMIN_IDS = [1797127532, 6603009212]
 
-def send_withdrawal_notification_to_admin(user_id, username, full_name, amount, withdrawal_type, wallet_address, phone_number, withdrawal_id):
+def send_withdrawal_notification_to_admin(user_id, username, full_name, amount, withdrawal_type, wallet_address, phone_number, withdrawal_id, auto_process=False):
     """إرسال إشعار للأدمن في البوت عند طلب سحب"""
     try:
+        # إذا كان السحب تلقائي، لا ترسل إشعار
+        if auto_process:
+            print(f"🤖 Auto-processing enabled - Skipping admin notification for withdrawal #{withdrawal_id}")
+            return
+        
         # إنشاء رسالة مختلفة حسب نوع السحب
         if withdrawal_type.upper() == 'VODAFONE' or withdrawal_type.upper() == 'VODAFONE_CASH':
             egp_amount = calculate_egp_amount(amount)
@@ -1031,7 +1036,7 @@ def request_withdrawal():
             except Exception as auto_error:
                 print(f"⚠️ Auto-withdrawal trigger failed: {auto_error}")
         
-        # إرسال إشعار للأدمن في البوت
+        # إرسال إشعار للأدمن في البوت (إلا إذا كان السحب تلقائي)
         try:
             send_withdrawal_notification_to_admin(
                 user_id=user_id,
@@ -1041,7 +1046,8 @@ def request_withdrawal():
                 withdrawal_type=withdrawal_type,
                 wallet_address=wallet_address,
                 phone_number=phone_number,
-                withdrawal_id=withdrawal_id
+                withdrawal_id=withdrawal_id,
+                auto_process=auto_withdrawal_enabled and withdrawal_type.upper() == 'TON' and wallet_address
             )
         except Exception as e:
             print(f"⚠️ Failed to send admin notification: {e}")
