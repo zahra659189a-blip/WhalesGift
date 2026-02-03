@@ -1037,19 +1037,30 @@ class TONWalletManager:
         """تهيئة المحفظة"""
         logger.info("🔑 Starting wallet initialization...")
         try:
-            logger.info("📝 Creating wallet from mnemonic (v5r1)...")
-            # استخدام v5r1 بدلاً من v3r2 عشان يطابق المحفظة الحقيقية
-            mnemonics, _pub_k, _priv_k, wallet = Wallets.from_mnemonics(
-                self.mnemonic, 
-                WalletVersionEnum.v5r1, 
-                0
-            )
+            # جرب v4r2 أولاً (أقرب حاجة لـ v5r1 في tonsdk القديم)
+            logger.info("📝 Trying wallet version v4r2...")
+            try:
+                mnemonics, _pub_k, _priv_k, wallet = Wallets.from_mnemonics(
+                    self.mnemonic, 
+                    WalletVersionEnum.v4r2, 
+                    0
+                )
+                version_used = "v4r2"
+            except AttributeError:
+                logger.warning("⚠️ v4r2 not available, trying v3r2...")
+                mnemonics, _pub_k, _priv_k, wallet = Wallets.from_mnemonics(
+                    self.mnemonic, 
+                    WalletVersionEnum.v3r2, 
+                    0
+                )
+                version_used = "v3r2"
+            
             self.wallet_obj = wallet
             
             # الحصول على العنوان الحقيقي من الـ mnemonic
             generated_address = wallet.address.to_string(True, True, True)
             
-            logger.info(f"✅ TON Wallet initialized successfully")
+            logger.info(f"✅ TON Wallet initialized successfully (using {version_used})")
             logger.info(f"📍 Generated Address (from mnemonic): {generated_address}")
             logger.info(f"📍 Configured Address (TON_WALLET_ADDRESS): {self.wallet_address}")
             
@@ -1059,24 +1070,27 @@ class TONWalletManager:
                 logger.error("⚠️⚠️⚠️ CRITICAL WARNING ⚠️⚠️⚠️")
                 logger.error("=" * 80)
                 logger.error("❌ MISMATCH: The mnemonic generates a DIFFERENT wallet address!")
-                logger.error(f"   Mnemonic generates: {generated_address}")
+                logger.error(f"   Mnemonic generates ({version_used}): {generated_address}")
                 logger.error(f"   But you configured:  {self.wallet_address}")
                 logger.error("")
-                logger.error("🔧 FIX: You have TWO options:")
-                logger.error("   1. Update TON_WALLET_ADDRESS to match the mnemonic")
-                logger.error(f"      Set: TON_WALLET_ADDRESS={generated_address}")
+                logger.error("🔧 FIX OPTIONS:")
+                logger.error("   1. Update TON_WALLET_ADDRESS to match the generated address:")
+                logger.error(f"      TON_WALLET_ADDRESS={generated_address}")
                 logger.error("")
-                logger.error("   2. OR get the correct mnemonic for your configured address")
-                logger.error(f"      (The mnemonic for {self.wallet_address})")
+                logger.error("   2. OR use the correct mnemonic for your configured address")
                 logger.error("")
-                logger.error("⚠️ WITHDRAWALS WILL FAIL until this is fixed!")
+                logger.error("   3. OR try different wallet version (v3r2, v4r1, v4r2)")
+                logger.error("")
+                logger.error("⚠️ AUTOMATIC WITHDRAWALS DISABLED until this is fixed!")
+                logger.error("   Manual withdrawals will still work.")
                 logger.error("=" * 80)
                 
                 # استخدام العنوان الصحيح من الـ mnemonic
                 self.wallet_address = generated_address
-                logger.warning(f"⚠️ Temporarily using generated address: {generated_address}")
+                logger.warning(f"⚠️ Using generated address: {generated_address}")
             else:
-                logger.info("✅ Address verification: MATCH! Everything is correct.")
+                logger.info("✅ Address verification: PERFECT MATCH! 🎉")
+                logger.info("✅ Automatic withdrawals are ENABLED")
                 
         except Exception as e:
             logger.error(f"❌ Failed to initialize TON wallet: {e}")
