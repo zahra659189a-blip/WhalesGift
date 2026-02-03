@@ -12,7 +12,7 @@ import subprocess
 import random
 import hashlib
 
-# إضافة المسار الحالي لـ Python path
+# إضافة المسار الحالي لـ 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 app = Flask(__name__, static_folder='public', static_url_path='')
