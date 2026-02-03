@@ -50,7 +50,13 @@
                     <div class="wheel-pointer"></div>
                     <canvas id="wheel-canvas" width="350" height="350"></canvas>
                     <button id="spin-button" class="spin-button">
-                        <span>🎰 لف الآن</span>
+                        <span>
+                            <lottie-player src="./img/roll.json" background="transparent" speed="1" 
+                                style="width: 24px; height: 24px; display: inline-block; vertical-align: middle;" 
+                                loop autoplay>
+                            </lottie-player>
+                            لف الآن
+                        </span>
                     </button>
                 </div>
             </div>
@@ -139,7 +145,13 @@
                         </div>
                         <span class="min-withdraw-note">الحد الأدنى: 0.1 <img src="img/Ton.png" alt="TON" class="ton-icon-small"></span>
                     </div>
-                    <button id="withdraw-btn-ton" class="withdraw-btn">💸 طلب السحب</button>
+                    <button id="withdraw-btn-ton" class="withdraw-btn">
+                        <lottie-player src="./img/withdraw.json" background="transparent" speed="1" 
+                            style="width: 24px; height: 24px; display: inline-block; vertical-align: middle;" 
+                            loop autoplay>
+                        </lottie-player>
+                        طلب السحب
+                    </button>
                 </div>
 
                 <!-- نموذج السحب Vodafone -->
@@ -156,7 +168,13 @@
                         </div>
                         <span class="min-withdraw-note">الحد الأدنى: 0.1 <img src="img/Ton.png" alt="TON" class="ton-icon-small"></span>
                     </div>
-                    <button id="withdraw-btn-vodafone" class="withdraw-btn">💸 طلب السحب</button>
+                    <button id="withdraw-btn-vodafone" class="withdraw-btn">
+                        <lottie-player src="./img/withdraw.json" background="transparent" speed="1" 
+                            style="width: 24px; height: 24px; display: inline-block; vertical-align: middle;" 
+                            loop autoplay>
+                        </lottie-player>
+                        طلب السحب
+                    </button>
                 </div>
             </div>
 
@@ -174,7 +192,11 @@
     <!-- 📱 BOTTOM NAVIGATION -->
     <nav class="bottom-nav">
         <button class="nav-item active" data-page="wheel">
-            <span class="nav-icon">🎰</span>
+            <span class="nav-icon">
+                <lottie-player src="./img/roll.json" background="transparent" speed="1" 
+                    style="width: 32px; height: 32px;" loop autoplay>
+                </lottie-player>
+            </span>
             <span class="nav-label">العجلة</span>
         </button>
         <button class="nav-item" onclick="window.location.href='referral-program.html'">
@@ -186,11 +208,19 @@
             <span class="nav-label">الإحالات</span>
         </button>
         <button class="nav-item" data-page="tasks">
-            <span class="nav-icon">📝</span>
+            <span class="nav-icon">
+                <lottie-player src="./img/task.json" background="transparent" speed="1" 
+                    style="width: 32px; height: 32px;" loop autoplay>
+                </lottie-player>
+            </span>
             <span class="nav-label">المهام</span>
         </button>
         <button class="nav-item" data-page="withdraw">
-            <span class="nav-icon">💸</span>
+            <span class="nav-icon">
+                <lottie-player src="./img/withdraw.json" background="transparent" speed="1" 
+                    style="width: 32px; height: 32px;" loop autoplay>
+                </lottie-player>
+            </span>
             <span class="nav-label">السحب</span>
         </button>
     </nav>

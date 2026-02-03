@@ -114,7 +114,11 @@
     <!-- 📱 BOTTOM NAVIGATION -->
     <nav class="bottom-nav">
         <button class="nav-item" onclick="window.location.href='index.html'">
-            <span class="nav-icon">🎰</span>
+            <span class="nav-icon">
+                <lottie-player src="./img/roll.json" background="transparent" speed="1" 
+                    style="width: 32px; height: 32px;" loop autoplay>
+                </lottie-player>
+            </span>
             <span class="nav-label">العجلة</span>
         </button>
         <button class="nav-item active">
@@ -126,11 +130,19 @@
             <span class="nav-label">الإحالات</span>
         </button>
         <button class="nav-item" onclick="window.location.href='index.html#tasks'">
-            <span class="nav-icon">📝</span>
+            <span class="nav-icon">
+                <lottie-player src="./img/task.json" background="transparent" speed="1" 
+                    style="width: 32px; height: 32px;" loop autoplay>
+                </lottie-player>
+            </span>
             <span class="nav-label">المهام</span>
         </button>
         <button class="nav-item" onclick="window.location.href='index.html#withdraw'">
-            <span class="nav-icon">💸</span>
+            <span class="nav-icon">
+                <lottie-player src="./img/withdraw.json" background="transparent" speed="1" 
+                    style="width: 32px; height: 32px;" loop autoplay>
+                </lottie-player>
+            </span>
             <span class="nav-label">السحب</span>
         </button>
     </nav>
@@ -227,10 +239,23 @@
                     let html = '';
                     referralsData.data.forEach(referral => {
                         console.log('Referral item:', referral);
-                        // استخدام البيانات الحقيقية مع fallback ذكي
-                        const refUsername = referral.username || `user${referral.referred_id}`;
-                        const refFullName = referral.full_name || referral.username || `User ${referral.referred_id}`;
-                        html += `<div class="referral-record-row"><div><a href="#">@${refUsername}</a></div><div>${refFullName}</div></div>`;
+                        // استخدام البيانات الحقيقية مع معالجة أفضل
+                        let displayUsername = referral.username || `user${referral.referred_id}`;
+                        let displayName = referral.full_name || referral.username || `User ${referral.referred_id}`;
+                        
+                        // إذا كان username يبدأ بـ user_ (مستخدم بدون username في تيليجرام)
+                        // نعرض الاسم الكامل أو User ID
+                        if (displayUsername.startsWith('user_')) {
+                            displayUsername = displayName; // نعرض الاسم بدلاً من user_id
+                            if (displayName.startsWith('user_')) {
+                                displayName = `مستخدم ${referral.referred_id}`;
+                            }
+                        } else {
+                            // إذا عنده username حقيقي، نضيف @
+                            displayUsername = '@' + displayUsername;
+                        }
+                        
+                        html += `<div class="referral-record-row"><div><a href="#">${displayUsername}</a></div><div>${displayName}</div></div>`;
                     });
                     $('#referrals-list-container').html(html);
                 } else {
