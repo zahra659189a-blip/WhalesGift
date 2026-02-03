@@ -223,7 +223,7 @@ function updatePrizesInfo() {
     
     const statusEl = document.getElementById('system-status');
     if (isValid) {
-        statusEl.textContent = '✓ صحيح';
+        statusEl.innerHTML = '<img src="/img/checksup.png" alt="✓" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> صحيح';
         statusEl.className = 'status-ok';
     } else {
         statusEl.textContent = `✗ خطأ (${totalProbability}%)`;
@@ -463,11 +463,11 @@ function renderWithdrawals(status = 'pending') {
             </div>
             ${w.status === 'pending' ? `
                 <div class="withdrawal-actions">
-                    <button class="approve-btn" onclick="approveWithdrawal(${w.id})">✅ قبول</button>
+                    <button class="approve-btn" onclick="approveWithdrawal(${w.id})"><img src="/img/checksup.png" alt="✓" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> قبول</button>
                     <button class="reject-btn" onclick="rejectWithdrawal(${w.id})">❌ رفض</button>
                 </div>
             ` : `
-                <span class="status-badge ${w.status}">${w.status === 'approved' ? '✅ مقبول' : '❌ مرفوض'}</span>
+                <span class="status-badge ${w.status}">${w.status === 'approved' ? '<img src="/img/checksup.png" alt="✓" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> مقبول' : '❌ مرفوض'}</span>
             `}
         </div>
     `).join('');
@@ -1463,43 +1463,7 @@ async function openAddChannelModal() {
     }
 }
 
-async function loadTasks() {
-    try {
-        const API_BASE_URL = window.CONFIG?.API_BASE_URL || '/api';
-        const response = await fetch(`${API_BASE_URL}/tasks`);
-        const result = await response.json();
-        
-        if (result.success) {
-            displayTasks(result.data);
-        }
-    } catch (error) {
-        console.error('Error loading tasks:', error);
-    }
-}
 
-function displayTasks(tasks) {
-    const grid = document.getElementById('tasks-grid');
-    if (!grid) return;
-    
-    grid.innerHTML = tasks.length === 0 ? 
-        '<p style="text-align:center;padding:40px;color:var(--text-secondary)">لا توجد مهام</p>' :
-        tasks.map(task => `
-            <div class="task-card">
-                <div class="task-header">
-                    <span class="task-type-badge">${task.task_type === 'channel' ? '📢 قناة' : '🔗 رابط'}</span>
-                    <button onclick="deleteTask(${task.id})" class="delete-btn">🗑️</button>
-                </div>
-                <h3>${task.task_name}</h3>
-                <p>${task.task_description || ''}</p>
-                <div class="task-footer">
-                    <span class="task-reward">💰 ${task.reward_amount} TON</span>
-                    <span class="task-status ${task.is_active ? 'active' : 'inactive'}">
-                        ${task.is_active ? '✅ نشط' : '❌ معطل'}
-                    </span>
-                </div>
-            </div>
-        `).join('');
-}
 
 // ═══════════════════════════════════════════════════════════════
 // 🎰 ADD SPINS TO USER

@@ -116,13 +116,13 @@ const TasksModule = {
                 
                 <div class="task-actions">
                     ${isCompleted ? 
-                        '<button class="task-btn task-btn-completed" disabled>✅ مكتمل</button>' :
+                        '<button class="task-btn task-btn-completed" disabled><img src="/img/checksup.png" alt="✓" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> مكتمل</button>' :
                         `
                         <button class="task-btn task-btn-subscribe" onclick="TasksModule.openTaskLink('${task.task_link}', ${task.id})">
-                            📲 اشتراك
+                            <img src="/img/links.png" alt="اشتراك" style="width: 16px; height: 16px; vertical-align: middle; margin-left: 4px;"> اشتراك
                         </button>
                         <button class="task-btn task-btn-verify" onclick="TasksModule.verifyTask(${task.id})">
-                            ✔️ تحقق
+                            <img src="/img/checksup.png" alt="تحقق" style="width: 16px; height: 16px; vertical-align: middle; margin-left: 4px;"> تحقق
                         </button>
                         `
                     }

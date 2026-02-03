@@ -70,7 +70,7 @@ const ChannelsCheck = {
                         <span class="channel-name">${channel.channel_name}</span>
                     </div>
                     <button class="subscribe-channel-btn" onclick="ChannelsCheck.openChannel('${channelLink}')">
-                        اشترك الآن
+                        <img src="/img/links.png" alt="اشتراك" style="width: 16px; height: 16px; vertical-align: middle; margin-left: 4px;"> اشتراك
                     </button>
                 </div>
             `;
@@ -88,7 +88,7 @@ const ChannelsCheck = {
                     </div>
                     <div class="channels-modal-footer">
                         <button class="btn-verify-channels" onclick="ChannelsCheck.recheckSubscription()">
-                            ✅ تحققت من الاشتراك
+                            <img src="/img/checksup.png" alt="تحقق" style="width: 18px; height: 18px; vertical-align: middle; margin-left: 4px;"> تحققت من الاشتراك
                         </button>
                     </div>
                 </div>

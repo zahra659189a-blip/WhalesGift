@@ -609,7 +609,11 @@ function displayTasks(tasks, completedTaskIds) {
         
         const button = document.createElement('button');
         button.className = 'task-action';
-        button.textContent = isCompleted ? '✅ مكتمل' : '▶️ ابدأ';
+        if (isCompleted) {
+            button.innerHTML = '<img src="/img/checksup.png" alt="✓" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> مكتمل';
+        } else {
+            button.textContent = '▶️ ابدأ';
+        }
         button.disabled = isCompleted;
         
         if (!isCompleted) {
@@ -851,9 +855,13 @@ function displayWithdrawals(withdrawals) {
         
         const status = document.createElement('span');
         status.className = `history-status ${w.status}`;
-        status.textContent = w.status === 'pending' ? '⏳ معلق' : 
-                           w.status === 'completed' ? '✅ مكتمل' : 
-                           '❌ مرفوض';
+        if (w.status === 'pending') {
+            status.textContent = '⏳ معلق';
+        } else if (w.status === 'completed') {
+            status.innerHTML = '<img src="/img/checksup.png" alt="✓" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 2px;"> مكتمل';
+        } else {
+            status.textContent = '❌ مرفوض';
+        }
         
         header.appendChild(amount);
         header.appendChild(status);
