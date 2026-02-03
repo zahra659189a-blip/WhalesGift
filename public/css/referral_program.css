@@ -6,6 +6,30 @@
     gap: 10px;
 }
 
+/* Page Title */
+.page-title-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px 0 10px 0;
+    margin-bottom: 10px;
+}
+
+.page-title-icon {
+    width: 28px;
+    height: 28px;
+    filter: brightness(0) saturate(100%) invert(85%) sepia(47%) saturate(1067%) hue-rotate(359deg) brightness(103%) contrast(101%);
+}
+
+.page-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffd436;
+    text-align: center;
+}
+
 .tm-field {
     position: relative;
     margin: auto;
@@ -128,12 +152,12 @@
 
 #referrals-list-container {
     max-height: 280px;
-    overflow-y: auto;
+    overflow-y: scroll;
     overflow-x: hidden;
     padding-right: 5px;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Always visible */
 #referrals-list-container::-webkit-scrollbar {
     width: 6px;
 }
@@ -144,12 +168,12 @@
 }
 
 #referrals-list-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 212, 54, 0.5);
+    background: rgba(255, 212, 54, 0.3);
     border-radius: 10px;
 }
 
 #referrals-list-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 212, 54, 0.8);
+    background: rgba(255, 212, 54, 0.6);
 }
 
 .referral-record-row {
