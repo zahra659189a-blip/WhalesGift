@@ -1636,7 +1636,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # زر إثباتات الدفع
     keyboard.append([InlineKeyboardButton(
         "💎 إثباتات الدفع",
-        url=PAYMENT_PROOF_CHANNEL
+        url="https://t.me/PandaGiveawaays"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
