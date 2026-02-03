@@ -1091,6 +1091,7 @@ def manage_channels():
             channel_id = data.get('channel_id')
             channel_name = data.get('channel_name')
             channel_url = data.get('channel_url')
+            is_active = 1 if data.get('is_active', True) else 0
             admin_id = data.get('admin_id', 1797127532)
             
             if not all([channel_id, channel_name, channel_url]):
@@ -1123,8 +1124,8 @@ def manage_channels():
             try:
                 cursor.execute("""
                     INSERT INTO required_channels (channel_id, channel_name, channel_url, added_by, added_at, is_active)
-                    VALUES (?, ?, ?, ?, ?, 1)
-                """, (channel_id, channel_name, channel_url, admin_id, now))
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (channel_id, channel_name, channel_url, admin_id, now, is_active))
                 
                 conn.commit()
                 conn.close()

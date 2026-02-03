@@ -889,6 +889,7 @@ async function createChannel() {
         const channelName = document.getElementById('channel-name').value.trim();
         const channelId = document.getElementById('channel-id').value.trim();
         const channelUrl = document.getElementById('channel-url').value.trim();
+        const isActive = document.getElementById('channel-active').checked;
         
         // التحقق من البيانات المطلوبة
         if (!channelName) {
@@ -911,6 +912,7 @@ async function createChannel() {
             channel_name: channelName,
             channel_id: channelId.startsWith('@') ? channelId : '@' + channelId,
             channel_url: channelUrl,
+            is_active: isActive,
             admin_id: 1797127532
         };
         

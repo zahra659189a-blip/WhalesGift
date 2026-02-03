@@ -491,26 +491,34 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>معرف القناة (Username)</label>
-                    <input type="text" id="channel-id" placeholder="@YourChannel أو YourChannel" maxlength="100">
-                    <small style="color: #8b95a1; display: block; margin-top: 4px;">سيتم التحقق من أن البوت مشرف في القناة</small>
-                </div>
-                
-                <div class="form-group">
                     <label>رابط القناة</label>
                     <input type="url" id="channel-url" placeholder="https://t.me/YourChannel" maxlength="200">
                     <small class="char-count" id="channel-url-count">0/200</small>
+                    <small style="color: #8b95a1; display: block; margin-top: 4px;">رابط القناة للاشتراك</small>
                 </div>
                 
-                <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px; padding: 16px;">
-                    <p style="margin: 0; color: #a78bfa; font-size: 14px; line-height: 1.6;">
+                <div class="form-group">
+                    <label>يوزرنيم القناة (للتحقق)</label>
+                    <input type="text" id="channel-id" placeholder="@YourChannel أو YourChannel" maxlength="100">
+                    <small style="color: #c4b5fd;">مطلوب للتحقق من الاشتراك - يجب أن يكون البوت مشرف</small>
+                </div>
+                
+                <div style="background: rgba(255, 212, 54, 0.1); border: 1px solid rgba(255, 212, 54, 0.3); border-radius: 12px; padding: 16px; margin-top: 16px;">
+                    <p style="margin: 0; color: #ffd436; font-size: 14px; line-height: 1.6;">
                         ⚠️ <strong>مهم:</strong> يجب أن يكون البوت مشرفاً في القناة حتى يتمكن من التحقق من اشتراك المستخدمين
                     </p>
+                </div>
+                
+                <div class="form-group" style="margin-top: 16px;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="channel-active" checked>
+                        <span>✅ نشط</span>
+                    </label>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="secondary-btn" onclick="closeAddChannelModal()">إلغاء</button>
-                <button class="btn-create-channel primary-btn" onclick="createChannel()">
+                <button class="primary-btn" onclick="createChannel()">
                     <span>✅ إضافة القناة</span>
                 </button>
             </div>
