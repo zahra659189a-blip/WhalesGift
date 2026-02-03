@@ -6,27 +6,28 @@
     gap: 10px;
 }
 
-/* Page Title Header - Outside Box */
+/* Page Title Header */
 .page-title-header {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 20px 20px 15px 20px;
+    gap: 10px;
+    padding: 5px 20px 5px 20px;
     background: transparent;
 }
 
 .page-title-icon {
-    width: 32px;
-    height: 32px;
-    filter: brightness(0) saturate(100%) invert(85%) sepia(47%) saturate(1067%) hue-rotate(359deg) brightness(103%) contrast(101%);
+    width: 26px;
+    height: 26px;
+    opacity: 0.7;
+    filter: brightness(0) saturate(100%) invert(61%) sepia(7%) saturate(555%) hue-rotate(169deg) brightness(92%) contrast(87%);
 }
 
 .page-title {
     margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: #ffd436;
+    font-size: 20px;
+    font-weight: 600;
+    color: #8b95a1;
     text-align: center;
 }
 
