@@ -1646,10 +1646,10 @@ def get_admin_user_referrals():
                 u.username,
                 u.full_name as name,
                 r.created_at as joined_at,
-                r.is_verified
+                r.is_valid
             FROM referrals r
-            JOIN users u ON r.referred_user_id = u.user_id
-            WHERE r.referrer_user_id = ?
+            JOIN users u ON r.referred_id = u.user_id
+            WHERE r.referrer_id = ?
             ORDER BY r.created_at DESC
         """, (user_id,))
         
@@ -1660,7 +1660,7 @@ def get_admin_user_referrals():
                 'username': f"@{row['username']}" if row['username'] else f"user_{row['id']}",
                 'name': row['name'] or 'Unknown',
                 'joined_at': row['joined_at'],
-                'is_verified': bool(row['is_verified'])
+                'is_verified': bool(row['is_valid'])
             })
         
         conn.close()
