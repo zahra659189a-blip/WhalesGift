@@ -1560,7 +1560,7 @@ def get_all_users():
 # ═══════════════════════════════════════════════════════════════
 
 @app.route('/api/admin/user-referrals', methods=['GET'])
-def get_user_referrals():
+def get_admin_user_referrals():
     """جلب إحالات مستخدم معين للأدمن"""
     try:
         user_id = request.args.get('user_id')
@@ -1604,7 +1604,7 @@ def get_user_referrals():
         })
         
     except Exception as e:
-        print(f"Error in get_user_referrals: {e}")
+        print(f"Error in get_admin_user_referrals: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
