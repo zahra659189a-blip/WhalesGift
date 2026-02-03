@@ -256,15 +256,17 @@
                         console.log('Referral item:', referral);
                         
                         const fullName = referral.full_name || `مستخدم ${referral.referred_id}`;
-                        const username = referral.username ? `@${referral.username}` : '';
+                        const usernameOnly = referral.username || '';
+                        const username = usernameOnly ? `@${usernameOnly}` : '';
                         
-                        // الحصول على صورة Telegram الحقيقية من API
-                        const userId = referral.referred_id;
-                        const avatarUrl = `https://t.me/i/userpic/160/${userId}.jpg`;
-                        const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4a9eff&color=fff&size=80`;
+                        // الحصول على صورة Telegram الحقيقية من API باستخدام username
+                        const avatarUrl = usernameOnly ? `https://t.me/i/userpic/320/${usernameOnly}.jpg` : '';
+                        const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4a9eff&color=fff&size=64`;
+                        
+                        const telegramLink = usernameOnly ? `https://t.me/${usernameOnly}` : '#';
                         
                         html += `
-                            <div class="referral-item">
+                            <a href="${telegramLink}" class="referral-item" ${usernameOnly ? 'target="_blank"' : 'onclick="return false;"'}>
                                 <img src="${avatarUrl}" 
                                      onerror="this.src='${fallbackUrl}'" 
                                      alt="${fullName}" 
@@ -274,7 +276,7 @@
                                     ${username ? `<div class="referral-username">${username}</div>` : ''}
                                 </div>
                                 <div class="referral-number">${index + 1}</div>
-                            </div>
+                            </a>
                         `;
                     });
                     $('#referrals-list-container').html(html);
