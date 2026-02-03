@@ -88,7 +88,7 @@ const ChannelsCheck = {
                     </div>
                     <div class="channels-modal-footer">
                         <button class="btn-verify-channels" onclick="ChannelsCheck.recheckSubscription()">
-                            <img src="/img/checksup.png" alt="تحقق" style="width: 18px; height: 18px; vertical-align: middle; margin-left: 4px;"> تحققت من الاشتراك
+                            <img src="/img/payment-success.svg" alt="تحقق" style="width: 18px; height: 18px; vertical-align: middle; margin-left: 4px;"> تحققت من الاشتراك
                         </button>
                     </div>
                 </div>
