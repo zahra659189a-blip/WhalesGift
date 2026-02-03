@@ -84,11 +84,6 @@
                         </div>
 
                         <div class="referral-wrapper">
-                            <div class="referral-record-row thead">
-                                <div>اليوزر</div>
-                                <div>الاسم</div>
-                            </div>
-                            <hr>
                             <div id="referrals-list-container">
                                 <div class="empty-no-data-wrapper">
                                     <svg width="64" height="41" viewBox="0 0 64 41" xmlns="http://www.w3.org/2000/svg"><title>لا توجد بيانات</title><g transform="translate(0 1)" fill="none" fill-rule="evenodd"><ellipse fill="#d2d2d2" cx="32" cy="33" rx="32" ry="7"></ellipse><g fill-rule="nonzero" stroke="#000000"><path d="M55 12.76L44.854 1.258C44.367.474 43.656 0 42.907 0H21.093c-.749 0-1.46.474-1.947 1.257L9 12.761V22h46v-9.24z"></path><path d="M41.613 15.931c0-1.605.994-2.93 2.227-2.931H55v18.137C55 33.26 53.68 35 52.05 35h-40.1C10.32 35 9 33.259 9 31.137V13h11.16c1.233 0 2.227 1.323 2.227 2.928v.022c0 1.605 1.005 2.901 2.237 2.901h14.752c1.232 0 2.237-1.308 2.237-2.913v-.007z" fill="#d2d2d2"></path></g></g></svg>
@@ -257,22 +252,22 @@
                 // Load referrals list
                 if (referralsData.success && referralsData.data && referralsData.data.length > 0) {
                     let html = '';
-                    referralsData.data.forEach(referral => {
+                    referralsData.data.forEach((referral, index) => {
                         console.log('Referral item:', referral);
                         
-                        // استخدام نفس المنطق من الكود القديم
-                        const fullName = referral.full_name || `User ${referral.referred_id}`;
-                        const displayName = fullName + (referral.username ? ` (@${referral.username})` : '');
-                        const username = referral.username || fullName;
-                        const avatarUrl = 'img/default-avatar.svg';
+                        const fullName = referral.full_name || `مستخدم ${referral.referred_id}`;
+                        const username = referral.username ? `@${referral.username}` : '';
+                        // استخدام API الصورة من Telegram
+                        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4a9eff&color=fff&size=128`;
                         
                         html += `
-                            <div class="referral-record-row">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <img src="${avatarUrl}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
-                                    <span>${username}</span>
+                            <div class="referral-item">
+                                <img src="${avatarUrl}" alt="${fullName}" class="referral-avatar">
+                                <div class="referral-info">
+                                    <div class="referral-name">${fullName}</div>
+                                    ${username ? `<div class="referral-username">${username}</div>` : ''}
                                 </div>
-                                <div>${displayName}</div>
+                                <div class="referral-number">${index + 1}</div>
                             </div>
                         `;
                     });
