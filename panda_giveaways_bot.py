@@ -378,6 +378,22 @@ class DatabaseManager:
             )
         """)
         
+        # جدول إعدادات البوت
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bot_settings (
+                setting_key TEXT PRIMARY KEY,
+                setting_value TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                updated_by INTEGER
+            )
+        """)
+        
+        # إضافة الإعدادات الافتراضية
+        cursor.execute("""
+            INSERT OR IGNORE INTO bot_settings (setting_key, setting_value, updated_at)
+            VALUES ('auto_withdrawal_enabled', 'false', ?)
+        """, (datetime.now().isoformat(),))
+        
         # إنشاء indexes لتحسين الأداء
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_spins_user ON spins(user_id)")
@@ -688,6 +704,91 @@ class DatabaseManager:
         logger.info(f"💸 Withdrawal request created: ID {withdrawal_id}, User {user_id}, Amount {amount}")
         return withdrawal_id
     
+    async def process_auto_withdrawal(self, withdrawal_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        """معالجة السحب التلقائي"""
+        try:
+            # الحصول على معلومات السحب
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT w.*, u.username, u.full_name
+                FROM withdrawals w
+                JOIN users u ON w.user_id = u.user_id
+                WHERE w.id = ? AND w.status = 'pending'
+            """, (withdrawal_id,))
+            
+            withdrawal = cursor.fetchone()
+            conn.close()
+            
+            if not withdrawal:
+                logger.error(f"❌ Withdrawal {withdrawal_id} not found or not pending")
+                return False
+            
+            withdrawal_dict = dict(withdrawal)
+            
+            # التحقق من نوع السحب والمحفظة
+            if withdrawal_dict['withdrawal_type'] != 'ton' or not withdrawal_dict['wallet_address']:
+                logger.info(f"⚠️ Withdrawal {withdrawal_id} is not TON type or missing wallet")
+                return False
+            
+            # التحقق من توفر TON Wallet
+            if not ton_wallet:
+                logger.error("❌ TON Wallet not initialized")
+                return False
+            
+            # محاولة السحب التلقائي
+            logger.info(f"🚀 Starting auto withdrawal for request #{withdrawal_id}")
+            
+            tx_hash = await ton_wallet.send_ton(
+                withdrawal_dict['wallet_address'],
+                withdrawal_dict['amount'],
+                f"Panda Giveaways Withdrawal #{withdrawal_id}"
+            )
+            
+            if tx_hash:
+                # الموافقة على السحب
+                self.approve_withdrawal(withdrawal_id, 0, tx_hash)  # 0 = automatic
+                
+                # إرسال إشعار للمستخدم
+                try:
+                    await context.bot.send_message(
+                        chat_id=withdrawal_dict['user_id'],
+                        text=f"""
+🎉 <b>تم تأكيد السحب!</b>
+
+💰 تم تحويل {withdrawal_dict['amount']:.4f} TON إلى محفظتك
+🔐 TX Hash: <code>{tx_hash}</code>
+
+شكراً لاستخدامك Panda Giveaways! 🐼
+""",
+                        parse_mode=ParseMode.HTML
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send notification: {e}")
+                
+                # نشر إثبات الدفع في القناة
+                await send_payment_proof_to_channel(
+                    context=context,
+                    username=withdrawal_dict.get('username', 'مستخدم'),
+                    full_name=withdrawal_dict['full_name'],
+                    user_id=withdrawal_dict['user_id'],
+                    amount=withdrawal_dict['amount'],
+                    wallet_address=withdrawal_dict['wallet_address'],
+                    tx_hash=tx_hash,
+                    withdrawal_id=withdrawal_id
+                )
+                
+                logger.info(f"✅ Auto withdrawal {withdrawal_id} completed successfully")
+                return True
+            else:
+                logger.error(f"❌ Auto withdrawal {withdrawal_id} failed - TX Hash is None")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Error in auto withdrawal {withdrawal_id}: {e}")
+            return False
+    
     def get_pending_withdrawals(self) -> List[Dict]:
         """الحصول على طلبات السحب المعلقة"""
         conn = self.get_connection()
@@ -886,6 +987,42 @@ class DatabaseManager:
         conn.close()
         
         return [row['task_id'] for row in rows]
+    
+    # ═══════════════════════════════════════════════════════════
+    # ⚙️ BOT SETTINGS OPERATIONS
+    # ═══════════════════════════════════════════════════════════
+    
+    def get_setting(self, key: str, default: str = None) -> Optional[str]:
+        """الحصول على قيمة إعداد"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT setting_value FROM bot_settings WHERE setting_key = ?", (key,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return row['setting_value']
+        return default
+    
+    def set_setting(self, key: str, value: str, admin_id: int):
+        """تعيين قيمة إعداد"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        now = datetime.now().isoformat()
+        
+        cursor.execute("""
+            INSERT OR REPLACE INTO bot_settings (setting_key, setting_value, updated_at, updated_by)
+            VALUES (?, ?, ?, ?)
+        """, (key, value, now, admin_id))
+        
+        conn.commit()
+        conn.close()
+        logger.info(f"⚙️ Setting {key} = {value} by admin {admin_id}")
+    
+    def is_auto_withdrawal_enabled(self) -> bool:
+        """التحقق من تفعيل السحب التلقائي"""
+        value = self.get_setting('auto_withdrawal_enabled', 'false')
+        return value.lower() == 'true'
     
     # ═══════════════════════════════════════════════════════════
     # 📊 STATISTICS & ANALYTICS
@@ -1248,6 +1385,12 @@ class TONWalletManager:
                     logger.info(f"   💰 Amount: {amount} TON")
                     logger.info(f"   📤 To: {to_address}")
                     
+                    # محاولة الحصول على TX Hash الحقيقي من الشبكة
+                    real_tx_hash = await self.get_real_transaction_hash(to_address, amount_nano, seqno)
+                    if real_tx_hash:
+                        logger.info(f"✅ Got real TX hash from network: {real_tx_hash}")
+                        return real_tx_hash
+                    
                     return str(tx_hash)
                 else:
                     logger.error(f"❌ Send failed: {result.get('error', 'Unknown')}")
@@ -1270,6 +1413,68 @@ class TONWalletManager:
             import traceback
             logger.error(traceback.format_exc())
             logger.warning("⚠️ Transfer failed, please check wallet and network")
+            return None
+    
+    async def get_real_transaction_hash(self, to_address: str, amount_nano: int, seqno: int, max_attempts: int = 10) -> Optional[str]:
+        """الحصول على TX Hash الحقيقي من الشبكة بعد الإرسال"""
+        try:
+            logger.info("🔍 Waiting for transaction to appear on blockchain...")
+            await asyncio.sleep(3)  # انتظار لتأكيد المعاملة
+            
+            url = f"{self.api_endpoint}getTransactions"
+            params = {
+                'address': self.wallet_address,
+                'limit': 5  # آخر 5 معاملات
+            }
+            
+            for attempt in range(max_attempts):
+                try:
+                    response = requests.get(url, params=params, headers=self.api_headers, timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        
+                        if data.get('ok') and 'result' in data:
+                            transactions = data['result']
+                            
+                            # البحث عن المعاملة المطابقة
+                            for tx in transactions:
+                                # التحقق من الـ seqno و المبلغ
+                                out_msgs = tx.get('out_msgs', [])
+                                
+                                for msg in out_msgs:
+                                    msg_value = int(msg.get('value', 0))
+                                    msg_destination = msg.get('destination', '')
+                                    
+                                    # مقارنة المبلغ والعنوان
+                                    if abs(msg_value - amount_nano) < 100000:  # تسامح صغير
+                                        if to_address in msg_destination or msg_destination in to_address:
+                                            tx_hash = tx.get('transaction_id', {}).get('hash')
+                                            if tx_hash:
+                                                # تحويل من base64 إلى hex
+                                                import base64
+                                                try:
+                                                    hash_bytes = base64.b64decode(tx_hash + '=')
+                                                    hex_hash = hash_bytes.hex()
+                                                    logger.info(f"✅ Found matching transaction: {hex_hash}")
+                                                    return hex_hash
+                                                except:
+                                                    return tx_hash
+                    
+                    if attempt < max_attempts - 1:
+                        await asyncio.sleep(2)
+                        logger.info(f"⏳ Transaction not found yet, retrying ({attempt + 1}/{max_attempts})...")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ Error fetching transactions: {e}")
+                    if attempt < max_attempts - 1:
+                        await asyncio.sleep(2)
+            
+            logger.warning("⚠️ Could not get real transaction hash from network")
+            return None
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting real transaction hash: {e}")
             return None
     
     async def get_balance(self) -> float:
@@ -1635,6 +1840,9 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 💸 السحوبات المكتملة: {stats['total_withdrawn']:.2f} TON
 ⏳ طلبات السحب المعلقة: {stats['pending_withdrawals']}
 
+⚙️ <b>إعدادات السحب:</b>
+{'✅ السحب التلقائي مفعّل' if db.is_auto_withdrawal_enabled() else '❌ السحب التلقائي معطّل'}
+
 <b>اختر ما تريد إدارته:</b>
 """
     
@@ -1644,6 +1852,10 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         [InlineKeyboardButton(f"{icon('tasks')} إدارة المهام", callback_data="admin_tasks")],
         [InlineKeyboardButton(f"{icon('view')} فحص مستخدم", callback_data="admin_check_user")],
         [InlineKeyboardButton(f"{icon('chart')} إحصائيات تفصيلية", callback_data="admin_detailed_stats")],
+        [InlineKeyboardButton(
+            f"{'❌ تعطيل' if db.is_auto_withdrawal_enabled() else '✅ تفعيل'} السحب التلقائي",
+            callback_data="toggle_auto_withdrawal"
+        )],
         [InlineKeyboardButton(f"{icon('back')} رجوع", callback_data="back_to_start")]
     ]
     
@@ -1652,6 +1864,34 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+async def toggle_auto_withdrawal_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تبديل حالة السحب التلقائي"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    
+    if not is_admin(user_id):
+        await query.answer("❌ غير مصرح لك!", show_alert=True)
+        return
+    
+    # الحصول على الحالة الحالية
+    current_state = db.is_auto_withdrawal_enabled()
+    new_state = not current_state
+    
+    # تحديث الإعداد
+    db.set_setting('auto_withdrawal_enabled', 'true' if new_state else 'false', user_id)
+    
+    status_text = "✅ مفعّل" if new_state else "❌ معطّل"
+    
+    await query.answer(
+        f"تم! السحب التلقائي الآن {status_text}",
+        show_alert=True
+    )
+    
+    # تحديث لوحة الأدمن
+    await admin_panel_callback(update, context)
 
 async def admin_tasks_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """إدارة المهام والقنوات"""
@@ -3039,6 +3279,7 @@ def main():
     application.add_handler(CallbackQueryHandler(admin_tasks_callback, pattern="^admin_tasks$"))
     application.add_handler(CallbackQueryHandler(admin_check_user_callback, pattern="^admin_check_user$"))
     application.add_handler(CallbackQueryHandler(admin_detailed_stats_callback, pattern="^admin_detailed_stats$"))
+    application.add_handler(CallbackQueryHandler(toggle_auto_withdrawal_callback, pattern="^toggle_auto_withdrawal$"))
     application.add_handler(CallbackQueryHandler(back_to_start_callback, pattern="^back_to_start$"))
     application.add_handler(CallbackQueryHandler(approve_withdrawal_callback, pattern="^approve_withdrawal_"))
     application.add_handler(CallbackQueryHandler(reject_withdrawal_callback, pattern="^reject_withdrawal_"))

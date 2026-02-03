@@ -1075,10 +1075,33 @@ async function deleteChannel(channelId) {
 // ═══════════════════════════════════════════════════════════════
 
 async function loadSettings() {
-    // Load current settings
-    document.getElementById('min-withdrawal').value = window.CONFIG?.MIN_WITHDRAWAL_AMOUNT || 0.1;
-    document.getElementById('max-withdrawal').value = 100;
-    document.getElementById('auto-withdrawal').checked = true;
+    try {
+        // جلب الإعدادات من الـ API
+        const response = await fetch(`${window.CONFIG.API_BASE_URL}/settings`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            // تحميل الإعدادات
+            document.getElementById('min-withdrawal').value = result.data.min_withdrawal || 0.1;
+            document.getElementById('max-withdrawal').value = result.data.max_withdrawal || 100;
+            document.getElementById('auto-withdrawal').checked = result.data.auto_withdrawal_enabled || false;
+            
+            console.log('✅ Settings loaded:', result.data);
+        } else {
+            // استخدام القيم الافتراضية
+            document.getElementById('min-withdrawal').value = window.CONFIG?.MIN_WITHDRAWAL_AMOUNT || 0.1;
+            document.getElementById('max-withdrawal').value = 100;
+            document.getElementById('auto-withdrawal').checked = false;
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        // استخدام القيم الافتراضية
+        document.getElementById('min-withdrawal').value = window.CONFIG?.MIN_WITHDRAWAL_AMOUNT || 0.1;
+        document.getElementById('max-withdrawal').value = 100;
+        document.getElementById('auto-withdrawal').checked = false;
+    }
+    
+    // باقي الإعدادات
     document.getElementById('max-daily-spins').value = 10;
     document.getElementById('spin-cooldown').value = (window.CONFIG?.SPIN_COOLDOWN || 2000) / 1000;
     document.getElementById('initial-spins').value = 3;
@@ -1088,30 +1111,54 @@ async function loadSettings() {
     document.getElementById('event-logging').checked = true;
 }
 
-function saveSettings() {
+async function saveSettings() {
     showLoading();
     
-    // Collect all settings
-    const settings = {
-        minWithdrawal: parseFloat(document.getElementById('min-withdrawal').value),
-        maxWithdrawal: parseFloat(document.getElementById('max-withdrawal').value),
-        autoWithdrawal: document.getElementById('auto-withdrawal').checked,
-        maxDailySpins: parseInt(document.getElementById('max-daily-spins').value),
-        spinCooldown: parseInt(document.getElementById('spin-cooldown').value),
-        initialSpins: parseInt(document.getElementById('initial-spins').value),
-        referralsPerSpin: parseInt(document.getElementById('referrals-per-spin').value),
-        referralBonus: parseFloat(document.getElementById('referral-bonus').value),
-        rateLimiting: document.getElementById('rate-limiting').checked,
-        eventLogging: document.getElementById('event-logging').checked
-    };
-    
-    // TODO: Save to backend
-    console.log('Saving settings:', settings);
-    
-    setTimeout(() => {
+    try {
+        // جمع الإعدادات
+        const settings = {
+            minWithdrawal: parseFloat(document.getElementById('min-withdrawal').value),
+            maxWithdrawal: parseFloat(document.getElementById('max-withdrawal').value),
+            auto_withdrawal_enabled: document.getElementById('auto-withdrawal').checked,
+            maxDailySpins: parseInt(document.getElementById('max-daily-spins').value),
+            spinCooldown: parseInt(document.getElementById('spin-cooldown').value),
+            initialSpins: parseInt(document.getElementById('initial-spins').value),
+            referralsPerSpin: parseInt(document.getElementById('referrals-per-spin').value),
+            referralBonus: parseFloat(document.getElementById('referral-bonus').value),
+            rateLimiting: document.getElementById('rate-limiting').checked,
+            eventLogging: document.getElementById('event-logging').checked
+        };
+        
+        console.log('Saving settings:', settings);
+        
+        // حفظ الإعدادات في الـ API
+        const response = await fetch(`${window.CONFIG.API_BASE_URL}/settings`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        });
+        
+        const result = await response.json();
+        
         hideLoading();
-        showToast('✅ تم حفظ الإعدادات بنجاح', 'success');
-    }, 1000);
+        
+        if (result.success) {
+            showToast('✅ تم حفظ الإعدادات بنجاح', 'success');
+            
+            // تحديث النص بناءً على الحالة
+            const autoWithdrawalStatus = settings.auto_withdrawal_enabled ? 'مفعّل ✅' : 'معطّل ❌';
+            console.log(`💡 السحب التلقائي الآن: ${autoWithdrawalStatus}`);
+        } else {
+            showToast('❌ فشل حفظ الإعدادات: ' + (result.error || 'خطأ غير معروف'), 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        hideLoading();
+        showToast('❌ فشل حفظ الإعدادات', 'error');
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1144,6 +1191,39 @@ function setupEventListeners() {
     });
     
     console.log('✅ Event listeners setup complete');
+    
+    // Auto-withdrawal toggle listener
+    const autoWithdrawalToggle = document.getElementById('auto-withdrawal');
+    if (autoWithdrawalToggle) {
+        autoWithdrawalToggle.addEventListener('change', async (e) => {
+            const isEnabled = e.target.checked;
+            console.log('🔄 Auto-withdrawal toggled:', isEnabled);
+            
+            try {
+                const response = await fetch(`${window.CONFIG.API_BASE_URL}/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ auto_withdrawal_enabled: isEnabled })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const status = isEnabled ? '✅ مفعّل' : '❌ معطّل';
+                    showToast(`السحب التلقائي الآن ${status}`, 'success');
+                } else {
+                    showToast('❌ فشل تحديث الإعداد', 'error');
+                    // إرجاع الحالة السابقة
+                    e.target.checked = !isEnabled;
+                }
+            } catch (error) {
+                console.error('Error toggling auto-withdrawal:', error);
+                showToast('❌ خطأ في الاتصال', 'error');
+                // إرجاع الحالة السابقة
+                e.target.checked = !isEnabled;
+            }
+        });
+    }
     
     // Filter buttons for withdrawals
     const filterBtns = document.querySelectorAll('.filter-btn');

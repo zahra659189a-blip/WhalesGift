@@ -1947,6 +1947,73 @@ def get_admin_user_referrals():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
+# ⚙️ BOT SETTINGS API
+# ═══════════════════════════════════════════════════════════════
+
+@app.route('/api/settings', methods=['GET'])
+def get_settings():
+    """الحصول على إعدادات البوت"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # جلب جميع الإعدادات
+        cursor.execute("SELECT setting_key, setting_value FROM bot_settings")
+        settings_rows = cursor.fetchall()
+        
+        settings = {}
+        for row in settings_rows:
+            settings[row['setting_key']] = row['setting_value']
+        
+        conn.close()
+        
+        # إضافة قيم افتراضية للإعدادات الأخرى
+        return jsonify({
+            'success': True,
+            'data': {
+                'auto_withdrawal_enabled': settings.get('auto_withdrawal_enabled', 'false') == 'true',
+                'min_withdrawal': 0.1,
+                'max_withdrawal': 100.0
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error getting settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/settings', methods=['POST'])
+def update_settings():
+    """تحديث إعدادات البوت"""
+    try:
+        data = request.get_json()
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        now = datetime.now().isoformat()
+        
+        # تحديث السحب التلقائي
+        if 'auto_withdrawal_enabled' in data:
+            auto_withdrawal = 'true' if data['auto_withdrawal_enabled'] else 'false'
+            cursor.execute("""
+                INSERT OR REPLACE INTO bot_settings (setting_key, setting_value, updated_at)
+                VALUES ('auto_withdrawal_enabled', ?, ?)
+            """, (auto_withdrawal, now))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Settings updated: {data}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'تم تحديث الإعدادات بنجاح'
+        })
+        
+    except Exception as e:
+        print(f"Error updating settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # 🏥 HEALTH CHECK
 # ═══════════════════════════════════════════════════════════════
 
