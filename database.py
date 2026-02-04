@@ -95,6 +95,18 @@ class DatabaseManager:
         # تحويل ? إلى %s لـ PostgreSQL
         if self.use_postgres:
             query = query.replace('?', '%s')
+            # تحويل دوال SQLite إلى PostgreSQL
+            query = query.replace("datetime('now')", "NOW()")
+            query = query.replace("datetime(expires_at)", "expires_at")
+            query = query.replace("datetime(created_at)", "created_at")
+            query = query.replace("datetime(verified_at)", "verified_at")
+            query = query.replace("datetime(last_seen)", "last_seen")
+            query = query.replace("datetime(last_active)", "last_active")
+            query = query.replace("datetime(updated_at)", "updated_at")
+            # تحويل INSERT OR REPLACE إلى INSERT ... ON CONFLICT
+            if 'INSERT OR REPLACE' in query.upper():
+                # سيتم التعامل معها حسب الحالة في الكود
+                pass
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
