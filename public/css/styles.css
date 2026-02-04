@@ -234,16 +234,26 @@ body {
     height: 0;
     border-left: 15px solid transparent;
     border-right: 15px solid transparent;
-    border-top: 30px solid var(--accent-color);
+    /* 🌟 مؤشر ذهبي فاخر */
+    border-top: 30px solid #E5C76A;
     z-index: 10;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    /* ✨ ظل ذهبي ناعم */
+    filter: drop-shadow(0 2px 8px rgba(201, 162, 77, 0.6)) 
+            drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
 }
 
 #wheel-canvas {
     display: block;
     margin: 0 auto;
     border-radius: var(--radius-full);
-    box-shadow: var(--shadow-lg);
+    /* 🎨 ظل محسن للعجلة */
+    box-shadow: 
+        0 0 40px rgba(201, 162, 77, 0.3),
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 4px 16px rgba(0, 0, 0, 0.3);
+    /* تحسين جودة الرسم */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 .spin-button {
@@ -1677,25 +1687,40 @@ body {
     width: 100px;
     height: 100px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-color), #ff6b35);
-    border: 4px solid white;
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
+    /* 🎨 Gradient ذهبي فاخر */
+    background: linear-gradient(135deg, #E5C76A 0%, #C9A24D 50%, #9E7C2F 100%);
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    color: #1C1F24;
+    font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
+    /* ✨ توهج ذهبي ناعم */
+    box-shadow: 
+        0 0 20px rgba(201, 162, 77, 0.6),
+        0 4px 15px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     z-index: 10;
+    /* تأثير معدني */
+    position: relative;
+    overflow: hidden;
 }
 
 #spin-button:hover:not(:disabled) {
-    transform: translate(-50%, -50%) scale(1.1);
-    box-shadow: 0 6px 20px rgba(255, 165, 0, 0.6);
+    transform: translate(-50%, -50%) scale(1.08);
+    /* ✨ توهج أقوى عند الـ hover */
+    box-shadow: 
+        0 0 30px rgba(201, 162, 77, 0.8),
+        0 6px 25px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    filter: brightness(1.1);
 }
 
 #spin-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    filter: grayscale(0.5);
 }
 
 #spin-button.spinning {

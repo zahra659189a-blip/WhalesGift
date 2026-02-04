@@ -11,10 +11,8 @@ class WheelOfFortune {
         this.isSpinning = false;
         this.spinButton = document.getElementById('spin-button');
         
-        // إعدادات العجلة
-        this.centerX = this.canvas.width / 2;
-        this.centerY = this.canvas.height / 2;
-        this.radius = Math.min(this.centerX, this.centerY) - 10;
+        // 🎨 إصلاح البكسلة - High DPI Support
+        this.setupHighDPI();
         
         // Sound effects
         this.sounds = {
@@ -27,6 +25,37 @@ class WheelOfFortune {
         
         // إضافة مستمع للنقر
         this.spinButton.addEventListener('click', () => this.spin());
+    }
+    
+    // ═══════════════════════════════════════════════════════════
+    // 🎨 HIGH DPI SUPPORT - إصلاح البكسلة
+    // ═══════════════════════════════════════════════════════════
+    
+    setupHighDPI() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = this.canvas.getBoundingClientRect();
+        
+        // حفظ الأبعاد الأصلية
+        const width = rect.width;
+        const height = rect.height;
+        
+        // تعيين حجم canvas الداخلي بناءً على DPI
+        this.canvas.width = width * dpr;
+        this.canvas.height = height * dpr;
+        
+        // تعيين حجم العرض CSS
+        this.canvas.style.width = width + 'px';
+        this.canvas.style.height = height + 'px';
+        
+        // تكبير السياق لمطابقة DPI
+        this.ctx.scale(dpr, dpr);
+        
+        // تحديث إعدادات العجلة بعد التكبير
+        this.centerX = width / 2;
+        this.centerY = height / 2;
+        this.radius = Math.min(this.centerX, this.centerY) - 10;
+        
+        console.log('🎨 High DPI setup:', { dpr, width, height });
     }
     
     // ═══════════════════════════════════════════════════════════
@@ -54,62 +83,113 @@ class WheelOfFortune {
         const { ctx, centerX, centerY, radius, prizes, rotation } = this;
         
         // مسح الـ canvas
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Add subtle shadow to canvas
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = 20;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 5;
+        const canvasWidth = this.canvas.width / (window.devicePixelRatio || 1);
+        const canvasHeight = this.canvas.height / (window.devicePixelRatio || 1);
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         
         // حساب زاوية كل قطاع
         const anglePerSegment = (2 * Math.PI) / prizes.length;
         
-        // رسم القطاعات
+        // 🎨 ألوان زيتية محسنة
+        const oilColors = [
+            { start: '#1E5F63', end: '#0F3438' },  // Teal Oil
+            { start: '#3A2E5C', end: '#1F1836' },  // Purple Oil
+            { start: '#1F3B4D', end: '#0F1D26' },  // Deep Blue
+            { start: '#2E2A24', end: '#1A1714' },  // Charcoal
+            { start: '#9E7C2F', end: '#6B5320' },  // Dark Gold
+            { start: '#4A2C2A', end: '#2A1715' }   // Brown Oil
+        ];
+        
+        // رسم القطاعات بـ Gradients
         prizes.forEach((prize, index) => {
             const startAngle = rotation + (index * anglePerSegment);
             const endAngle = startAngle + anglePerSegment;
+            
+            // حساب نقاط الـ gradient
+            const gradStartX = centerX + Math.cos(startAngle) * radius * 0.3;
+            const gradStartY = centerY + Math.sin(startAngle) * radius * 0.3;
+            const gradEndX = centerX + Math.cos(endAngle) * radius * 0.9;
+            const gradEndY = centerY + Math.sin(endAngle) * radius * 0.9;
+            
+            // إنشاء gradient لكل قطاع
+            const gradient = ctx.createLinearGradient(gradStartX, gradStartY, gradEndX, gradEndY);
+            const colorPair = oilColors[index % oilColors.length];
+            gradient.addColorStop(0, colorPair.start);
+            gradient.addColorStop(1, colorPair.end);
             
             // رسم القطاع
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, startAngle, endAngle);
             ctx.lineTo(centerX, centerY);
-            ctx.fillStyle = prize.color;
+            ctx.fillStyle = gradient;
             ctx.fill();
             
-            // إضافة حدود
-            ctx.strokeStyle = '#0d1117';
-            ctx.lineWidth = 3;
+            // إضافة حدود ناعمة
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.3;
             ctx.stroke();
+            ctx.globalAlpha = 1;
             
-            // رسم النص
+            // رسم النص بخط محسن
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(startAngle + anglePerSegment / 2);
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 14px Arial';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 4;
+            
+            // ظل النص
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 2;
+            
+            // النص نفسه
+            ctx.fillStyle = '#F2F2F2';
+            ctx.font = '600 16px Inter, system-ui, sans-serif';
             ctx.fillText(prize.name, radius * 0.65, 0);
             ctx.restore();
         });
         
-        // رسم الدائرة الخارجية
+        // 🌟 رسم الإطار الذهبي الناعم
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = '#ffa500';
-        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#C9A24D';
+        ctx.lineWidth = 6;
+        ctx.shadowColor = 'rgba(201, 162, 77, 0.6)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
         ctx.stroke();
         
-        // رسم الدائرة الداخلية (للزر)
+        // إطار داخلي إضافي
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius - 3, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#E5C76A';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 6;
+        ctx.stroke();
+        
+        // 🎯 رسم الدائرة الداخلية (للزر) مع gradient
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 3;
+        
+        const innerGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 50);
+        innerGradient.addColorStop(0, '#1a1f2e');
+        innerGradient.addColorStop(1, '#0d1117');
+        
         ctx.beginPath();
         ctx.arc(centerX, centerY, 50, 0, 2 * Math.PI);
-        ctx.fillStyle = '#0d1117';
+        ctx.fillStyle = innerGradient;
         ctx.fill();
-        ctx.strokeStyle = '#ffa500';
-        ctx.lineWidth = 4;
+        
+        // إطار ذهبي للدائرة الداخلية
+        ctx.strokeStyle = '#C9A24D';
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = 'rgba(201, 162, 77, 0.5)';
         ctx.stroke();
     }
     
