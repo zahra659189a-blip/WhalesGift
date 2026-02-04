@@ -1694,7 +1694,84 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db.create_or_update_user(user_id, username, full_name, None)
     
     # ══════════════════════════════════════════════════════════
-    # 🎯 التحقق من الاشتراك في القنوات الإجبارية (للجميع)
+    # 🔐 الخطوة 1: التحقق من الجهاز (الأساس - لا يتم شيء قبله)
+    # ══════════════════════════════════════════════════════════
+    try:
+        import requests as req
+        
+        # التحقق من حالة نظام التحقق
+        settings_url = f"{API_BASE_URL}/admin/verification-settings?admin_id={user_id}"
+        settings_resp = req.get(settings_url, timeout=5)
+        
+        verification_enabled = True
+        if settings_resp.ok:
+            settings_data = settings_resp.json()
+            verification_enabled = settings_data.get('verification_enabled', True)
+        
+        # إذا كان التحقق مفعلاً، نتحقق من حالة المستخدم
+        if verification_enabled:
+            verify_status_url = f"{API_BASE_URL}/verification/status/{user_id}"
+            verify_resp = req.get(verify_status_url, timeout=5)
+            
+            if verify_resp.ok:
+                verify_data = verify_resp.json()
+                is_verified = verify_data.get('verified', False)
+                
+                if not is_verified:
+                    # المستخدم غير متحقق - إرسال رسالة التحقق
+                    # إنشاء token للتحقق
+                    token_url = f"{API_BASE_URL}/verification/create-token"
+                    token_resp = req.post(token_url, json={'user_id': user_id}, timeout=5)
+                    
+                    if token_resp.ok:
+                        token_data = token_resp.json()
+                        fp_token = token_data.get('token')
+                        
+                        # إنشاء رابط التحقق
+                        verify_url = f"{MINI_APP_URL}/fp.html?user_id={user_id}&fp_token={fp_token}"
+                        
+                        verification_text = f"""
+🔐 <b>التحقق من الجهاز</b>
+
+عزيزي <b>{full_name}</b>، مرحباً بك! 👋
+
+للحفاظ على نزاهة النظام ومنع التلاعب، يجب التحقق من جهازك أولاً.
+
+<b>⚡️ هذه الخطوة تتم مرة واحدة فقط!</b>
+
+<b>ما الذي يتم فحصه؟</b>
+• بصمة الجهاز (Fingerprint)
+• عنوان IP
+• معلومات المتصفح
+
+<b>✅ بياناتك آمنة ومحمية</b>
+
+اضغط على الزر أدناه للتحقق:
+"""
+                        
+                        keyboard = [[InlineKeyboardButton(
+                            "🔐 تحقق من جهازك",
+                            web_app=WebAppInfo(url=verify_url)
+                        )]]
+                        
+                        reply_markup = InlineKeyboardMarkup(keyboard)
+                        
+                        await update.message.reply_text(
+                            verification_text,
+                            parse_mode=ParseMode.HTML,
+                            reply_markup=reply_markup
+                        )
+                        
+                        # تسجيل النشاط
+                        db.log_activity(user_id, "verification_required", f"Referrer: {referrer_id}")
+                        
+                        return  # إيقاف التنفيذ حتى يتم التحقق
+    except Exception as e:
+        logger.error(f"Error checking verification status: {e}")
+        # في حالة الخطأ، السماح بالمتابعة
+    
+    # ══════════════════════════════════════════════════════════
+    # 🎯 الخطوة 2: التحقق من الاشتراك في القنوات الإجبارية
     # ══════════════════════════════════════════════════════════
     # جلب القنوات الإجبارية
     required_channels = db.get_active_mandatory_channels()
