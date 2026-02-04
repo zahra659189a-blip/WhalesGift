@@ -38,7 +38,7 @@ footer {margin-top:30px;text-align:center;font-size:.7rem;opacity:.55;}
     <div class="glow"></div>
     <header>
       <h1>التحقق من الجهاز</h1>
-      <p>نقوم بإنشاء بصمة فريدة لهاتفك لضمان منع تكرار الحسابات أثناء التصويت.</p>
+      <p>نقوم بإنشاء بصمة فريدة لهاتفك لضمان منع تكرار الحسابات.</p>
     </header>
     <div id="fpBox" class="fingerprint-box"></div>
     <button id="sendBtn" disabled>
@@ -134,32 +134,11 @@ function getUserIdFromUrl(){
       status.textContent='📤 جارٍ إرسال البيانات للبوت...';
       status.className='status pending';
       
-      // محاولة إرسال عبر Telegram WebApp أولاً
-      if(window.Telegram && Telegram.WebApp){
+      // استخدام API المباشر بدلاً من Telegram.WebApp.sendData
+      // لأن sendData لا يعطينا رد فوري ويغلق النافذة
+      if(uid && fpToken){
         try {
-          Telegram.WebApp.sendData(JSON.stringify(payload));
-          status.textContent='✅ تم إرسال البيانات إلى البوت بنجاح!'; 
-          status.className='status ok'; 
-          btnIcon.className='';
-          btnIcon.textContent='✅';
-          btnText.textContent='تم الإرسال للبوت';
-          success = true;
-          
-          // إغلاق النافذة تلقائياً بعد 2 ثانية
-          setTimeout(() => {
-            status.textContent='✅ جارٍ إغلاق النافذة...';
-            Telegram.WebApp.close();
-          }, 2000);
-        } catch(e){ 
-          console.error('Telegram WebApp failed:', e);
-          status.textContent='⚠️ فشل الإرسال عبر تيليجرام، جارٍ المحاولة مباشرة...';
-        }
-      }
-      
-      // محاولة إرسال للخادم المباشر كخيار احتياطي
-      if(!success && uid && fpToken){
-        try {
-          status.textContent='📡 جارٍ الإرسال المباشر للخادم...';
+          status.textContent='📡 جارٍ الإرسال للخادم...';
           
           const resp = await fetch('/api/fingerprint', {
             method: 'POST',

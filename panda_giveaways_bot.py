@@ -3491,6 +3491,60 @@ def check_bot_admin():
         logger.error(f"Error in check_bot_admin: {e}")
         return jsonify({'success': False, 'is_admin': False, 'error': str(e)}), 500
 
+@verification_app.route('/device-verified', methods=['POST'])
+def handle_device_verified():
+    """استقبال إشعار عند التحقق من جهاز المستخدم"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Missing user_id'}), 400
+        
+        logger.info(f"🔔 Device verified notification for user {user_id}")
+        
+        # إرسال رسالة تأكيد للمستخدم عبر البوت
+        try:
+            import requests as req
+            
+            # الحصول على بيانات المستخدم
+            user = db.get_user(user_id)
+            full_name = user.full_name if user else "المستخدم"
+            
+            success_text = f"""
+✅ تم التحقق من جهازك بنجاح!
+
+عزيزي {full_name}، تم التحقق من جهازك بنجاح! 🎉
+
+🎯 يمكنك الآن استخدام البوت بحرية!
+
+استخدم /start لرؤية القائمة الرئيسية
+"""
+            
+            # إرسال الرسالة عبر Bot API
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+            payload = {
+                "chat_id": user_id,
+                "text": success_text,
+                "parse_mode": "HTML"
+            }
+            resp = req.post(url, json=payload, timeout=10)
+            
+            if resp.ok:
+                logger.info(f"✅ Verification success message sent to user {user_id}")
+            else:
+                logger.error(f"❌ Failed to send message: {resp.text}")
+            
+            return jsonify({'success': True, 'message': 'Notification sent'})
+            
+        except Exception as bot_error:
+            logger.error(f"❌ Error sending message to user {user_id}: {bot_error}")
+            return jsonify({'success': False, 'error': 'Failed to send message'}), 500
+            
+    except Exception as e:
+        logger.error(f"❌ Error in handle_device_verified: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @verification_app.route('/send-welcome', methods=['POST'])
 def send_welcome_message():
     """إرسال رسالة ترحيبية للمستخدم عند فتح المينى آب"""
@@ -3577,24 +3631,36 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
     معالج استقبال البيانات من Mini App (صفحة التحقق)
     """
     try:
+        logger.info("🔔 handle_web_app_data called!")
+        
         user = update.effective_user
         user_id = user.id
         username = user.username or f"user_{user_id}"
         full_name = user.full_name or username
         
+        logger.info(f"👤 User: {user_id} - {full_name}")
+        
+        # التحقق من وجود web_app_data
+        if not update.effective_message or not update.effective_message.web_app_data:
+            logger.error("❌ No web_app_data found in update")
+            return
+        
         # استخراج البيانات المرسلة من Mini App
         web_app_data = update.effective_message.web_app_data.data
         
-        logger.info(f"📱 Received web app data from user {user_id}")
+        logger.info(f"📱 Received web app data from user {user_id}: {web_app_data[:100]}...")
         
         # تحليل البيانات JSON
         import json
         data = json.loads(web_app_data)
         
+        logger.info(f"📊 Parsed data: fingerprint={data.get('fingerprint', 'N/A')[:20]}...")
+        
         fingerprint = data.get('fingerprint')
         meta = data.get('meta', {})
         
         if not fingerprint:
+            logger.error("❌ No fingerprint in data")
             await update.message.reply_text(
                 "❌ حدث خطأ في استقبال البيانات. حاول مرة أخرى.",
                 parse_mode=ParseMode.HTML
@@ -3767,6 +3833,10 @@ def main():
     application.add_handler(CommandHandler("balance", balance_command))
     application.add_handler(CommandHandler("add_tx_hash", add_tx_hash_command))
     
+    # معالج استقبال بيانات التحقق من Mini App (يجب أن يكون في البداية!)
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
+    logger.info("✅ Web App Data handler registered")
+    
     # معالج Inline Query
     application.add_handler(InlineQueryHandler(inline_query_handler))
     
@@ -3864,16 +3934,26 @@ def main():
     )
     application.add_handler(broadcast_handler)
     
-    # معالج استقبال بيانات التحقق من Mini App
-    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
-    
     # معالجات التحكم بالبرودكاست (pause/resume/cancel)
     application.add_handler(CallbackQueryHandler(cancel_broadcast_run, pattern="^cancel_broadcast_run$"))
     application.add_handler(CallbackQueryHandler(pause_broadcast_run, pattern="^pause_broadcast_run$"))
     application.add_handler(CallbackQueryHandler(resume_broadcast_run, pattern="^resume_broadcast_run$"))
     
+    # معالج عام لرصد جميع الرسائل (للتشخيص)
+    async def log_all_updates(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """معالج لرصد جميع التحديثات"""
+        logger.info(f"🔍 Update received: {update}")
+        if update.effective_message:
+            logger.info(f"📨 Message type: {type(update.effective_message)}")
+            if hasattr(update.effective_message, 'web_app_data'):
+                logger.info(f"🌐 Has web_app_data: {update.effective_message.web_app_data}")
+    
+    # لا تضيف هذا في الإنتاج - فقط للتشخيص
+    # application.add_handler(MessageHandler(filters.ALL, log_all_updates), group=999)
+    
     # تشغيل البوت
     logger.info("✅ Bot is running!")
+    logger.info("📱 Waiting for web app data...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
