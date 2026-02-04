@@ -156,7 +156,7 @@
 
             <!-- 📊 إحصائيات متقدمة -->
             <div class="advanced-stats-grid">
-                <div class="stat-card">
+                <div class="stat-card" title="إجمالي جميع المستخدمين">
                     <div class="stat-icon-wrapper blue">
                         <span class="stat-emoji">👥</span>
                     </div>
@@ -165,31 +165,31 @@
                         <p>إجمالي المستخدمين</p>
                     </div>
                 </div>
-                <div class="stat-card success">
+                <div class="stat-card success" title="اضغط لعرض المستخدمين النشطين (غير محظورين)">
                     <div class="stat-icon-wrapper green">
                         <span class="stat-emoji">✅</span>
                     </div>
                     <div class="stat-content">
                         <h3 id="stat-active-users">0</h3>
-                        <p>مستخدمين نشطين</p>
+                        <p>مستخدمين نشطين 👆</p>
                     </div>
                 </div>
-                <div class="stat-card danger">
+                <div class="stat-card danger" title="اضغط لعرض المستخدمين المحظورين وإزالة الحظر">
                     <div class="stat-icon-wrapper red">
                         <span class="stat-emoji">🔒</span>
                     </div>
                     <div class="stat-content">
                         <h3 id="stat-banned-users">0</h3>
-                        <p>محظورين (تعدد حسابات)</p>
+                        <p>محظورين (تعدد) 👆</p>
                     </div>
                 </div>
-                <div class="stat-card info">
+                <div class="stat-card info" title="اضغط لعرض المستخدمين المتحقق من أجهزتهم">
                     <div class="stat-icon-wrapper blue">
                         <span class="stat-emoji">✔️</span>
                     </div>
                     <div class="stat-content">
                         <h3 id="stat-verified-users">0</h3>
-                        <p>متحقق منهم</p>
+                        <p>متحقق منهم 👆</p>
                     </div>
                 </div>
             </div>
@@ -197,6 +197,7 @@
             <div class="users-manager">
                 <div class="header-actions">
                     <button class="add-btn" onclick="openAddSpinsModal()">➕ إضافة لفات</button>
+                    <button class="btn-secondary" onclick="renderUsersTable()" style="margin-left: 10px;">👥 عرض الكل</button>
                     <div class="search-box">
                         <input type="text" id="user-search" placeholder="🔍 ابحث عن مستخدم...">
                     </div>

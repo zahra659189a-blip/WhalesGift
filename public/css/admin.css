@@ -234,7 +234,17 @@
 }
 
 .advanced-stats-grid .stat-card {
-    cursor: default;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.advanced-stats-grid .stat-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 35px rgba(255, 165, 0, 0.4);
+}
+
+.advanced-stats-grid .stat-card:active {
+    transform: translateY(-4px) scale(0.98);
 }
 
 .advanced-stats-grid .stat-card.success .stat-icon-wrapper {

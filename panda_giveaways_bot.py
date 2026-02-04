@@ -203,6 +203,7 @@ class User:
     created_at: str = None
     last_active: str = None
     is_banned: bool = False
+    ban_reason: Optional[str] = None  # سبب الحظر
     
     # للأمان
     last_spin_time: Optional[str] = None
@@ -496,6 +497,7 @@ class DatabaseManager:
                 created_at=row['created_at'],
                 last_active=row['last_active'],
                 is_banned=bool(row['is_banned']),
+                ban_reason=row.get('ban_reason'),
                 last_spin_time=row['last_spin_time'],
                 spin_count_today=row['spin_count_today']
             )
@@ -1697,6 +1699,34 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             db.create_or_update_user(user_id, username, full_name, referrer_id)
         else:
             db.create_or_update_user(user_id, username, full_name, None)
+    
+    # ══════════════════════════════════════════════════════════
+    # 🔴 التحقق من الحظر أولاً
+    # ══════════════════════════════════════════════════════════
+    db_user = db.get_user(user_id)  # إعادة جلب بيانات المستخدم
+    if db_user and db_user.is_banned:
+        ban_reason = db_user.ban_reason if db_user.ban_reason else 'تم حظرك من البوت'
+        
+        ban_message = f"""
+⛔ <b>تم حظرك من البوت</b>
+
+عزيزي <b>{full_name}</b>،
+
+حسابك محظور من استخدام البوت.
+
+<b>السبب:</b> {ban_reason}
+<b>🔒 حالة الحساب:</b> محظور
+
+إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.
+"""
+        
+        await update.message.reply_text(
+            ban_message,
+            parse_mode=ParseMode.HTML
+        )
+        
+        logger.info(f"🔴 Banned user {user_id} tried to use /start")
+        return  # إيقاف التنفيذ - لا نفتح قائمة التحقق
     
     # ══════════════════════════════════════════════════════════
     # 🔐 الخطوة 1: التحقق من الجهاز (الأساس - لا يتم شيء قبله)
