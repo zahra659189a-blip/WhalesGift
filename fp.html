@@ -178,9 +178,39 @@ function getUserIdFromUrl(){
               btnIcon.className='';
               btnIcon.textContent='❌';
               btnText.textContent='فشل التحقق';
+              
+              // إظهار رسالة تفصيلية
+              const errorMsg = document.createElement('div');
+              errorMsg.style.cssText = 'margin-top:20px;padding:15px;background:#ff4d61;color:#fff;border-radius:12px;text-align:center;line-height:1.6;';
+              errorMsg.innerHTML = `<b>⚠️ فشل التحقق</b><br/>${errorReason}`;
+              box.appendChild(errorMsg);
             }
           } else {
-            throw new Error('Server response not OK');
+            // معالجة الأخطاء من الخادم (403, 400, etc)
+            let errorMessage = 'خطأ في الاتصال بالخادم';
+            try {
+              const errorData = await resp.json();
+              errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch(e) {
+              errorMessage = `خطأ ${resp.status}: ${resp.statusText}`;
+            }
+            
+            status.textContent=`❌ ${errorMessage}`;
+            status.className='status err';
+            btnIcon.className='';
+            btnIcon.textContent='❌';
+            btnText.textContent='فشل التحقق';
+            
+            // إظهار رسالة تفصيلية
+            const errorMsg = document.createElement('div');
+            errorMsg.style.cssText = 'margin-top:20px;padding:15px;background:#ff4d61;color:#fff;border-radius:12px;text-align:center;line-height:1.6;';
+            
+            if(resp.status === 403) {
+              errorMsg.innerHTML = '<b>🚫 جهاز مسجل مسبقاً</b><br/>هذا الجهاز مسجل بالفعل لمستخدم آخر.<br/>كل جهاز يمكن استخدامه لحساب واحد فقط.';
+            } else {
+              errorMsg.innerHTML = `<b>⚠️ فشل التحقق</b><br/>${errorMessage}`;
+            }
+            box.appendChild(errorMsg);
           }
         } catch(err){ 
           console.error('Direct server request failed:', err);
@@ -190,6 +220,12 @@ function getUserIdFromUrl(){
           btnIcon.textContent='❌';
           btnText.textContent='فشل الإرسال';
           sendBtn.disabled=false;
+          
+          // إظهار رسالة خطأ
+          const errorMsg = document.createElement('div');
+          errorMsg.style.cssText = 'margin-top:20px;padding:15px;background:#ff4d61;color:#fff;border-radius:12px;text-align:center;';
+          errorMsg.innerHTML = '<b>❌ فشل الاتصال</b><br/>حدث خطأ في الاتصال بالخادم. تحقق من الاتصال بالإنترنت وحاول مرة أخرى.';
+          box.appendChild(errorMsg);
         }
       }
       
