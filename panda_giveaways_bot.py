@@ -48,20 +48,6 @@ except ImportError:
 from flask import Flask, request, jsonify
 import threading
 
-# ═══════════════════════════════════════════════════════════════
-# 🔗 استيراد دوال قاعدة البيانات من app.py (لضمان التزامن)
-# ═══════════════════════════════════════════════════════════════
-try:
-    # استيراد دوال قاعدة البيانات المشتركة من app.py
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from app import init_database as app_init_database
-    USING_SHARED_DB = True
-    print("✅ Using shared database functions from app.py")
-except ImportError:
-    USING_SHARED_DB = False
-    print("⚠️ Could not import app.py - using local database")
-
 from telegram import (
     Update, 
     InlineKeyboardButton, 
@@ -233,18 +219,7 @@ class DatabaseManager:
     def __init__(self, db_path: str = DATABASE_PATH):
         self.db_path = db_path
         logger.info("🗄️ Initializing Panda Giveaways Database...")
-        
-        # استخدام دالة init من app.py إذا كانت متاحة
-        if USING_SHARED_DB:
-            try:
-                app_init_database()
-                logger.info("✅ Database initialized using shared functions from app.py")
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to use app.py init, falling back to local: {e}")
-                self.init_database()
-        else:
-            self.init_database()
-        
+        self.init_database()
         logger.info("✅ Database initialized successfully")
     
     def get_connection(self):
