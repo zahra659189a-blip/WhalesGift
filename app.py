@@ -607,8 +607,8 @@ def verify_task_completion(task_id):
         if not task:
             return jsonify({'success': False, 'message': 'المهمة غير موجودة'}), 404
         
-        task_type = task[0]
-        channel_username = task[1]
+        task_type = task['task_type']
+        channel_username = task['channel_username']
         
         # التحقق من أن المستخدم لم يكمل المهمة من قبل
         already_completed = db_manager.execute_query("""
@@ -655,11 +655,11 @@ def verify_task_completion(task_id):
         
         # التحقق من عدد المهام المكتملة
         completed_count_row = db_manager.execute_query("""
-            SELECT COUNT(*) FROM user_tasks
+            SELECT COUNT(*) as count FROM user_tasks
             WHERE user_id = ? AND verified = 1
         """, (user_id,), fetch='one')
         
-        completed_count = completed_count_row[0]
+        completed_count = completed_count_row['count'] if completed_count_row else 0
         
         # كل 5 مهمات = 1 دورة
         new_spin = 0
@@ -673,7 +673,7 @@ def verify_task_completion(task_id):
         
         # جلب الدورات الجديدة
         result = db_manager.execute_query("SELECT available_spins FROM users WHERE user_id = ?", (user_id,), fetch='one')
-        new_spins = result[0] if result else 0
+        new_spins = result['available_spins'] if result else 0
         
         message = f'✅ تم إتمام المهمة! ({completed_count}/5)'
         if new_spin:
@@ -1109,8 +1109,8 @@ def verify_all_channels():
         not_subscribed = []
         
         for channel in channels:
-            channel_id = channel[0]
-            channel_name = channel[1]
+            channel_id = channel['channel_id']
+            channel_name = channel['channel_name']
             
             try:
                 import requests as req
@@ -1268,11 +1268,11 @@ def submit_fingerprint():
         
         # التحقق من عدم وجود IP address مكرر (اختياري - يمكن تعطيله)
         ip_count_row = db_manager.execute_query("""
-            SELECT COUNT(*) FROM device_verifications 
+            SELECT COUNT(*) as count FROM device_verifications 
             WHERE ip_address = ? AND user_id != ?
         """, (ip_address, user_id), fetch='one')
         
-        ip_count = ip_count_row[0]
+        ip_count = ip_count_row['count'] if ip_count_row else 0
         if ip_count >= 3:  # السماح بـ 3 أجهزة كحد أقصى من نفس الـ IP
             db_manager.execute_query("""
                 INSERT INTO verification_attempts 
@@ -1595,20 +1595,39 @@ def manage_tasks():
             # افتراض admin_id = 1797127532 (يمكن تحديثه من Telegram WebApp)
             admin_id = 1797127532
             
-            db_manager.execute_query("""
-                INSERT INTO tasks (
-                    task_type, task_name, task_description, task_link, 
-                    channel_username, is_pinned, is_active, 
-                    added_by, added_at
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                task_type, task_name, task_description, task_link,
-                channel_username, is_pinned, is_active,
-                admin_id, now
-            ))
-            
-            task_id = db_manager.get_last_row_id()
+            # استخدام RETURNING id للحصول على آخر ID
+            if db_manager.use_postgres:
+                result = db_manager.execute_query("""
+                    INSERT INTO tasks (
+                        task_type, task_name, task_description, task_link, 
+                        channel_username, is_pinned, is_active, 
+                        added_by, added_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    RETURNING id
+                """, (
+                    task_type, task_name, task_description, task_link,
+                    channel_username, is_pinned, is_active,
+                    admin_id, now
+                ), fetch='one')
+                task_id = result['id'] if result else None
+            else:
+                # SQLite
+                db_manager.execute_query("""
+                    INSERT INTO tasks (
+                        task_type, task_name, task_description, task_link, 
+                        channel_username, is_pinned, is_active, 
+                        added_by, added_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    task_type, task_name, task_description, task_link,
+                    channel_username, is_pinned, is_active,
+                    admin_id, now
+                ))
+                # الحصول على آخر ID
+                result = db_manager.execute_query("SELECT last_insert_rowid() as id", fetch='one')
+                task_id = result['id'] if result else None
             
             return jsonify({
                 'success': True, 
