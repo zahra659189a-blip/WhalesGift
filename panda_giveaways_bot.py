@@ -9,6 +9,13 @@
 مع Mini App متكامل - عجلة الحظ - نظام الإحالات - المهام - السحوبات
 أمان عالي المستوى ضد التلاعب
 
+⚠️ ملاحظة مهمة:
+هذا البوت يستخدم قاعدة البيانات المشتركة من app.py لضمان:
+✅ نفس المستخدمين في البوت والموقع
+✅ نفس الإحالات والإحصائيات
+✅ نفس القنوات الإجبارية
+✅ نفس اللفات والرصيد
+
 Created by: Omar Panda
 """
 
@@ -40,6 +47,20 @@ except ImportError:
 
 from flask import Flask, request, jsonify
 import threading
+
+# ═══════════════════════════════════════════════════════════════
+# 🔗 استيراد دوال قاعدة البيانات من app.py (لضمان التزامن)
+# ═══════════════════════════════════════════════════════════════
+try:
+    # استيراد دوال قاعدة البيانات المشتركة من app.py
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from app import init_database as app_init_database
+    USING_SHARED_DB = True
+    print("✅ Using shared database functions from app.py")
+except ImportError:
+    USING_SHARED_DB = False
+    print("⚠️ Could not import app.py - using local database")
 
 from telegram import (
     Update, 
@@ -212,7 +233,18 @@ class DatabaseManager:
     def __init__(self, db_path: str = DATABASE_PATH):
         self.db_path = db_path
         logger.info("🗄️ Initializing Panda Giveaways Database...")
-        self.init_database()
+        
+        # استخدام دالة init من app.py إذا كانت متاحة
+        if USING_SHARED_DB:
+            try:
+                app_init_database()
+                logger.info("✅ Database initialized using shared functions from app.py")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to use app.py init, falling back to local: {e}")
+                self.init_database()
+        else:
+            self.init_database()
+        
         logger.info("✅ Database initialized successfully")
     
     def get_connection(self):
@@ -1696,41 +1728,44 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ══════════════════════════════════════════════════════════
     # 🔐 الخطوة 1: التحقق من الجهاز (الأساس - لا يتم شيء قبله)
     # ══════════════════════════════════════════════════════════
-    try:
-        import requests as req
-        
-        # التحقق من حالة نظام التحقق
-        settings_url = f"{API_BASE_URL}/admin/verification-settings?admin_id={user_id}"
-        settings_resp = req.get(settings_url, timeout=5)
-        
-        verification_enabled = True
-        if settings_resp.ok:
-            settings_data = settings_resp.json()
-            verification_enabled = settings_data.get('verification_enabled', True)
-        
-        # إذا كان التحقق مفعلاً، نتحقق من حالة المستخدم
-        if verification_enabled:
-            verify_status_url = f"{API_BASE_URL}/verification/status/{user_id}"
-            verify_resp = req.get(verify_status_url, timeout=5)
+    
+    # الأدمن لا يحتاج للتحقق
+    if not is_admin(user_id):
+        try:
+            import requests as req
             
-            if verify_resp.ok:
-                verify_data = verify_resp.json()
-                is_verified = verify_data.get('verified', False)
+            # التحقق من حالة نظام التحقق
+            settings_url = f"{API_BASE_URL}/admin/verification-settings?admin_id={user_id}"
+            settings_resp = req.get(settings_url, timeout=5)
+            
+            verification_enabled = True
+            if settings_resp.ok:
+                settings_data = settings_resp.json()
+                verification_enabled = settings_data.get('verification_enabled', True)
+            
+            # إذا كان التحقق مفعلاً، نتحقق من حالة المستخدم
+            if verification_enabled:
+                verify_status_url = f"{API_BASE_URL}/verification/status/{user_id}"
+                verify_resp = req.get(verify_status_url, timeout=5)
                 
-                if not is_verified:
-                    # المستخدم غير متحقق - إرسال رسالة التحقق
-                    # إنشاء token للتحقق
-                    token_url = f"{API_BASE_URL}/verification/create-token"
-                    token_resp = req.post(token_url, json={'user_id': user_id}, timeout=5)
+                if verify_resp.ok:
+                    verify_data = verify_resp.json()
+                    is_verified = verify_data.get('verified', False)
                     
-                    if token_resp.ok:
-                        token_data = token_resp.json()
-                        fp_token = token_data.get('token')
+                    if not is_verified:
+                        # المستخدم غير متحقق - إرسال رسالة التحقق
+                        # إنشاء token للتحقق
+                        token_url = f"{API_BASE_URL}/verification/create-token"
+                        token_resp = req.post(token_url, json={'user_id': user_id}, timeout=5)
                         
-                        # إنشاء رابط التحقق
-                        verify_url = f"{MINI_APP_URL}/fp.html?user_id={user_id}&fp_token={fp_token}"
-                        
-                        verification_text = f"""
+                        if token_resp.ok:
+                            token_data = token_resp.json()
+                            fp_token = token_data.get('token')
+                            
+                            # إنشاء رابط التحقق
+                            verify_url = f"{MINI_APP_URL}/fp.html?user_id={user_id}&fp_token={fp_token}"
+                            
+                            verification_text = f"""
 🔐 <b>التحقق من الجهاز</b>
 
 عزيزي <b>{full_name}</b>، مرحباً بك! 👋
@@ -1748,35 +1783,35 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 اضغط على الزر أدناه للتحقق:
 """
-                        
-                        keyboard = [[InlineKeyboardButton(
-                            "🔐 تحقق من جهازك",
-                            web_app=WebAppInfo(url=verify_url)
-                        )]]
-                        
-                        reply_markup = InlineKeyboardMarkup(keyboard)
-                        
-                        await update.message.reply_text(
-                            verification_text,
-                            parse_mode=ParseMode.HTML,
-                            reply_markup=reply_markup
-                        )
-                        
-                        # تسجيل النشاط
-                        db.log_activity(user_id, "verification_required", f"Referrer: {referrer_id}")
-                        
-                        return  # إيقاف التنفيذ حتى يتم التحقق
-    except Exception as e:
-        logger.error(f"Error checking verification status: {e}")
-        # في حالة الخطأ، السماح بالمتابعة
+                            
+                            keyboard = [[InlineKeyboardButton(
+                                "🔐 تحقق من جهازك",
+                                web_app=WebAppInfo(url=verify_url)
+                            )]]
+                            
+                            reply_markup = InlineKeyboardMarkup(keyboard)
+                            
+                            await update.message.reply_text(
+                                verification_text,
+                                parse_mode=ParseMode.HTML,
+                                reply_markup=reply_markup
+                            )
+                            
+                            # تسجيل النشاط
+                            db.log_activity(user_id, "verification_required", f"Referrer: {referrer_id}")
+                            
+                            return  # إيقاف التنفيذ حتى يتم التحقق
+        except Exception as e:
+            logger.error(f"Error checking verification status: {e}")
+            # في حالة الخطأ، السماح بالمتابعة
     
     # ══════════════════════════════════════════════════════════
     # 🎯 الخطوة 2: التحقق من الاشتراك في القنوات الإجبارية
     # ══════════════════════════════════════════════════════════
-    # جلب القنوات الإجبارية
+    # جلب القنوات الإجبارية (الأدمن لا يحتاج للاشتراك)
     required_channels = db.get_active_mandatory_channels()
     
-    if required_channels:
+    if required_channels and not is_admin(user_id):
         not_subscribed = []
         for channel in required_channels:
             channel_id = channel['channel_id']
@@ -1937,6 +1972,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # تسجيل النشاط
     db.log_activity(user_id, "start", f"Verified and subscribed")
     
+    # إنشاء رابط الدعوة للمستخدم
+    user_ref_link = generate_referral_link(user_id)
+    
     # رسالة الترحيب
     welcome_text = f"""
 🐼 <b>مرحباً بك في Panda Giveaways!</b> 🎁
@@ -1952,6 +1990,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • أكمل المهام اليومية
 • إلعب عجلة الحظ واربح TON!
 • إسحب أرباحك مباشرة إلى محفظتك
+
+🔗 <b>رابط الدعوة الخاص بك:</b>
+<code>{user_ref_link}</code>
 
 <b>🚀 ابدأ الآن واستمتع بالأرباح!</b>
 """
