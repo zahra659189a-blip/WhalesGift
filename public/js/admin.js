@@ -192,25 +192,34 @@ function renderPrizesList() {
     const container = document.getElementById('prizes-list');
     if (!container) return;
     
-    container.innerHTML = adminData.prizes.map(prize => `
-        <div class="prize-item" data-id="${prize.id}">
-            <div class="prize-preview" style="background: ${prize.color};">
-                ${prize.emoji}
-            </div>
-            <div class="prize-details">
-                <h3>${prize.name}</h3>
-                <div class="prize-info">
-                    <span>💰 القيمة: <strong>${prize.value} TON</strong></span>
-                    <span>📊 النسبة: <strong>${prize.probability}%</strong></span>
-                    <span>🎨 اللون: <strong>${prize.color}</strong></span>
+    // 🎨 الألوان الزيتية بالترتيب (نفس العجلة)
+    const oilColors = [
+        '#9370db',  // Purple (0.01)
+        '#00bfff',  // Blue (0.05)
+        '#ffa500',  // Orange (0.1)
+        '#32cd32',  // Green (0.5)
+        '#ff1493',  // Pink (1.0)
+        '#808080'   // Gray (حظ أوفر)
+    ];
+    
+    container.innerHTML = adminData.prizes.map((prize, index) => {
+        const color = oilColors[index % oilColors.length];
+        return `
+        <div class="prize-item-compact" data-id="${prize.id}">
+            <div class="prize-color-bar" style="background: ${color};"></div>
+            <div class="prize-info-compact">
+                <div class="prize-name">${prize.name}</div>
+                <div class="prize-stats">
+                    <span class="stat-item">💰 ${prize.value} TON</span>
+                    <span class="stat-item">📊 ${prize.probability}%</span>
                 </div>
             </div>
-            <div class="prize-actions">
-                <button class="icon-btn edit" onclick="openEditPrizeModal(${prize.id})">✏️</button>
-                <button class="icon-btn delete" onclick="deletePrize(${prize.id})">🗑️</button>
+            <div class="prize-actions-compact">
+                <button class="icon-btn-small edit" onclick="openEditPrizeModal(${prize.id})" title="تعديل">✏️</button>
+                <button class="icon-btn-small delete" onclick="deletePrize(${prize.id})" title="حذف">🗑️</button>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 function updatePrizesInfo() {
