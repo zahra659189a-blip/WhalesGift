@@ -457,17 +457,10 @@ class DatabaseManager:
             """, (user_id, username, full_name, referrer_id, now, now))
             conn.commit()
             
-            # إذا كان هناك referrer، نسجل الإحالة
+            # ملاحظة: لا نسجل الإحالة هنا - سيتم تسجيلها في check_subscription_callback
+            # بعد التحقق من الاشتراك في القنوات والتحقق من الجهاز
             if referrer_id:
-                try:
-                    cursor.execute("""
-                        INSERT INTO referrals (referrer_id, referred_id, created_at)
-                        VALUES (?, ?, ?)
-                    """, (referrer_id, user_id, now))
-                    conn.commit()
-                    logger.info(f"✅ Referral registered: {referrer_id} -> {user_id}")
-                except sqlite3.IntegrityError:
-                    logger.warning(f"⚠️ Referral already exists: {referrer_id} -> {user_id}")
+                logger.info(f"📝 Referrer saved for new user: {referrer_id} -> {user_id} (pending verification)")
             
             user = User(
                 user_id=user_id,
