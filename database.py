@@ -470,8 +470,18 @@ db_manager = DatabaseManager()
 
 # دوال مساعدة للتوافق مع الكود القديم
 def get_db_connection():
-    """دالة للتوافق مع الكود القديم"""
-    return db_manager.get_connection()
+    """دالة للتوافق مع الكود القديم - ترجع connection مباشر"""
+    if db_manager.use_postgres:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+        return conn
+    else:
+        import sqlite3
+        conn = sqlite3.connect(db_manager.db_path, timeout=30.0)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.row_factory = sqlite3.Row
+        return conn
 
 
 def init_database():
