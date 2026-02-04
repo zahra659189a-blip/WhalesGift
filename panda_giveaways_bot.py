@@ -1642,7 +1642,7 @@ async def inline_query_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     
     # إذا كان النص فارغاً، استخدم النص الافتراضي
     if not query:
-        ref_link = generate_mini_app_link(user_id)
+        ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
         query = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
     
     results = [
@@ -1669,21 +1669,29 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = user.username or f"user_{user_id}"
     full_name = user.full_name or username
     
-    # استخراج referrer_id إن وجد
+    # استخراج referrer_id إن وجد (فقط من روابط start العادية، ليس startapp)
     referrer_id = None
+    is_from_mini_app = False
+    
     if context.args:
         arg = context.args[0]
         if arg.startswith('ref_'):
             try:
-                referrer_id = int(arg.split('_')[1])
+                potential_referrer = int(arg.split('_')[1])
                 # التأكد من عدم إحالة نفسه
-                if referrer_id == user_id:
-                    referrer_id = None
+                if potential_referrer != user_id:
+                    referrer_id = potential_referrer
+                    # حفظ referrer_id في context لاستخدامه لاحقاً
+                    context.user_data['pending_referrer_id'] = referrer_id
             except:
-                referrer_id = None
+                pass
     
-    # إنشاء أو تحديث المستخدم
-    db_user = db.create_or_update_user(user_id, username, full_name, referrer_id)
+    # إنشاء أو تحديث المستخدم (بدون referrer_id في البداية)
+    db_user = db.get_user(user_id)
+    if not db_user:
+        db_user = db.create_or_update_user(user_id, username, full_name, None)
+    else:
+        db.create_or_update_user(user_id, username, full_name, None)
     
     # ══════════════════════════════════════════════════════════
     # 🎯 التحقق من الاشتراك في القنوات الإجبارية (للجميع)
@@ -1740,88 +1748,117 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
     
     # ══════════════════════════════════════════════════════════
-    # 🔐 التحقق من الجهاز (إذا كان مفعلاً)
+    # 🎉 الخطوة 3: المستخدم متحقق ومشترك - احتساب الإحالة
     # ══════════════════════════════════════════════════════════
-    try:
-        import requests as req
-        
-        # التحقق من حالة نظام التحقق
-        settings_url = f"{API_BASE_URL}/admin/verification-settings?admin_id={user_id}"
-        settings_resp = req.get(settings_url, timeout=5)
-        
-        verification_enabled = True
-        if settings_resp.ok:
-            settings_data = settings_resp.json()
-            verification_enabled = settings_data.get('verification_enabled', True)
-        
-        # إذا كان التحقق مفعلاً، نتحقق من حالة المستخدم
-        if verification_enabled:
-            verify_status_url = f"{API_BASE_URL}/verification/status/{user_id}"
-            verify_resp = req.get(verify_status_url, timeout=5)
-            
-            if verify_resp.ok:
-                verify_data = verify_resp.json()
-                is_verified = verify_data.get('verified', False)
-                
-                if not is_verified:
-                    # المستخدم غير متحقق - إرسال رسالة التحقق
-                    # إنشاء token للتحقق
-                    token_url = f"{API_BASE_URL}/verification/create-token"
-                token_resp = req.post(token_url, json={'user_id': user_id}, timeout=5)
-                
-                if token_resp.ok:
-                    token_data = token_resp.json()
-                    fp_token = token_data.get('token')
-                    
-                    # إنشاء رابط التحقق
-                    verify_url = f"{MINI_APP_URL}/fp.html?user_id={user_id}&fp_token={fp_token}"
-                    
-                    verification_text = f"""
-🔐 <b>التحقق من الجهاز</b>
-
-عزيزي <b>{full_name}</b>، مرحباً بك! 👋
-
-للحفاظ على نزاهة النظام ومنع التلاعب، يجب التحقق من جهازك أولاً.
-
-<b>⚡️ هذه الخطوة تتم مرة واحدة فقط!</b>
-
-<b>ما الذي يتم فحصه؟</b>
-• بصمة الجهاز (Fingerprint)
-• عنوان IP
-• معلومات المتصفح
-
-<b>✅ بياناتك آمنة ومحمية</b>
-
-اضغط على الزر أدناه للتحقق:
-"""
-                    
-                    keyboard = [[InlineKeyboardButton(
-                        "🔐 تحقق من جهازك",
-                        web_app=WebAppInfo(url=verify_url)
-                    )]]
-                    
-                    reply_markup = InlineKeyboardMarkup(keyboard)
-                    
-                    await update.message.reply_text(
-                        verification_text,
-                        parse_mode=ParseMode.HTML,
-                        reply_markup=reply_markup
-                    )
-                    
-                    # تسجيل النشاط
-                    db.log_activity(user_id, "verification_required", f"Referrer: {referrer_id}")
-                    
-                    return  # إيقاف التنفيذ حتى يتم التحقق
-    except Exception as e:
-        logger.error(f"Error checking verification status: {e}")
-        # في حالة الخطأ، السماح بالمتابعة
     
-    # ══════════════════════════════════════════════════════════
-    # 🎉 المستخدم متحقق ومشترك - عرض الرسالة الرئيسية
-    # ══════════════════════════════════════════════════════════
+    # احتساب الإحالة الآن فقط (بعد التحقق من الجهاز والقنوات)
+    if referrer_id or context.user_data.get('pending_referrer_id'):
+        final_referrer = referrer_id or context.user_data.get('pending_referrer_id')
+        
+        # التحقق من عدم احتساب الإحالة من روابط المينى آب (startapp)
+        # فقط روابط start العادية
+        if final_referrer:
+            # التحقق من أن المُحيل ليس محظوراً
+            referrer_user = db.get_user(final_referrer)
+            if referrer_user and not referrer_user.is_banned:
+                # التحقق من أن المستخدم الجديد ليس محظوراً
+                new_user = db.get_user(user_id)
+                if new_user and not new_user.is_banned:
+                    # التحقق من عدم وجود إحالة مسجلة مسبقاً
+                    conn = db.get_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT * FROM referrals WHERE referred_id = ?", (user_id,))
+                    existing_ref = cursor.fetchone()
+                    
+                    if not existing_ref:
+                        # تسجيل الإحالة
+                        now = datetime.now().isoformat()
+                        try:
+                            cursor.execute("""
+                                INSERT INTO referrals (referrer_id, referred_id, created_at, channels_checked, device_verified, is_valid)
+                                VALUES (?, ?, ?, 1, 1, 1)
+                            """, (final_referrer, user_id, now))
+                            
+                            # تحديث عدد الإحالات للداعي
+                            cursor.execute("""
+                                UPDATE users 
+                                SET total_referrals = total_referrals + 1,
+                                    valid_referrals = valid_referrals + 1
+                                WHERE user_id = ?
+                            """, (final_referrer,))
+                            
+                            # التحقق من استحقاق لفة جديدة
+                            cursor.execute("SELECT valid_referrals, available_spins FROM users WHERE user_id = ?", (final_referrer,))
+                            ref_data = cursor.fetchone()
+                            if ref_data:
+                                valid_refs = ref_data['valid_referrals']
+                                current_spins = ref_data['available_spins']
+                                
+                                # كل 5 إحالات = لفة واحدة
+                                if valid_refs % SPINS_PER_REFERRALS == 0:
+                                    cursor.execute("""
+                                        UPDATE users 
+                                        SET available_spins = available_spins + 1 
+                                        WHERE user_id = ?
+                                    """, (final_referrer,))
+                                    
+                                    # إرسال إشعار للداعي
+                                    remaining_for_next = SPINS_PER_REFERRALS
+                                    try:
+                                        await context.bot.send_message(
+                                            chat_id=final_referrer,
+                                            text=f"""
+🎉 <b>تهانينا! إحالة جديدة ناجحة!</b>
+
+✅ المستخدم <b>{full_name}</b> انضم عبر رابطك!
+
+🎁 <b>حصلت على لفة مجانية!</b>
+🎰 <b>لفاتك المتاحة:</b> {current_spins + 1}
+
+👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+
+<b>استمر في الدعوة واربح المزيد! 🚀</b>
+""",
+                                            parse_mode=ParseMode.HTML
+                                        )
+                                    except Exception as e:
+                                        logger.error(f"Failed to send referral notification: {e}")
+                                else:
+                                    # إرسال إشعار بدون لفة
+                                    remaining_for_next = SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS)
+                                    try:
+                                        await context.bot.send_message(
+                                            chat_id=final_referrer,
+                                            text=f"""
+✅ <b>إحالة جديدة ناجحة!</b>
+
+👤 المستخدم <b>{full_name}</b> انضم عبر رابطك!
+
+👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+
+<b>استمر في الدعوة! 💪</b>
+""",
+                                            parse_mode=ParseMode.HTML
+                                        )
+                                    except Exception as e:
+                                        logger.error(f"Failed to send referral notification: {e}")
+                            
+                            conn.commit()
+                            logger.info(f"✅ Referral validated and counted: {final_referrer} -> {user_id}")
+                            
+                        except sqlite3.IntegrityError:
+                            logger.warning(f"⚠️ Referral already exists: {final_referrer} -> {user_id}")
+                    
+                    conn.close()
+                    
+                    # مسح البيانات المؤقتة
+                    if 'pending_referrer_id' in context.user_data:
+                        del context.user_data['pending_referrer_id']
     
     # تسجيل النشاط
-    db.log_activity(user_id, "start", f"Referrer: {referrer_id}")
+    db.log_activity(user_id, "start", f"Verified and subscribed")
     
     # رسالة الترحيب
     welcome_text = f"""
@@ -1987,7 +2024,7 @@ async def referrals_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         ref_text += "\n<i>لم تقم بدعوة أحد بعد! شارك رابط الدعوة الآن 🚀</i>"
     
-    ref_link = generate_mini_app_link(user_id)
+    ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
     ref_text += f"\n\n🔗 <b>رابط الدعوة الخاص بك:</b>\n<code>{ref_link}</code>"
     
     keyboard = [[
@@ -2295,7 +2332,7 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
-    ref_link = generate_mini_app_link(user_id)
+    ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
     ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
@@ -2382,13 +2419,114 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     # المستخدم مشترك في جميع القنوات - عرض الرسالة الرئيسية
     await query.answer("✅ تم التحقق من الاشتراك بنجاح!", show_alert=True)
     
-    # التحقق من صحة الإحالة إن وجدت
-    await check_and_validate_referral(user_id, update)
+    # ═══════════════════════════════════════════════════════════
+    # 🎯 احتساب الإحالة بعد اكتمال جميع الخطوات
+    # ═══════════════════════════════════════════════════════════
+    referrer_id = context.user_data.get('pending_referrer_id')
+    if referrer_id:
+        # التحقق من أن المُحيل ليس محظوراً
+        referrer_user = db.get_user(referrer_id)
+        if referrer_user and not referrer_user.is_banned:
+            # التحقق من أن المستخدم الجديد ليس محظوراً
+            new_user = db.get_user(user_id)
+            if new_user and not new_user.is_banned:
+                # التحقق من عدم وجود إحالة مسجلة مسبقاً
+                conn = db.get_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM referrals WHERE referred_id = ?", (user_id,))
+                existing_ref = cursor.fetchone()
+                
+                if not existing_ref:
+                    # تسجيل الإحالة
+                    now = datetime.now().isoformat()
+                    try:
+                        cursor.execute("""
+                            INSERT INTO referrals (referrer_id, referred_id, created_at, channels_checked, device_verified, is_valid)
+                            VALUES (?, ?, ?, 1, 1, 1)
+                        """, (referrer_id, user_id, now))
+                        
+                        # تحديث عدد الإحالات للداعي
+                        cursor.execute("""
+                            UPDATE users 
+                            SET total_referrals = total_referrals + 1,
+                                valid_referrals = valid_referrals + 1
+                            WHERE user_id = ?
+                        """, (referrer_id,))
+                        
+                        # التحقق من استحقاق لفة جديدة
+                        cursor.execute("SELECT valid_referrals, available_spins FROM users WHERE user_id = ?", (referrer_id,))
+                        ref_data = cursor.fetchone()
+                        if ref_data:
+                            valid_refs = ref_data['valid_referrals']
+                            current_spins = ref_data['available_spins']
+                            
+                            # كل 5 إحالات = لفة واحدة
+                            if valid_refs % SPINS_PER_REFERRALS == 0:
+                                cursor.execute("""
+                                    UPDATE users 
+                                    SET available_spins = available_spins + 1 
+                                    WHERE user_id = ?
+                                """, (referrer_id,))
+                                
+                                # إرسال إشعار للداعي
+                                remaining_for_next = SPINS_PER_REFERRALS
+                                try:
+                                    await context.bot.send_message(
+                                        chat_id=referrer_id,
+                                        text=f"""
+🎉 <b>تهانينا! إحالة جديدة ناجحة!</b>
+
+✅ المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
+
+🎁 <b>حصلت على لفة مجانية!</b>
+🎰 <b>لفاتك المتاحة:</b> {current_spins + 1}
+
+👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+
+<b>استمر في الدعوة واربح المزيد! 🚀</b>
+""",
+                                        parse_mode=ParseMode.HTML
+                                    )
+                                except Exception as e:
+                                    logger.error(f"Failed to send referral notification: {e}")
+                            else:
+                                # إرسال إشعار بدون لفة
+                                remaining_for_next = SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS)
+                                try:
+                                    await context.bot.send_message(
+                                        chat_id=referrer_id,
+                                        text=f"""
+✅ <b>إحالة جديدة ناجحة!</b>
+
+👤 المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
+
+👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+
+<b>استمر في الدعوة! 💪</b>
+""",
+                                        parse_mode=ParseMode.HTML
+                                    )
+                                except Exception as e:
+                                    logger.error(f"Failed to send referral notification: {e}")
+                        
+                        conn.commit()
+                        logger.info(f"✅ Referral validated and counted after subscription check: {referrer_id} -> {user_id}")
+                        
+                    except sqlite3.IntegrityError:
+                        logger.warning(f"⚠️ Referral already exists: {referrer_id} -> {user_id}")
+                
+                conn.close()
+                
+                # مسح البيانات المؤقتة
+                if 'pending_referrer_id' in context.user_data:
+                    del context.user_data['pending_referrer_id']
     
-    # الحصول على بيانات المستخدم
+    # الحصول على بيانات المستخدم المحدثة
     db_user = db.get_user(user_id)
     if not db_user:
-        db_user = db.create_or_update_user(user_id, username, full_name)
+        db_user = db.create_or_update_user(user_id, username, full_name, None)
     
     # رسالة الترحيب
     welcome_text = f"""
@@ -3802,8 +3940,164 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
                         reply_markup=InlineKeyboardMarkup(keyboard)
                     )
                     
-                    # التحقق من صحة الإحالة إن وجدت
-                    await check_and_validate_referral(user_id, update)
+                    # ═══════════════════════════════════════════════════════
+                    # 🎯 التحقق التلقائي من القنوات بعد التحقق من الجهاز
+                    # ═══════════════════════════════════════════════════════
+                    
+                    # التحقق من وجود إحالة معلقة
+                    has_pending_referrer = context.user_data.get('pending_referrer_id') is not None
+                    
+                    # التحقق من الاشتراك في القنوات تلقائياً
+                    required_channels = db.get_active_mandatory_channels()
+                    
+                    if required_channels:
+                        not_subscribed = []
+                        for channel in required_channels:
+                            channel_id = channel['channel_id']
+                            try:
+                                member = await context.bot.get_chat_member(chat_id=channel_id, user_id=user_id)
+                                if member.status not in [ChatMember.MEMBER, ChatMember.ADMINISTRATOR, ChatMember.OWNER]:
+                                    not_subscribed.append(channel)
+                            except Exception as e:
+                                logger.error(f"Error checking channel {channel_id}: {e}")
+                                not_subscribed.append(channel)
+                        
+                        if not_subscribed:
+                            # المستخدم غير مشترك - إرسال رسالة اشتراك إجباري
+                            first_channel = not_subscribed[0]
+                            
+                            subscription_text = f"""
+📢 <b>خطوة أخيرة!</b>
+
+عزيزي <b>{full_name}</b>، تم التحقق من جهازك بنجاح! ✅
+
+الآن، يجب الاشتراك في القناة التالية للمتابعة:
+
+• <b>{first_channel['channel_name']}</b>
+
+بعد الاشتراك، اضغط على زر "✅ تحققت من الاشتراك" أدناه.
+"""
+                            
+                            keyboard = [
+                                [InlineKeyboardButton(
+                                    f"📢 {first_channel['channel_name']}",
+                                    url=first_channel['channel_url']
+                                )],
+                                [InlineKeyboardButton(
+                                    "✅ تحققت من الاشتراك",
+                                    callback_data="check_subscription"
+                                )]
+                            ]
+                            
+                            await update.message.reply_text(
+                                subscription_text,
+                                parse_mode=ParseMode.HTML,
+                                reply_markup=InlineKeyboardMarkup(keyboard)
+                            )
+                            
+                            return
+                    
+                    # المستخدم مشترك في جميع القنوات - احتساب الإحالة
+                    referrer_id = context.user_data.get('pending_referrer_id')
+                    if referrer_id:
+                        # التحقق من أن المُحيل ليس محظوراً
+                        referrer_user = db.get_user(referrer_id)
+                        if referrer_user and not referrer_user.is_banned:
+                            # التحقق من أن المستخدم الجديد ليس محظوراً
+                            new_user = db.get_user(user_id)
+                            if new_user and not new_user.is_banned:
+                                # التحقق من عدم وجود إحالة مسجلة مسبقاً
+                                conn = db.get_connection()
+                                cursor = conn.cursor()
+                                cursor.execute("SELECT * FROM referrals WHERE referred_id = ?", (user_id,))
+                                existing_ref = cursor.fetchone()
+                                
+                                if not existing_ref:
+                                    # تسجيل الإحالة
+                                    now = datetime.now().isoformat()
+                                    try:
+                                        cursor.execute("""
+                                            INSERT INTO referrals (referrer_id, referred_id, created_at, channels_checked, device_verified, is_valid)
+                                            VALUES (?, ?, ?, 1, 1, 1)
+                                        """, (referrer_id, user_id, now))
+                                        
+                                        # تحديث عدد الإحالات للداعي
+                                        cursor.execute("""
+                                            UPDATE users 
+                                            SET total_referrals = total_referrals + 1,
+                                                valid_referrals = valid_referrals + 1
+                                            WHERE user_id = ?
+                                        """, (referrer_id,))
+                                        
+                                        # التحقق من استحقاق لفة جديدة
+                                        cursor.execute("SELECT valid_referrals, available_spins FROM users WHERE user_id = ?", (referrer_id,))
+                                        ref_data = cursor.fetchone()
+                                        if ref_data:
+                                            valid_refs = ref_data['valid_referrals']
+                                            current_spins = ref_data['available_spins']
+                                            
+                                            # كل 5 إحالات = لفة واحدة
+                                            if valid_refs % SPINS_PER_REFERRALS == 0:
+                                                cursor.execute("""
+                                                    UPDATE users 
+                                                    SET available_spins = available_spins + 1 
+                                                    WHERE user_id = ?
+                                                """, (referrer_id,))
+                                                
+                                                # إرسال إشعار للداعي
+                                                remaining_for_next = SPINS_PER_REFERRALS
+                                                try:
+                                                    await context.bot.send_message(
+                                                        chat_id=referrer_id,
+                                                        text=f"""
+🎉 <b>تهانينا! إحالة جديدة ناجحة!</b>
+
+✅ المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
+
+🎁 <b>حصلت على لفة مجانية!</b>
+🎰 <b>لفاتك المتاحة:</b> {current_spins + 1}
+
+👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+
+<b>استمر في الدعوة واربح المزيد! 🚀</b>
+""",
+                                                        parse_mode=ParseMode.HTML
+                                                    )
+                                                except Exception as e:
+                                                    logger.error(f"Failed to send referral notification: {e}")
+                                            else:
+                                                # إرسال إشعار بدون لفة
+                                                remaining_for_next = SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS)
+                                                try:
+                                                    await context.bot.send_message(
+                                                        chat_id=referrer_id,
+                                                        text=f"""
+✅ <b>إحالة جديدة ناجحة!</b>
+
+👤 المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
+
+👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+
+<b>استمر في الدعوة! 💪</b>
+""",
+                                                        parse_mode=ParseMode.HTML
+                                                    )
+                                                except Exception as e:
+                                                    logger.error(f"Failed to send referral notification: {e}")
+                                        
+                                        conn.commit()
+                                        logger.info(f"✅ Referral validated and counted after device verification: {referrer_id} -> {user_id}")
+                                        
+                                    except sqlite3.IntegrityError:
+                                        logger.warning(f"⚠️ Referral already exists: {referrer_id} -> {user_id}")
+                                
+                                conn.close()
+                                
+                                # مسح البيانات المؤقتة
+                                if 'pending_referrer_id' in context.user_data:
+                                    del context.user_data['pending_referrer_id']
                     
                     logger.info(f"✅ Device verified successfully for user {user_id}")
                 else:
