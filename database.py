@@ -19,6 +19,9 @@ from contextlib import contextmanager
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 USE_POSTGRES = bool(DATABASE_URL)
 
+# تعريف DATABASE_PATH دائماً للتوافق مع SQLite
+DATABASE_PATH = os.getenv('DATABASE_PATH', 'panda_giveaways.db')
+
 if USE_POSTGRES:
     try:
         import psycopg2
@@ -27,11 +30,12 @@ if USE_POSTGRES:
         print("✅ Using PostgreSQL (Neon)")
     except ImportError:
         print("❌ ERROR: psycopg2-binary not installed. Run: pip install psycopg2-binary")
+        print("⚠️ Falling back to SQLite")
         USE_POSTGRES = False
+        import sqlite3
 else:
     import sqlite3
     print("⚠️ Using SQLite (Local Development)")
-    DATABASE_PATH = os.getenv('DATABASE_PATH', 'panda_giveaways.db')
 
 
 class DatabaseManager:
