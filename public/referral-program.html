@@ -228,9 +228,9 @@
                 console.warn('⚠️ Could not update profile:', profileError);
             }
             
-            // Generate referral link (format: https://t.me/BotUsername?startapp=ref_12345)
+            // Generate referral link (format: https://t.me/BotUsername?start=ref_12345)
             const botUsername = 'PandaGiveawaysBot'; // يمكنك تغيير اسم البوت هنا
-            const referralLink = `https://t.me/${botUsername}?startapp=ref_${userId}`;
+            const referralLink = `https://t.me/${botUsername}?start=ref_${userId}`;
             $('#user-referral-link').val(referralLink);
             
             // Load user data and referral stats from API

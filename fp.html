@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>التحقق من الجهاز</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root { --bg:#0f1115; --card:#181c22; --accent:#5b8bff; --accent-grad:linear-gradient(135deg,#5b8bff,#936bff 55%,#ff7ac6); --text:#e7ecf2; --danger:#ff4d61; --success:#35c06e; --border:1px solid #252b33; font-family:'Segoe UI',Tahoma,Arial,sans-serif; }
+body {background:radial-gradient(circle at 20% 20%, #1e2530, #0d0f13);margin:0;padding:0;color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.container {width:min(480px,92%);background:var(--card);padding:32px 30px 40px;border-radius:24px;box-shadow:0 8px 28px -6px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04);position:relative;overflow:hidden;}
+.container:before {content:"";position:absolute;inset:0;background:conic-gradient(from 180deg at 50% 50%,rgba(255,255,255,.06),transparent 35% 70%,rgba(255,255,255,.06));mix-blend-mode:overlay;pointer-events:none;}
+header {text-align:center;margin-bottom:26px;}
+header h1 {margin:0;font-size:1.55rem;letter-spacing:.5px;background:var(--accent-grad);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:600;}
+header p {margin:10px 0 0;font-size:.9rem;opacity:.85;line-height:1.4;}
+.fingerprint-box {background:#12161c;border-radius:18px;padding:18px 16px;border:var(--border);margin-bottom:20px;display:grid;gap:14px;}
+.item {display:flex;align-items:center;gap:12px;font-size:.85rem;}
+.item span.key {flex:0 0 120px;opacity:.6;font-weight:500;}
+.item span.val {font-family:monospace;font-size:.8rem;word-break:break-all;}
+button {cursor:pointer;background:var(--accent-grad);color:#fff;border:none;padding:14px 22px;font-size:.95rem;font-weight:600;border-radius:14px;display:inline-flex;align-items:center;gap:10px;box-shadow:0 6px 18px -4px rgba(0,0,0,.5);transition:.35s;}
+button:hover {transform:translateY(-2px);box-shadow:0 10px 26px -6px rgba(0,0,0,.6);}
+button:active {transform:translateY(0);}
+.status {margin-top:14px;font-size:.85rem;font-weight:500;display:flex;align-items:center;gap:8px;}
+.status.ok {color:var(--success);} .status.err {color:var(--danger);} .status.pending {color:#ffc861;}
+footer {margin-top:30px;text-align:center;font-size:.7rem;opacity:.55;}
+.loader {width:18px;height:18px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin {to {transform:rotate(360deg);}}
+.glow {position:absolute;inset:0;pointer-events:none;}
+.glow:before, .glow:after {content:"";position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;animation:float 8s ease-in-out infinite;}
+.glow:before {width:320px;height:320px;background:#5b8bff;top:-120px;left:-120px;animation-delay:-2s;}
+.glow:after {width:260px;height:260px;background:#ff7ac6;bottom:-100px;right:-90px;}
+@keyframes float {0%,100% {transform:translateY(0);}50% {transform:translateY(40px);}}
+.info-tip {margin-top:12px;font-size:.7rem;opacity:.6;text-align:center;}
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="glow"></div>
+    <header>
+      <h1>التحقق من الجهاز</h1>
+      <p>نقوم بإنشاء بصمة فريدة لهاتفك لضمان منع تكرار الحسابات أثناء التصويت.</p>
+    </header>
+    <div id="fpBox" class="fingerprint-box"></div>
+    <button id="sendBtn" disabled>
+      <span id="btnIcon" class="loader"></span>
+      <span id="btnText">جارٍ تجهيز البصمة...</span>
+    </button>
+    <div id="status" class="status pending">جارٍ الإعداد...</div>
+    <div class="info-tip" id="outsideHint" style="display:none">⚠️ افتح هذه الصفحة عبر زر "تحقق من جهازك" داخل تيليجرام وليس من المتصفح الخارجي.</div>
+    <footer>جميع البيانات تستخدم لتعزيز نزاهة المستخدمين.</footer>
+  </div>
+<script>
+(function initTelegram(){
+  if(window.Telegram && Telegram.WebApp){
+    try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch(e) {}
+  }
+})();
+
+function getUserIdFromUrl(){
+  try {
+    const params = new URLSearchParams(location.search);
+    const userId = params.get('user_id');
+    if(userId && /^\d+$/.test(userId)) return parseInt(userId);
+    
+    // محاولة من hash أيضاً
+    const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+    const hashUserId = hashParams.get('user_id');
+    if(hashUserId && /^\d+$/.test(hashUserId)) return parseInt(hashUserId);
+  } catch(e) {
+    console.error('Error extracting user_id:', e);
+  }
+  return null;
+}
+
+(async function(){
+  const box = document.getElementById('fpBox');
+  const sendBtn = document.getElementById('sendBtn');
+  const status = document.getElementById('status');
+  const btnIcon = document.getElementById('btnIcon');
+  const btnText = document.getElementById('btnText');
+  const outsideHint = document.getElementById('outsideHint');
+
+  const inTelegram = !!(window.Telegram && Telegram.WebApp);
+  if(!inTelegram){ outsideHint.style.display='block'; }
+
+  function line(key,val){
+    const div=document.createElement('div');div.className='item';
+    const k=document.createElement('span');k.className='key';k.textContent=key;
+    const v=document.createElement('span');v.className='val';v.textContent=val;
+    div.appendChild(k);div.appendChild(v);box.appendChild(div);
+  }
+
+  function localId(){
+    const k='__fp_local_id';
+    let id=localStorage.getItem(k);
+    if(!id){ id=crypto.randomUUID(); localStorage.setItem(k,id);} return id;
+  }
+
+  async function canvasFP(){
+    try { const c=document.createElement('canvas'); c.width=220; c.height=40; const ctx=c.getContext('2d'); ctx.textBaseline='top'; ctx.font='16px Arial'; ctx.fillText('Fingerprint Canvas Test',4,4); const data=c.toDataURL(); return await digest(data);} catch(e){return 'NA'} }
+  async function audioFP(){
+    try { const ctx=new (window.AudioContext||window.webkitAudioContext)(); const osc=ctx.createOscillator(); const analyser=ctx.createAnalyser(); osc.type='triangle'; osc.frequency.value=111; osc.connect(analyser); osc.start(); const arr=new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(arr); osc.stop(); ctx.close(); return await digest(arr.join(',')); } catch(e){return 'NA'} }
+  async function digest(str){ const buf=new TextEncoder().encode(str); const h=await crypto.subtle.digest('SHA-256',buf); return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,32); }
+
+  async function build(){
+    const ua=navigator.userAgent; const rez=screen.width+'x'+screen.height; const tz=Intl.DateTimeFormat().resolvedOptions().timeZone || 'NA'; const lid=localId(); const cfp=await canvasFP(); const afp=await audioFP();
+    const raw = ua+'|'+rez+'|'+tz+'|'+lid+'|'+cfp+'|'+afp; const final = await digest(raw);
+    line('User-Agent', ua); line('Resolution', rez); line('Timezone', tz); line('Local ID', lid); line('Canvas', cfp); line('Audio', afp); line('Fingerprint', final);
+    
+    // الحصول على IP address من خدمة خارجية
+    let userIP = 'Unknown';
+    try {
+      const ipResp = await fetch('https://api.ipify.org?format=json');
+      const ipData = await ipResp.json();
+      userIP = ipData.ip || 'Unknown';
+      line('IP Address', userIP);
+    } catch(e) {
+      console.error('Failed to get IP:', e);
+      line('IP Address', 'Unable to detect');
+    }
+    
+    btnIcon.className=''; btnIcon.textContent='🔐'; btnText.textContent='إرسال البصمة'; sendBtn.disabled=false; status.textContent='جاهز للإرسال'; status.className='status ok';
+    async function doSend(){
+      const uid = getUserIdFromUrl();
+      const fpToken = new URLSearchParams(location.search).get('fp_token');
+      const payload = { fingerprint: final, meta:{ ua, rez, tz, lid, cfp, afp, ip: userIP }, user_id: uid, fp_token: fpToken };
+      
+      let success = false;
+      
+      // محاولة إرسال عبر Telegram WebApp أولاً
+      if(window.Telegram && Telegram.WebApp){
+        try {
+          Telegram.WebApp.sendData(JSON.stringify(payload));
+          status.textContent='تم الإرسال للبوت عبر تيليجرام'; 
+          status.className='status ok'; 
+          sendBtn.disabled=true; 
+          btnText.textContent='تم الإرسال';
+          success = true;
+        } catch(e){ 
+          console.error('Telegram WebApp failed:', e); 
+        }
+      }
+      
+      // محاولة إرسال للخادم المباشر كخيار احتياطي
+      if(!success && uid && fpToken){
+        try {
+          const resp = await fetch('/api/fingerprint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if(resp.ok){
+            const result = await resp.json();
+            if(result.ok){
+              status.textContent='تم التحقق من جهازك بنجاح!';
+              status.className='status ok';
+              sendBtn.disabled=true; 
+              btnText.textContent='تم التحقق';
+              success = true;
+              
+              // إغلاق النافذة تلقائياً بعد 2 ثانية
+              setTimeout(() => {
+                if(window.Telegram?.WebApp) {
+                  Telegram.WebApp.close();
+                } else {
+                  window.close();
+                }
+              }, 2000);
+            }
+          }
+        } catch(err){ 
+          console.error('Direct server request failed:', err); 
+        }
+      }
+      
+      if(!success){
+        status.textContent='⚠️ افتح الصفحة من زر داخل تيليجرام'; 
+        status.className='status err'; 
+      }
+      
+      return success;
+    }
+    sendBtn.addEventListener('click', doSend);
+    setTimeout(()=>{ if(!sendBtn.disabled) doSend(); }, 1200);
+  }
+
+  try { const fp = await import('https://openfpcdn.io/fingerprintjs/v3').then(x=>x.load()); const result = await fp.get(); line('FPJS', result.visitorId); } catch(e) { line('FPJS','غير متاح'); }
+  await build();
+  if(window.Telegram && Telegram.WebApp){ const theme = Telegram.WebApp.themeParams || {}; const root=document.documentElement; if(theme.bg_color) root.style.setProperty('--bg', theme.bg_color); if(theme.secondary_bg_color) root.style.setProperty('--card', theme.secondary_bg_color); if(theme.text_color) root.style.setProperty('--text', theme.text_color); }
+})();
+</script>
+</body>
+</html>

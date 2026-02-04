@@ -607,16 +607,38 @@ class DatabaseManager:
     # 👥 REFERRAL OPERATIONS
     # ═══════════════════════════════════════════════════════════
     
-    def validate_referral(self, referred_id: int) -> bool:
-        """التحقق من صحة الإحالة (بعد الاشتراك بالقنوات)"""
+    def validate_referral(self, referred_id: int, channels_checked: bool = True, device_verified: bool = True) -> bool:
+        """
+        التحقق من صحة الإحالة (بعد الاشتراك بالقنوات والتحقق من الجهاز)
+        
+        Args:
+            referred_id: معرف المستخدم المُحال
+            channels_checked: هل تم التحقق من اشتراك المستخدم في القنوات الإجبارية
+            device_verified: هل تم التحقق من جهاز المستخدم
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         now = datetime.now().isoformat()
         
-        # تحديث حالة الإحالة
+        # التحقق من استيفاء جميع الشروط
+        if not (channels_checked and device_verified):
+            logger.warning(f"⚠️ Referral validation pending for user {referred_id}: channels={channels_checked}, device={device_verified}")
+            
+            # تحديث حالة التحقق
+            cursor.execute("""
+                UPDATE referrals 
+                SET channels_checked = ?, device_verified = ?
+                WHERE referred_id = ?
+            """, (1 if channels_checked else 0, 1 if device_verified else 0, referred_id))
+            
+            conn.commit()
+            conn.close()
+            return False
+        
+        # تحديث حالة الإحالة كصحيحة
         cursor.execute("""
             UPDATE referrals 
-            SET is_valid = 1, validated_at = ? 
+            SET is_valid = 1, validated_at = ?, channels_checked = 1, device_verified = 1
             WHERE referred_id = ? AND is_valid = 0
         """, (now, referred_id))
         
@@ -651,6 +673,7 @@ class DatabaseManager:
                 
                 conn.commit()
                 conn.close()
+                logger.info(f"✅ Referral validated successfully for user {referred_id}")
                 return True
         
         conn.close()
@@ -1495,6 +1518,58 @@ class TONWalletManager:
 
 # Initialize global objects
 db = DatabaseManager()
+
+# ═══════════════════════════════════════════════════════════════
+# 🔐 REFERRAL VALIDATION HELPERS
+# ═══════════════════════════════════════════════════════════════
+
+async def check_and_validate_referral(user_id: int, update: Update = None) -> bool:
+    """
+    التحقق الشامل من الإحالة (التحقق من الجهاز + القنوات + التحقق النهائي)
+    يتم استدعاؤها بعد التحقق من الاشتراك في القنوات أو التحقق من الجهاز
+    """
+    try:
+        import requests as req
+        
+        # 1. التحقق من حالة التحقق من الجهاز
+        verify_status_url = f"{API_BASE_URL}/verification/status/{user_id}"
+        verify_resp = req.get(verify_status_url, timeout=5)
+        
+        device_verified = False
+        if verify_resp.ok:
+            verify_data = verify_resp.json()
+            device_verified = verify_data.get('verified', False)
+        
+        # 2. التحقق من الاشتراك في جميع القنوات الإجبارية
+        channels_checked = True
+        for channel_username in MANDATORY_CHANNELS:
+            if update:
+                if not await check_subscription(user_id, channel_username, update):
+                    channels_checked = False
+                    break
+        
+        # 3. إذا تم التحقق من كل شيء، قم بالتحقق من صحة الإحالة
+        if device_verified and channels_checked:
+            success = db.validate_referral(user_id, 
+                                          channels_checked=True, 
+                                          device_verified=True)
+            
+            if success:
+                logger.info(f"✅ Complete referral validation for user {user_id}")
+                return True
+        else:
+            # تحديث حالة الإحالة الجزئية
+            db.validate_referral(user_id, 
+                               channels_checked=channels_checked, 
+                               device_verified=device_verified)
+            
+            logger.info(f"⏳ Partial referral validation for user {user_id}: device={device_verified}, channels={channels_checked}")
+        
+        return False
+        
+    except Exception as e:
+        logger.error(f"❌ Error in check_and_validate_referral: {e}")
+        return False
 wheel = WheelOfFortune(WHEEL_PRIZES)
 ton_wallet = None
 
@@ -1524,6 +1599,29 @@ async def check_channel_membership(user_id: int, context: ContextTypes.DEFAULT_T
             return False
     
     return True
+
+async def check_subscription(user_id: int, channel_username: str, update: Update = None) -> bool:
+    """التحقق من اشتراك المستخدم في قناة معينة"""
+    try:
+        # إزالة @ من اسم القناة إن وجد
+        if channel_username.startswith('@'):
+            channel_username = channel_username[1:]
+        
+        # محاولة الحصول على عضوية المستخدم في القناة
+        if update:
+            chat_member = await update.get_bot().get_chat_member(
+                chat_id=f"@{channel_username}",
+                user_id=user_id
+            )
+            
+            # التحقق من حالة العضوية
+            if chat_member.status in [ChatMember.MEMBER, ChatMember.ADMINISTRATOR, ChatMember.OWNER]:
+                return True
+        
+        return False
+    except Exception as e:
+        logger.error(f"Error checking subscription for {channel_username}: {e}")
+        return False
 
 def generate_referral_link(user_id: int) -> str:
     """توليد رابط الإحالة"""
@@ -1587,6 +1685,126 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # إنشاء أو تحديث المستخدم
     db_user = db.create_or_update_user(user_id, username, full_name, referrer_id)
     
+    # ══════════════════════════════════════════════════════════
+    # 🔐 التحقق من الجهاز للمستخدمين الجدد
+    # ══════════════════════════════════════════════════════════
+    # التحقق من حالة التحقق من الجهاز
+    try:
+        import requests as req
+        verify_status_url = f"{API_BASE_URL}/verification/status/{user_id}"
+        verify_resp = req.get(verify_status_url, timeout=5)
+        
+        if verify_resp.ok:
+            verify_data = verify_resp.json()
+            is_verified = verify_data.get('verified', False)
+            
+            if not is_verified:
+                # المستخدم غير متحقق - إرسال رسالة التحقق
+                # إنشاء token للتحقق
+                token_url = f"{API_BASE_URL}/verification/create-token"
+                token_resp = req.post(token_url, json={'user_id': user_id}, timeout=5)
+                
+                if token_resp.ok:
+                    token_data = token_resp.json()
+                    fp_token = token_data.get('token')
+                    
+                    # إنشاء رابط التحقق
+                    verify_url = f"{MINI_APP_URL}/fp.html?user_id={user_id}&fp_token={fp_token}"
+                    
+                    verification_text = f"""
+🔐 <b>التحقق من الجهاز</b>
+
+عزيزي <b>{full_name}</b>، مرحباً بك! 👋
+
+للحفاظ على نزاهة النظام ومنع التلاعب، يجب التحقق من جهازك أولاً.
+
+<b>⚡️ هذه الخطوة تتم مرة واحدة فقط!</b>
+
+<b>ما الذي يتم فحصه؟</b>
+• بصمة الجهاز (Fingerprint)
+• عنوان IP
+• معلومات المتصفح
+
+<b>✅ بياناتك آمنة ومحمية</b>
+
+اضغط على الزر أدناه للتحقق:
+"""
+                    
+                    keyboard = [[InlineKeyboardButton(
+                        "🔐 تحقق من جهازك",
+                        web_app=WebAppInfo(url=verify_url)
+                    )]]
+                    
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    
+                    await update.message.reply_text(
+                        verification_text,
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=reply_markup
+                    )
+                    
+                    # تسجيل النشاط
+                    db.log_activity(user_id, "verification_required", f"Referrer: {referrer_id}")
+                    
+                    return  # إيقاف التنفيذ حتى يتم التحقق
+    except Exception as e:
+        logger.error(f"Error checking verification status: {e}")
+        # في حالة الخطأ، السماح بالمتابعة
+    
+    # ══════════════════════════════════════════════════════════
+    # 🎯 التحقق من الاشتراك في القنوات الإجبارية
+    # ══════════════════════════════════════════════════════════
+    # التحقق من اشتراك المستخدم في القنوات الإجبارية
+    not_subscribed = []
+    for channel_username in MANDATORY_CHANNELS:
+        if not await check_subscription(user_id, channel_username, update):
+            not_subscribed.append(channel_username)
+    
+    if not_subscribed:
+        # المستخدم غير مشترك في بعض القنوات
+        channels_text = "\n".join([f"• {ch}" for ch in not_subscribed])
+        
+        subscription_text = f"""
+📢 <b>اشتراك إجباري</b>
+
+عزيزي <b>{full_name}</b>، للاستمرار في استخدام البوت، يجب الاشتراك في القنوات التالية:
+
+{channels_text}
+
+بعد الاشتراك، اضغط على زر "✅ تحققت من الاشتراك" أدناه.
+"""
+        
+        # إنشاء أزرار القنوات
+        keyboard = []
+        for channel_username in not_subscribed:
+            keyboard.append([InlineKeyboardButton(
+                f"📢 {channel_username}",
+                url=f"https://t.me/{channel_username.replace('@', '')}"
+            )])
+        
+        # زر التحقق
+        keyboard.append([InlineKeyboardButton(
+            "✅ تحققت من الاشتراك",
+            callback_data="check_subscription"
+        )])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            subscription_text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=reply_markup
+        )
+        
+        # تسجيل النشاط
+        db.log_activity(user_id, "subscription_required", f"Missing: {', '.join(not_subscribed)}")
+        
+        return  # إيقاف التنفيذ حتى يشترك
+    
+    # ══════════════════════════════════════════════════════════
+    # 🎉 المستخدم متحقق ومشترك - عرض الرسالة الرئيسية
+    # ══════════════════════════════════════════════════════════
+    
     # تسجيل النشاط
     db.log_activity(user_id, "start", f"Referrer: {referrer_id}")
     
@@ -1618,8 +1836,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
-    # زر مشاركة رابط الدعوة (نسخ)
-    ref_link = generate_mini_app_link(user_id)
+    # زر مشاركة رابط الدعوة (نسخ) - تغيير من startapp إلى start
+    ref_link = generate_referral_link(user_id)
     ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
@@ -2021,6 +2239,126 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
         url="https://t.me/PandaGiveawaays"
     )])
     
+    if is_admin(user_id):
+        keyboard.append([
+            InlineKeyboardButton("⚙️ لوحة المالكين", callback_data="admin_panel"),
+            InlineKeyboardButton("🖥️ لوحة الأدمن", web_app=WebAppInfo(url=f"{MINI_APP_URL}/admin?user_id={user_id}"))
+        ])
+    
+    await query.edit_message_text(
+        welcome_text,
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def check_subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """التحقق من اشتراك المستخدم في القنوات الإجبارية"""
+    query = update.callback_query
+    await query.answer("جارٍ التحقق من الاشتراك...")
+    
+    user = query.from_user
+    user_id = user.id
+    username = user.username or f"user_{user_id}"
+    full_name = user.full_name or username
+    
+    # التحقق من جميع القنوات
+    not_subscribed = []
+    for channel_username in MANDATORY_CHANNELS:
+        if not await check_subscription(user_id, channel_username, update):
+            not_subscribed.append(channel_username)
+    
+    if not_subscribed:
+        # لا يزال غير مشترك في بعض القنوات
+        channels_text = "\n".join([f"• {ch}" for ch in not_subscribed])
+        
+        await query.answer("⚠️ لم تشترك في جميع القنوات بعد!", show_alert=True)
+        
+        subscription_text = f"""
+📢 <b>اشتراك إجباري</b>
+
+عزيزي <b>{full_name}</b>، يجب الاشتراك في القنوات التالية:
+
+{channels_text}
+
+بعد الاشتراك، اضغط على زر "✅ تحققت من الاشتراك" مرة أخرى.
+"""
+        
+        # إنشاء أزرار القنوات
+        keyboard = []
+        for channel_username in not_subscribed:
+            keyboard.append([InlineKeyboardButton(
+                f"📢 {channel_username}",
+                url=f"https://t.me/{channel_username.replace('@', '')}"
+            )])
+        
+        # زر التحقق
+        keyboard.append([InlineKeyboardButton(
+            "✅ تحققت من الاشتراك",
+            callback_data="check_subscription"
+        )])
+        
+        await query.edit_message_text(
+            subscription_text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        
+        return
+    
+    # المستخدم مشترك في جميع القنوات - عرض الرسالة الرئيسية
+    await query.answer("✅ تم التحقق من الاشتراك بنجاح!", show_alert=True)
+    
+    # التحقق من صحة الإحالة إن وجدت
+    await check_and_validate_referral(user_id, update)
+    
+    # الحصول على بيانات المستخدم
+    db_user = db.get_user(user_id)
+    if not db_user:
+        db_user = db.create_or_update_user(user_id, username, full_name)
+    
+    # رسالة الترحيب
+    welcome_text = f"""
+🐼 <b>مرحباً بك في Panda Giveaways!</b> 🎁
+
+<b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! 🌟
+
+💰 <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
+🎰 <b>لفاتك المتاحة:</b> {db_user.available_spins}
+👥 <b>إحالاتك:</b> {db_user.total_referrals}
+
+<b>🎯 كيف تربح؟</b>
+• قم بدعوة أصدقائك (كل {SPINS_PER_REFERRALS} إحالات = لفة مجانية)
+• أكمل المهام اليومية
+• إلعب عجلة الحظ واربح TON!
+• إسحب أرباحك مباشرة إلى محفظتك
+
+<b>🚀 ابدأ الآن واستمتع بالأرباح!</b>
+"""
+    
+    # الأزرار
+    keyboard = []
+    
+    # زر فتح Mini App
+    keyboard.append([InlineKeyboardButton(
+        "🎰 افتح Panda Giveaway",
+        web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
+    )])
+    
+    # زر مشاركة رابط الدعوة
+    ref_link = generate_referral_link(user_id)
+    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    keyboard.append([InlineKeyboardButton(
+        "📤 مشاركة رابط الدعوة",
+        switch_inline_query=ref_text
+    )])
+    
+    # زر إثباتات الدفع
+    keyboard.append([InlineKeyboardButton(
+        "💎 إثباتات الدفع",
+        url="https://t.me/PandaGiveawaays"
+    )])
+    
+    # زر لوحة الأدمن (للأدمن فقط)
     if is_admin(user_id):
         keyboard.append([
             InlineKeyboardButton("⚙️ لوحة المالكين", callback_data="admin_panel"),
@@ -3274,6 +3612,7 @@ def main():
     application.add_handler(CallbackQueryHandler(admin_detailed_stats_callback, pattern="^admin_detailed_stats$"))
     application.add_handler(CallbackQueryHandler(toggle_auto_withdrawal_callback, pattern="^toggle_auto_withdrawal$"))
     application.add_handler(CallbackQueryHandler(back_to_start_callback, pattern="^back_to_start$"))
+    application.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="^check_subscription$"))
     application.add_handler(CallbackQueryHandler(approve_withdrawal_callback, pattern="^approve_withdrawal_"))
     application.add_handler(CallbackQueryHandler(reject_withdrawal_callback, pattern="^reject_withdrawal_"))
     

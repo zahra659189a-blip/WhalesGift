@@ -6,11 +6,12 @@ from flask_cors import CORS
 import os
 import sys
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import threading
 import subprocess
 import random
 import hashlib
+import secrets
 import requests  # لجلب سعر TON
 
 # إضافة المسار الحالي لـ 
@@ -208,6 +209,8 @@ def init_database():
             is_valid INTEGER DEFAULT 0,
             created_at TEXT NOT NULL,
             validated_at TEXT,
+            channels_checked INTEGER DEFAULT 0,
+            device_verified INTEGER DEFAULT 0,
             UNIQUE(referrer_id, referred_id)
         )
     """)
@@ -301,6 +304,53 @@ def init_database():
         )
     """)
     
+    # جدول التحقق من الأجهزة - device fingerprinting
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS device_verifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL UNIQUE,
+            fingerprint TEXT NOT NULL,
+            ip_address TEXT NOT NULL,
+            user_agent TEXT,
+            timezone TEXT,
+            screen_resolution TEXT,
+            canvas_fp TEXT,
+            audio_fp TEXT,
+            local_id TEXT,
+            verified_at TEXT NOT NULL,
+            last_seen TEXT,
+            is_blocked INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+        )
+    """)
+    
+    # جدول سجل محاولات التحقق
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS verification_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            fingerprint TEXT NOT NULL,
+            ip_address TEXT NOT NULL,
+            attempt_time TEXT NOT NULL,
+            status TEXT NOT NULL,
+            reason TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+        )
+    """)
+    
+    # جدول tokens التحقق المؤقتة
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS verification_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            used INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+        )
+    """)
+    
     # جدول جوائز العجلة
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS wheel_prizes (
@@ -351,6 +401,27 @@ def init_database():
                 INSERT INTO wheel_prizes (name, value, probability, color, emoji, position, is_active, added_at)
                 VALUES (?, ?, ?, ?, ?, ?, 1, ?)
             """, (name, value, prob, color, emoji, pos, now))
+    
+    # إضافة أعمدة التحقق للجداول القديمة
+    try:
+        cursor.execute("ALTER TABLE referrals ADD COLUMN channels_checked INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # العمود موجود بالفعل
+    
+    try:
+        cursor.execute("ALTER TABLE referrals ADD COLUMN device_verified INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # العمود موجود بالفعل
+    
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN is_device_verified INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # العمود موجود بالفعل
+    
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN verification_required INTEGER DEFAULT 1")
+    except sqlite3.OperationalError:
+        pass  # العمود موجود بالفعل
     
     conn.commit()
     conn.close()
@@ -1437,6 +1508,250 @@ def verify_all_channels():
     except Exception as e:
         print(f"Error in verify_all_channels: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+# ═══════════════════════════════════════════════════════════════
+# 🔐 DEVICE VERIFICATION ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+@app.route('/api/fingerprint', methods=['POST'])
+def submit_fingerprint():
+    """استقبال وحفظ بصمة الجهاز من صفحة التحقق"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        fp_token = data.get('fp_token')
+        fingerprint = data.get('fingerprint')
+        meta = data.get('meta', {})
+        
+        if not all([user_id, fp_token, fingerprint]):
+            return jsonify({
+                'ok': False,
+                'error': 'Missing required fields'
+            }), 400
+        
+        # التحقق من صلاحية الـ token
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM verification_tokens 
+            WHERE user_id = ? AND token = ? AND used = 0
+            AND datetime(expires_at) > datetime('now')
+        """, (user_id, fp_token))
+        
+        token_row = cursor.fetchone()
+        if not token_row:
+            conn.close()
+            return jsonify({
+                'ok': False,
+                'error': 'Invalid or expired token'
+            }), 403
+        
+        # الحصول على IP address
+        if request.headers.get('X-Forwarded-For'):
+            ip_address = request.headers.get('X-Forwarded-For').split(',')[0]
+        else:
+            ip_address = request.remote_addr
+        
+        # التحقق من عدم وجود جهاز آخر بنفس البصمة
+        cursor.execute("""
+            SELECT user_id FROM device_verifications 
+            WHERE fingerprint = ? AND user_id != ?
+        """, (fingerprint, user_id))
+        
+        duplicate_device = cursor.fetchone()
+        if duplicate_device:
+            # تسجيل المحاولة الفاشلة
+            cursor.execute("""
+                INSERT INTO verification_attempts 
+                (user_id, fingerprint, ip_address, attempt_time, status, reason)
+                VALUES (?, ?, ?, datetime('now'), 'rejected', 'duplicate_device')
+            """, (user_id, fingerprint, ip_address))
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'ok': False,
+                'error': 'هذا الجهاز مسجل بالفعل لمستخدم آخر',
+                'reason': 'duplicate_device'
+            }), 403
+        
+        # التحقق من عدم وجود IP address مكرر (اختياري - يمكن تعطيله)
+        cursor.execute("""
+            SELECT COUNT(*) FROM device_verifications 
+            WHERE ip_address = ? AND user_id != ?
+        """, (ip_address, user_id))
+        
+        ip_count = cursor.fetchone()[0]
+        if ip_count >= 3:  # السماح بـ 3 أجهزة كحد أقصى من نفس الـ IP
+            cursor.execute("""
+                INSERT INTO verification_attempts 
+                (user_id, fingerprint, ip_address, attempt_time, status, reason)
+                VALUES (?, ?, ?, datetime('now'), 'rejected', 'ip_limit_exceeded')
+            """, (user_id, fingerprint, ip_address))
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'ok': False,
+                'error': 'تم تجاوز الحد الأقصى للأجهزة من نفس الشبكة',
+                'reason': 'ip_limit_exceeded'
+            }), 403
+        
+        # حفظ بيانات التحقق
+        now = datetime.now().isoformat()
+        cursor.execute("""
+            INSERT OR REPLACE INTO device_verifications 
+            (user_id, fingerprint, ip_address, user_agent, timezone, 
+             screen_resolution, canvas_fp, audio_fp, local_id, verified_at, last_seen)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            user_id, fingerprint, ip_address,
+            meta.get('ua', ''),
+            meta.get('tz', ''),
+            meta.get('rez', ''),
+            meta.get('cfp', ''),
+            meta.get('afp', ''),
+            meta.get('lid', ''),
+            now, now
+        ))
+        
+        # تحديث حالة المستخدم
+        cursor.execute("""
+            UPDATE users 
+            SET is_device_verified = 1, verification_required = 0
+            WHERE user_id = ?
+        """, (user_id,))
+        
+        # تحديث حالة الـ token
+        cursor.execute("""
+            UPDATE verification_tokens 
+            SET used = 1 
+            WHERE user_id = ? AND token = ?
+        """, (user_id, fp_token))
+        
+        # تسجيل المحاولة الناجحة
+        cursor.execute("""
+            INSERT INTO verification_attempts 
+            (user_id, fingerprint, ip_address, attempt_time, status, reason)
+            VALUES (?, ?, ?, datetime('now'), 'success', 'verified')
+        """, (user_id, fingerprint, ip_address))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Device verified for user {user_id}")
+        
+        # إرسال إشعار للبوت للتحقق من الإحالة إن وجدت
+        try:
+            import requests as req
+            bot_notify_url = 'http://localhost:8081/device-verified'
+            req.post(bot_notify_url, json={'user_id': user_id}, timeout=3)
+        except Exception as notify_error:
+            print(f"⚠️ Could not notify bot: {notify_error}")
+        
+        return jsonify({
+            'ok': True,
+            'message': 'تم التحقق من جهازك بنجاح'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error in submit_fingerprint: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'ok': False,
+            'error': 'حدث خطأ أثناء التحقق'
+        }), 500
+
+@app.route('/api/verification/create-token', methods=['POST'])
+def create_verification_token():
+    """إنشاء token للتحقق من الجهاز"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({
+                'success': False,
+                'error': 'User ID required'
+            }), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # إنشاء token عشوائي
+        token = secrets.token_urlsafe(32)
+        now = datetime.now()
+        expires_at = (now + timedelta(minutes=15)).isoformat()
+        
+        cursor.execute("""
+            INSERT INTO verification_tokens 
+            (user_id, token, created_at, expires_at, used)
+            VALUES (?, ?, ?, ?, 0)
+        """, (user_id, token, now.isoformat(), expires_at))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'token': token,
+            'expires_in': 900  # 15 minutes in seconds
+        })
+        
+    except Exception as e:
+        print(f"Error in create_verification_token: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/verification/status/<int:user_id>', methods=['GET'])
+def get_verification_status(user_id):
+    """التحقق من حالة تحقق المستخدم"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # التحقق من وجود تحقق للمستخدم
+        cursor.execute("""
+            SELECT * FROM device_verifications 
+            WHERE user_id = ?
+        """, (user_id,))
+        
+        verification = cursor.fetchone()
+        
+        if verification:
+            result = {
+                'verified': True,
+                'fingerprint': verification['fingerprint'],
+                'ip_address': verification['ip_address'],
+                'verified_at': verification['verified_at'],
+                'is_blocked': bool(verification['is_blocked'])
+            }
+        else:
+            result = {
+                'verified': False,
+                'fingerprint': None,
+                'ip_address': None,
+                'verified_at': None,
+                'is_blocked': False
+            }
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            **result
+        })
+        
+    except Exception as e:
+        print(f"Error in get_verification_status: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/admin/channels', methods=['GET', 'POST', 'DELETE'])
 def manage_channels():
