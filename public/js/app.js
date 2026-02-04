@@ -28,15 +28,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const verifyData = await verifyStatusResp.json();
                 
                 if (!verifyData.verified) {
-                    // المستخدم غير متحقق - توجيه تلقائي للبوت وإغلاق المينى آب
+                    // المستخدم غير متحقق - توجيه تلقائي للبوت
                     showLoading(false);
                     
-                    // فتح رابط البوت تلقائياً
                     const botUrl = `https://t.me/${window.CONFIG?.BOT_USERNAME || 'PandaGiveawaysBot'}`;
+                    let redirectFailed = false;
                     
-                    // عرض رسالة قصيرة قبل التوجيه
+                    // عرض رسالة التوجيه
                     document.body.innerHTML = `
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; 
+                        <div id="redirect-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; 
                             min-height: 100vh; background: #0d1117; padding: 20px; text-align: center;">
                             <lottie-player src="/img/notallowed.json" 
                                 background="transparent" speed="1" 
@@ -48,18 +48,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <h2 style="color: #ff4444; margin: 20px 0;">
                                 🚫 يجب التحقق من حسابك أولاً
                             </h2>
-                            <p style="color: #8b95a1; font-size: 16px; line-height: 1.6; max-width: 400px;">
+                            <p id="redirect-message" style="color: #8b95a1; font-size: 16px; line-height: 1.6; max-width: 400px;">
                                 جاري توجيهك للبوت للتحقق من جهازك...
                             </p>
-                            <div style="margin-top: 20px;">
+                            <div id="spinner" style="margin-top: 20px;">
                                 <div style="width: 40px; height: 40px; border: 4px solid #ffa500; 
                                     border-top-color: transparent; border-radius: 50%; 
                                     animation: spin 1s linear infinite;">
                                 </div>
                             </div>
-                            <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                            <p id="countdown" style="color: #ffa500; font-size: 18px; font-weight: bold; margin-top: 15px;">5</p>
+                            <p style="color: #666; font-size: 14px; margin-top: 10px;">
                                 Redirecting to bot...
                             </p>
+                            <a id="manual-redirect" href="${botUrl}" 
+                                style="display: none; margin-top: 20px; padding: 14px 32px; 
+                                background: linear-gradient(135deg, #ffa500, #ff8c00); color: #000; 
+                                text-decoration: none; border-radius: 12px; font-weight: bold; 
+                                font-size: 16px; box-shadow: 0 4px 15px rgba(255, 165, 0, 0.3); 
+                                transition: transform 0.2s; align-items: center; gap: 8px;" 
+                                onmouseover="this.style.transform='scale(1.05)'" 
+                                onmouseout="this.style.transform='scale(1)'">
+                                <img src="/img/links.png" alt="Link" style="width: 24px; height: 24px; vertical-align: middle;">
+                                فتح البوت للتحقق
+                            </a>
                         </div>
                     `;
                     
@@ -73,25 +85,114 @@ document.addEventListener('DOMContentLoaded', async () => {
                     `;
                     document.head.appendChild(style);
                     
-                    // التوجيه بعد ثانية واحدة
-                    setTimeout(() => {
-                        if (window.Telegram?.WebApp) {
-                            // محاولة فتح رابط تيليجرام بطريقة داخلية
-                            try {
-                                window.Telegram.WebApp.openTelegramLink(botUrl);
-                            } catch (e) {
-                                // إذا فشل، استخدم openLink العادي
-                                window.Telegram.WebApp.openLink(botUrl);
-                            }
-                            // إغلاق المينى آب بعد فترة قصيرة
-                            setTimeout(() => {
-                                window.Telegram.WebApp.close();
-                            }, 500);
+                    // Countdown من 5 إلى 1
+                    let countdown = 5;
+                    const countdownEl = document.getElementById('countdown');
+                    const countdownInterval = setInterval(() => {
+                        countdown--;
+                        if (countdownEl && countdown > 0) {
+                            countdownEl.textContent = countdown;
                         } else {
-                            // في حالة عدم وجود Telegram WebApp، فتح في نافذة جديدة
-                            window.location.href = botUrl;
+                            clearInterval(countdownInterval);
                         }
                     }, 1000);
+                    
+                    // محاولة التوجيه التلقائي بعد 5 ثوانٍ
+                    setTimeout(() => {
+                        console.log('🔄 Attempting automatic redirect to bot...');
+                        
+                        if (window.Telegram?.WebApp) {
+                            try {
+                                // محاولة 1: استخدام openTelegramLink (الأفضل)
+                                console.log('Trying openTelegramLink...');
+                                window.Telegram.WebApp.openTelegramLink(botUrl);
+                                
+                                // إذا نجح، إخفاء الـ spinner وإظهار رسالة النجاح
+                                setTimeout(() => {
+                                    const spinner = document.getElementById('spinner');
+                                    const message = document.getElementById('redirect-message');
+                                    const countdownEl = document.getElementById('countdown');
+                                    
+                                    if (spinner) spinner.style.display = 'none';
+                                    if (countdownEl) countdownEl.style.display = 'none';
+                                    if (message) {
+                                        message.textContent = '✅ تم فتح البوت! يمكنك إغلاق هذه النافذة.';
+                                        message.style.color = '#4caf50';
+                                    }
+                                    
+                                    // محاولة إغلاق المينى آب بعد 2 ثانية
+                                    setTimeout(() => {
+                                        try {
+                                            window.Telegram.WebApp.close();
+                                        } catch (e) {
+                                            console.log('Could not close Mini App:', e);
+                                        }
+                                    }, 2000);
+                                }, 500);
+                                
+                            } catch (e) {
+                                console.warn('openTelegramLink failed, trying openLink...', e);
+                                
+                                // محاولة 2: استخدام openLink
+                                try {
+                                    window.Telegram.WebApp.openLink(botUrl);
+                                    setTimeout(() => {
+                                        const spinner = document.getElementById('spinner');
+                                        const message = document.getElementById('redirect-message');
+                                        const countdownEl = document.getElementById('countdown');
+                                        
+                                        if (spinner) spinner.style.display = 'none';
+                                        if (countdownEl) countdownEl.style.display = 'none';
+                                        if (message) {
+                                            message.textContent = '✅ تم فتح البوت! يمكنك إغلاق هذه النافذة.';
+                                            message.style.color = '#4caf50';
+                                        }
+                                    }, 500);
+                                } catch (e2) {
+                                    console.error('Both redirect methods failed:', e2);
+                                    redirectFailed = true;
+                                    showManualRedirectButton();
+                                }
+                            }
+                        } else {
+                            // في حالة عدم وجود Telegram WebApp
+                            console.log('Telegram WebApp not available, using window.open');
+                            try {
+                                window.open(botUrl, '_blank');
+                            } catch (e) {
+                                console.error('window.open failed:', e);
+                                redirectFailed = true;
+                                showManualRedirectButton();
+                            }
+                        }
+                        
+                        // إذا فشل كل شيء بعد 3 ثوانٍ، إظهار الزر اليدوي
+                        setTimeout(() => {
+                            if (document.getElementById('manual-redirect').style.display === 'none') {
+                                showManualRedirectButton();
+                            }
+                        }, 3000);
+                        
+                    }, 5000);
+                    
+                    // دالة لإظهار زر التوجيه اليدوي
+                    function showManualRedirectButton() {
+                        console.log('Showing manual redirect button');
+                        const spinner = document.getElementById('spinner');
+                        const message = document.getElementById('redirect-message');
+                        const manualBtn = document.getElementById('manual-redirect');
+                        const countdownEl = document.getElementById('countdown');
+                        
+                        if (spinner) spinner.style.display = 'none';
+                        if (countdownEl) countdownEl.style.display = 'none';
+                        if (message) {
+                            message.textContent = '⚠️ فشل التوجيه التلقائي. الرجاء الضغط على الزر أدناه.';
+                            message.style.color = '#ff9800';
+                        }
+                        if (manualBtn) {
+                            manualBtn.style.display = 'inline-flex';
+                        }
+                    }
                     
                     return;
                 }
