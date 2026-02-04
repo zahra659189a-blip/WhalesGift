@@ -849,13 +849,26 @@ class DatabaseManagerBot:
         """تعيين قيمة إعداد"""
         now = datetime.now().isoformat()
         
-        self.db_manager.execute_query(
-            """
-            INSERT OR REPLACE INTO bot_settings (setting_key, setting_value, updated_at, updated_by)
-            VALUES (?, ?, ?, ?)
-            """,
-            (key, value, now, admin_id)
-        )
+        if self.db_manager.use_postgres:
+            self.db_manager.execute_query(
+                """
+                INSERT INTO bot_settings (setting_key, setting_value, updated_at, updated_by)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT (setting_key) DO UPDATE SET
+                    setting_value = EXCLUDED.setting_value,
+                    updated_at = EXCLUDED.updated_at,
+                    updated_by = EXCLUDED.updated_by
+                """,
+                (key, value, now, admin_id)
+            )
+        else:
+            self.db_manager.execute_query(
+                """
+                INSERT OR REPLACE INTO bot_settings (setting_key, setting_value, updated_at, updated_by)
+                VALUES (?, ?, ?, ?)
+                """,
+                (key, value, now, admin_id)
+            )
         
         logger.info(f"⚙️ Setting {key} = {value} by admin {admin_id}")
     

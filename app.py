@@ -542,13 +542,13 @@ def get_tasks():
         tasks = []
         for row in rows:
             tasks.append({
-                'id': row[0],
-                'task_type': row[1],
-                'task_name': row[2],
-                'task_description': row[3],
-                'task_link': row[4],
-                'channel_username': row[5],
-                'is_pinned': row[6]
+                'id': row['id'],
+                'task_type': row['task_type'],
+                'task_name': row['task_name'],
+                'task_description': row['task_description'],
+                'task_link': row['task_link'],
+                'channel_username': row['channel_username'],
+                'is_pinned': row['is_pinned']
             })
         return jsonify({
             'success': True,
@@ -574,9 +574,9 @@ def get_user_completed_tasks(user_id):
         completed_tasks = []
         for row in rows:
             completed_tasks.append({
-                'task_id': row[0],
-                'completed_at': row[1],
-                'verified': row[2]
+                'task_id': row['task_id'],
+                'completed_at': row['completed_at'],
+                'verified': row['verified']
             })
         return jsonify({
             'success': True,
@@ -648,10 +648,18 @@ def verify_task_completion(task_id):
         # تسجيل إتمام المهمة
         now = datetime.now().isoformat()
         
-        db_manager.execute_query("""
-            INSERT OR REPLACE INTO user_tasks (user_id, task_id, completed_at, verified)
-            VALUES (?, ?, ?, 1)
-        """, (user_id, task_id, now))
+        if db_manager.use_postgres:
+            db_manager.execute_query("""
+                INSERT INTO user_tasks (user_id, task_id, completed_at, verified)
+                VALUES (?, ?, ?, 1)
+                ON CONFLICT (user_id, task_id) 
+                DO UPDATE SET completed_at = EXCLUDED.completed_at, verified = 1
+            """, (user_id, task_id, now))
+        else:
+            db_manager.execute_query("""
+                INSERT OR REPLACE INTO user_tasks (user_id, task_id, completed_at, verified)
+                VALUES (?, ?, ?, 1)
+            """, (user_id, task_id, now))
         
         # التحقق من عدد المهام المكتملة
         completed_count_row = db_manager.execute_query("""
@@ -1067,10 +1075,10 @@ def get_required_channels():
         channels = []
         for row in rows:
             channels.append({
-                'id': row[0],
-                'channel_id': row[1],
-                'channel_name': row[2],
-                'channel_url': row[3]
+                'id': row['id'],
+                'channel_id': row['channel_id'],
+                'channel_name': row['channel_name'],
+                'channel_url': row['channel_url']
             })
         return jsonify({
             'success': True,
@@ -1175,23 +1183,41 @@ def submit_fingerprint():
         # إذا كان التحقق معطلاً، نسمح مباشرة
         if not verification_enabled:
             # تسجيل المحاولة كنجاح بدون تحقق
+            now_str = datetime.now().isoformat()
             db_manager.execute_query("""
                 INSERT INTO verification_attempts 
                 (user_id, fingerprint, ip_address, attempt_time, status, reason)
-                VALUES (?, ?, ?, datetime('now'), 'bypassed', 'verification_disabled')
-            """, (user_id, fingerprint, request.remote_addr))
+                VALUES (?, ?, ?, ?, 'bypassed', 'verification_disabled')
+            """, (user_id, fingerprint, request.remote_addr, now_str))
             
-            db_manager.execute_query("""
-                INSERT OR REPLACE INTO device_verifications 
-                (user_id, fingerprint, ip_address, user_agent, timezone, 
-                screen_resolution, canvas_fp, audio_fp, local_id, verified_at, last_seen)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-            """, (
-                user_id, fingerprint, request.remote_addr,
-                meta.get('user_agent'), meta.get('timezone'),
-                meta.get('resolution'), meta.get('canvas_fp'),
-                meta.get('audio_fp'), meta.get('local_id')
-            ))
+            if db_manager.use_postgres:
+                db_manager.execute_query("""
+                    INSERT INTO device_verifications 
+                    (user_id, fingerprint, ip_address, user_agent, timezone, 
+                    screen_resolution, canvas_fp, audio_fp, local_id, verified_at, last_seen)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    ON CONFLICT (user_id) DO UPDATE SET
+                        fingerprint = EXCLUDED.fingerprint,
+                        ip_address = EXCLUDED.ip_address,
+                        last_seen = NOW()
+                """, (
+                    user_id, fingerprint, request.remote_addr,
+                    meta.get('user_agent'), meta.get('timezone'),
+                    meta.get('resolution'), meta.get('canvas_fp'),
+                    meta.get('audio_fp'), meta.get('local_id')
+                ))
+            else:
+                db_manager.execute_query("""
+                    INSERT OR REPLACE INTO device_verifications 
+                    (user_id, fingerprint, ip_address, user_agent, timezone, 
+                    screen_resolution, canvas_fp, audio_fp, local_id, verified_at, last_seen)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+                """, (
+                    user_id, fingerprint, request.remote_addr,
+                    meta.get('user_agent'), meta.get('timezone'),
+                    meta.get('resolution'), meta.get('canvas_fp'),
+                    meta.get('audio_fp'), meta.get('local_id')
+                ))
             
             # إشعار البوت
             try:
@@ -1234,11 +1260,12 @@ def submit_fingerprint():
         
         if duplicate_device:
             # تسجيل المحاولة الفاشلة
+            now_str = datetime.now().isoformat()
             db_manager.execute_query("""
                 INSERT INTO verification_attempts 
                 (user_id, fingerprint, ip_address, attempt_time, status, reason)
-                VALUES (?, ?, ?, datetime('now'), 'rejected', 'duplicate_device')
-            """, (user_id, fingerprint, ip_address))
+                VALUES (?, ?, ?, ?, 'rejected', 'duplicate_device')
+            """, (user_id, fingerprint, ip_address, now_str))
             
             # حظر المستخدم وحفظ السبب
             ban_reason = 'تم اكتشاف حسابات متعددة - جهاز مسجل مسبقاً'
@@ -1274,11 +1301,12 @@ def submit_fingerprint():
         
         ip_count = ip_count_row['count'] if ip_count_row else 0
         if ip_count >= 3:  # السماح بـ 3 أجهزة كحد أقصى من نفس الـ IP
+            now_str = datetime.now().isoformat()
             db_manager.execute_query("""
                 INSERT INTO verification_attempts 
                 (user_id, fingerprint, ip_address, attempt_time, status, reason)
-                VALUES (?, ?, ?, datetime('now'), 'rejected', 'ip_limit_exceeded')
-            """, (user_id, fingerprint, ip_address))
+                VALUES (?, ?, ?, ?, 'rejected', 'ip_limit_exceeded')
+            """, (user_id, fingerprint, ip_address, now_str))
             
             # حظر المستخدم وحفظ السبب
             ban_reason = 'تم اكتشاف حسابات متعددة - تجاوز الحد الأقصى للأجهزة من نفس الشبكة'
@@ -1308,21 +1336,53 @@ def submit_fingerprint():
         
         # حفظ بيانات التحقق
         now = datetime.now().isoformat()
-        db_manager.execute_query("""
-            INSERT OR REPLACE INTO device_verifications 
-            (user_id, fingerprint, ip_address, user_agent, timezone, 
-             screen_resolution, canvas_fp, audio_fp, local_id, verified_at, last_seen)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id, fingerprint, ip_address,
-            meta.get('ua', ''),
-            meta.get('tz', ''),
-            meta.get('rez', ''),
-            meta.get('cfp', ''),
-            meta.get('afp', ''),
-            meta.get('lid', ''),
-            now, now
-        ))
+        
+        if db_manager.use_postgres:
+            # PostgreSQL: استخدام INSERT ... ON CONFLICT
+            db_manager.execute_query("""
+                INSERT INTO device_verifications 
+                (user_id, fingerprint, ip_address, user_agent, timezone, 
+                 screen_resolution, canvas_fp, audio_fp, local_id, verified_at, last_seen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (user_id) 
+                DO UPDATE SET 
+                    fingerprint = EXCLUDED.fingerprint,
+                    ip_address = EXCLUDED.ip_address,
+                    user_agent = EXCLUDED.user_agent,
+                    timezone = EXCLUDED.timezone,
+                    screen_resolution = EXCLUDED.screen_resolution,
+                    canvas_fp = EXCLUDED.canvas_fp,
+                    audio_fp = EXCLUDED.audio_fp,
+                    local_id = EXCLUDED.local_id,
+                    verified_at = EXCLUDED.verified_at,
+                    last_seen = EXCLUDED.last_seen
+            """, (
+                user_id, fingerprint, ip_address,
+                meta.get('ua', ''),
+                meta.get('tz', ''),
+                meta.get('rez', ''),
+                meta.get('cfp', ''),
+                meta.get('afp', ''),
+                meta.get('lid', ''),
+                now, now
+            ))
+        else:
+            # SQLite: استخدام INSERT OR REPLACE
+            db_manager.execute_query("""
+                INSERT OR REPLACE INTO device_verifications 
+                (user_id, fingerprint, ip_address, user_agent, timezone, 
+                 screen_resolution, canvas_fp, audio_fp, local_id, verified_at, last_seen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                user_id, fingerprint, ip_address,
+                meta.get('ua', ''),
+                meta.get('tz', ''),
+                meta.get('rez', ''),
+                meta.get('cfp', ''),
+                meta.get('afp', ''),
+                meta.get('lid', ''),
+                now, now
+            ))
         
         # تحديث حالة المستخدم
         db_manager.execute_query("""
@@ -1339,11 +1399,12 @@ def submit_fingerprint():
         """, (user_id, fp_token))
         
         # تسجيل المحاولة الناجحة
+        now_str = datetime.now().isoformat()
         db_manager.execute_query("""
             INSERT INTO verification_attempts 
             (user_id, fingerprint, ip_address, attempt_time, status, reason)
-            VALUES (?, ?, ?, datetime('now'), 'success', 'verified')
-        """, (user_id, fingerprint, ip_address))
+            VALUES (?, ?, ?, ?, 'success', 'verified')
+        """, (user_id, fingerprint, ip_address, now_str))
         
         print(f"✅ Device verified for user {user_id}")
         
@@ -1537,15 +1598,15 @@ def manage_tasks():
             tasks = []
             for row in rows:
                 tasks.append({
-                    'id': row[0],
-                    'task_type': row[1],
-                    'task_name': row[2],
-                    'task_description': row[3],
-                    'task_link': row[4],
-                    'channel_username': row[5],
-                    'is_pinned': row[6],
-                    'is_active': row[7],
-                    'added_at': row[8]
+                    'id': row['id'],
+                    'task_type': row['task_type'],
+                    'task_name': row['task_name'],
+                    'task_description': row['task_description'],
+                    'task_link': row['task_link'],
+                    'channel_username': row['channel_username'],
+                    'is_pinned': row['is_pinned'],
+                    'is_active': row['is_active'],
+                    'added_at': row['added_at']
                 })
             
             return jsonify({'success': True, 'tasks': tasks})
@@ -2060,11 +2121,22 @@ def verification_settings():
             data = request.get_json()
             new_status = data.get('enabled', True)
             
-            db_manager.execute_query("""
-                INSERT OR REPLACE INTO system_settings 
-                (setting_key, setting_value, updated_at, updated_by)
-                VALUES ('verification_enabled', ?, ?, ?)
-            """, ('true' if new_status else 'false', datetime.now().isoformat(), admin_id))
+            if db_manager.use_postgres:
+                db_manager.execute_query("""
+                    INSERT INTO system_settings 
+                    (setting_key, setting_value, updated_at, updated_by)
+                    VALUES ('verification_enabled', ?, ?, ?)
+                    ON CONFLICT (setting_key) DO UPDATE SET
+                        setting_value = EXCLUDED.setting_value,
+                        updated_at = EXCLUDED.updated_at,
+                        updated_by = EXCLUDED.updated_by
+                """, ('true' if new_status else 'false', datetime.now().isoformat(), admin_id))
+            else:
+                db_manager.execute_query("""
+                    INSERT OR REPLACE INTO system_settings 
+                    (setting_key, setting_value, updated_at, updated_by)
+                    VALUES ('verification_enabled', ?, ?, ?)
+                """, ('true' if new_status else 'false', datetime.now().isoformat(), admin_id))
             
             return jsonify({
                 'success': True,
@@ -2118,10 +2190,19 @@ def update_settings():
         # تحديث السحب التلقائي
         if 'auto_withdrawal_enabled' in data:
             auto_withdrawal = 'true' if data['auto_withdrawal_enabled'] else 'false'
-            db_manager.execute_query("""
-                INSERT OR REPLACE INTO bot_settings (setting_key, setting_value, updated_at)
-                VALUES ('auto_withdrawal_enabled', ?, ?)
-            """, (auto_withdrawal, now))
+            if db_manager.use_postgres:
+                db_manager.execute_query("""
+                    INSERT INTO bot_settings (setting_key, setting_value, updated_at)
+                    VALUES ('auto_withdrawal_enabled', ?, ?)
+                    ON CONFLICT (setting_key) DO UPDATE SET
+                        setting_value = EXCLUDED.setting_value,
+                        updated_at = EXCLUDED.updated_at
+                """, (auto_withdrawal, now))
+            else:
+                db_manager.execute_query("""
+                    INSERT OR REPLACE INTO bot_settings (setting_key, setting_value, updated_at)
+                    VALUES ('auto_withdrawal_enabled', ?, ?)
+                """, (auto_withdrawal, now))
         
         print(f"✅ Settings updated: {data}")
         
