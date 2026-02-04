@@ -90,14 +90,14 @@ class WheelOfFortune {
         // حساب زاوية كل قطاع
         const anglePerSegment = (2 * Math.PI) / prizes.length;
         
-        // 🎨 ألوان زيتية محسنة
+        // 🎨 ألوان زيتية محسنة - بالترتيب للجوائز
         const oilColors = [
-            { start: '#1E5F63', end: '#0F3438' },  // Teal Oil
-            { start: '#3A2E5C', end: '#1F1836' },  // Purple Oil
-            { start: '#1F3B4D', end: '#0F1D26' },  // Deep Blue
-            { start: '#2E2A24', end: '#1A1714' },  // Charcoal
-            { start: '#9E7C2F', end: '#6B5320' },  // Dark Gold
-            { start: '#4A2C2A', end: '#2A1715' }   // Brown Oil
+            { start: '#9370db', end: '#6a4fb5' },  // Purple (0.01)
+            { start: '#00bfff', end: '#0080cc' },  // Blue (0.05)
+            { start: '#ffa500', end: '#cc7700' },  // Orange (0.1)
+            { start: '#32cd32', end: '#228b22' },  // Green (0.5)
+            { start: '#ff1493', end: '#cc0066' },  // Pink (1.0)
+            { start: '#808080', end: '#404040' }   // Gray (حظ أوفر)
         ];
         
         // رسم القطاعات بـ Gradients
@@ -262,7 +262,8 @@ class WheelOfFortune {
             console.log('🎯 Prize matched:', {
                 serverPrize: prize,
                 wheelPrize: this.prizes[prizeIndex],
-                prizeIndex
+                prizeIndex,
+                allPrizes: this.prizes.map((p, i) => ({ index: i, name: p.name, amount: p.amount }))
             });
             
             const anglePerSegment = (2 * Math.PI) / this.prizes.length;
@@ -271,19 +272,27 @@ class WheelOfFortune {
             const currentRotation = this.rotation % (2 * Math.PI);
             
             // 🎯 حساب الزاوية المستهدفة بدقة
-            // المؤشر في الأعلى (π/2 radians = 90 degrees)
-            // نريد أن يكون مركز الجائزة تحت المؤشر مباشرة
+            // المؤشر في الأعلى (270 درجة = -90 درجة = 3π/2)
+            // في Canvas، الزاوية 0 على اليمين، وتزيد عكس اتجاه عقارب الساعة
+            // الأعلى = -π/2 أو 3π/2
             
-            // زاوية بداية الجائزة
+            // زاوية بداية الجائزة من الزاوية الأولى (0)
             const prizeStartAngle = prizeIndex * anglePerSegment;
             
             // مركز الجائزة = بداية الجائزة + نصف حجم القطاع
             const prizeCenterAngle = prizeStartAngle + (anglePerSegment / 2);
             
-            // الزاوية المستهدفة لجعل مركز الجائزة عند المؤشر (الأعلى = π/2)
-            // نحتاج إلى جعل prizeCenterAngle عند موضع المؤشر (π/2)
-            const pointerAngle = Math.PI / 2; // 90 درجة (الأعلى)
-            const targetAngle = pointerAngle - prizeCenterAngle;
+            // المؤشر عند الأعلى (3π/2 أو -π/2)
+            const pointerAngle = -Math.PI / 2;
+            
+            // الزاوية المطلوبة = نريد أن prizeCenterAngle يكون عند المؤشر
+            // rotation + prizeCenterAngle = pointerAngle
+            // rotation = pointerAngle - prizeCenterAngle
+            let targetAngle = pointerAngle - prizeCenterAngle;
+            
+            // تطبيع الزاوية لتكون بين 0 و 2π
+            while (targetAngle < 0) targetAngle += 2 * Math.PI;
+            while (targetAngle >= 2 * Math.PI) targetAngle -= 2 * Math.PI;
             
             // حساب أقصر مسافة للوصول للهدف
             let angleDiff = targetAngle - currentRotation;
@@ -298,15 +307,19 @@ class WheelOfFortune {
             
             console.log('🎲 Spin calculation:', {
                 prizeName: prize.name,
+                prizeAmount: prize.amount,
                 prizeIndex,
+                totalPrizes: this.prizes.length,
                 anglePerSegment: (anglePerSegment * 180 / Math.PI).toFixed(2) + '°',
                 prizeStartAngle: (prizeStartAngle * 180 / Math.PI).toFixed(2) + '°',
                 prizeCenterAngle: (prizeCenterAngle * 180 / Math.PI).toFixed(2) + '°',
+                pointerAngle: (pointerAngle * 180 / Math.PI).toFixed(2) + '°',
                 currentRotation: (currentRotation * 180 / Math.PI).toFixed(2) + '°',
                 targetAngle: (targetAngle * 180 / Math.PI).toFixed(2) + '°',
                 angleDiff: (angleDiff * 180 / Math.PI).toFixed(2) + '°',
                 extraRotations,
-                totalRotation: (totalRotation * 180 / Math.PI).toFixed(2) + '°'
+                totalRotation: (totalRotation * 180 / Math.PI).toFixed(2) + '°',
+                finalRotation: ((currentRotation + totalRotation) * 180 / Math.PI).toFixed(2) + '°'
             });
             
             // تدوير العجلة
@@ -379,6 +392,26 @@ class WheelOfFortune {
                 } else {
                     // تطبيع الزاوية
                     this.rotation = this.rotation % (2 * Math.PI);
+                    
+                    // 🔍 تحقق من الجائزة التي توقفت عندها العجلة
+                    const finalRotation = this.rotation;
+                    const anglePerSegment = (2 * Math.PI) / this.prizes.length;
+                    const pointerAngle = -Math.PI / 2;
+                    
+                    // حساب أي قطاع تحت المؤشر
+                    let adjustedAngle = (pointerAngle - finalRotation) % (2 * Math.PI);
+                    if (adjustedAngle < 0) adjustedAngle += 2 * Math.PI;
+                    
+                    const stoppedIndex = Math.floor(adjustedAngle / anglePerSegment);
+                    const stoppedPrize = this.prizes[stoppedIndex];
+                    
+                    console.log('🎯 Wheel stopped at:', {
+                        finalRotation: (finalRotation * 180 / Math.PI).toFixed(2) + '°',
+                        adjustedAngle: (adjustedAngle * 180 / Math.PI).toFixed(2) + '°',
+                        stoppedIndex,
+                        stoppedPrize: stoppedPrize ? { name: stoppedPrize.name, amount: stoppedPrize.amount } : 'undefined'
+                    });
+                    
                     resolve();
                 }
             };

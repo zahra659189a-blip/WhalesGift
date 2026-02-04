@@ -12,12 +12,12 @@ const CONFIG = {
     
     // Wheel Configuration
     WHEEL_PRIZES: [
-        { name: '0.01 TON', amount: 0.01, probability: 25, color: '#9370db', emoji: '🪙' },
-        { name: '0.05 TON', amount: 0.05, probability: 25, color: '#00bfff', emoji: '💎' },
-        { name: '0.1 TON', amount: 0.1, probability: 25, color: '#ffa500', emoji: '💰' },
-        { name: '0.5 TON', amount: 0.5, probability: 0, color: '#32cd32', emoji: '🏆' },
-        { name: '1.0 TON', amount: 1.0, probability: 0, color: '#ff1493', emoji: '👑' },
-        { name: 'حظ أوفر', amount: 0, probability: 25, color: '#808080', emoji: '😔' }
+        { name: '0.01 TON', amount: 0.01, probability: 25 },
+        { name: '0.05 TON', amount: 0.05, probability: 25 },
+        { name: '0.1 TON', amount: 0.1, probability: 25 },
+        { name: '0.5 TON', amount: 0.5, probability: 0 },
+        { name: '1.0 TON', amount: 1.0, probability: 0 },
+        { name: 'حظ أوفر', amount: 0, probability: 25 }
     ],
     
     // Referral & Tasks (تذاكر بدلاً من عملات)

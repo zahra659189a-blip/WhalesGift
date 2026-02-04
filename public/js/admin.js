@@ -244,8 +244,6 @@ function openEditPrizeModal(prizeId) {
     document.getElementById('edit-prize-name').value = prize.name;
     document.getElementById('edit-prize-value').value = prize.value;
     document.getElementById('edit-prize-probability').value = prize.probability;
-    document.getElementById('edit-prize-color').value = prize.color;
-    document.getElementById('edit-prize-emoji').value = prize.emoji;
     
     const modal = document.getElementById('edit-prize-modal');
     modal.classList.add('active');
@@ -255,10 +253,8 @@ async function addPrize() {
     const name = document.getElementById('prize-name').value;
     const value = parseFloat(document.getElementById('prize-value').value);
     const probability = parseFloat(document.getElementById('prize-probability').value);
-    const color = document.getElementById('prize-color').value;
-    const emoji = document.getElementById('prize-emoji').value;
     
-    if (!name || isNaN(value) || isNaN(probability) || !color || !emoji) {
+    if (!name || isNaN(value) || isNaN(probability)) {
         showToast('❌ يرجى ملء جميع الحقول', 'error');
         return;
     }
@@ -271,8 +267,6 @@ async function addPrize() {
                 name,
                 value,
                 probability,
-                color,
-                emoji,
                 position: adminData.prizes.length
             })
         });
@@ -288,8 +282,6 @@ async function addPrize() {
             document.getElementById('prize-name').value = '';
             document.getElementById('prize-value').value = '';
             document.getElementById('prize-probability').value = '';
-            document.getElementById('prize-color').value = '#ffa500';
-            document.getElementById('prize-emoji').value = '';
         } else {
             showToast('❌ فشل إضافة الجائزة: ' + result.error, 'error');
         }
@@ -305,13 +297,15 @@ async function updatePrize() {
     
     if (!prize) return;
     
+    const name = document.getElementById('edit-prize-name').value;
+    const value = parseFloat(document.getElementById('edit-prize-value').value);
+    const probability = parseFloat(document.getElementById('edit-prize-probability').value);
+    
     const updatedData = {
         id,
-        name: document.getElementById('edit-prize-name').value,
-        value: parseFloat(document.getElementById('edit-prize-value').value),
-        probability: parseFloat(document.getElementById('edit-prize-probability').value),
-        color: document.getElementById('edit-prize-color').value,
-        emoji: document.getElementById('edit-prize-emoji').value,
+        name,
+        value,
+        probability,
         position: prize.position
     };
     
