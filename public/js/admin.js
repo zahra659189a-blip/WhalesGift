@@ -230,12 +230,16 @@ function filterUsersByStatus(status) {
     let filteredUsers = [];
     
     if (status === 'active') {
-        filteredUsers = adminData.users.filter(user => user.is_banned !== 1);
+        // النشطين = غير محظورين
+        filteredUsers = adminData.users.filter(user => !user.is_banned && user.is_banned !== true);
     } else if (status === 'banned') {
-        filteredUsers = adminData.users.filter(user => user.is_banned === 1);
+        // المحظورين = is_banned === true أو 1
+        filteredUsers = adminData.users.filter(user => user.is_banned === true || user.is_banned === 1);
     } else if (status === 'verified') {
         filteredUsers = adminData.users.filter(user => user.is_verified === true);
     }
+    
+    console.log(`Filtering by ${status}:`, filteredUsers.length, 'users found');
     
     if (filteredUsers.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #8b95a1;">لا توجد نتائج</td></tr>';
@@ -243,7 +247,7 @@ function filterUsersByStatus(status) {
     }
     
     tbody.innerHTML = filteredUsers.map(user => {
-        const isBanned = user.is_banned === 1;
+        const isBanned = user.is_banned === true || user.is_banned === 1;
         const banBadge = isBanned ? `<span style="background: #ff4d4d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">محظور</span>` : '';
         const banReasonText = isBanned && user.ban_reason ? `<br><small style="color: #ff6b6b;">${user.ban_reason}</small>` : '';
         
@@ -484,6 +488,10 @@ async function loadUsers() {
         if (result.success) {
             adminData.users = result.data || [];
             console.log(`✅ Loaded ${adminData.users.length} users`);
+            
+            // تسجيل معلومات عن المستخدمين المحظورين
+            const bannedUsers = adminData.users.filter(u => u.is_banned === true || u.is_banned === 1);
+            console.log(`🔴 Found ${bannedUsers.length} banned users:`, bannedUsers.map(u => ({id: u.id, name: u.name, is_banned: u.is_banned, ban_reason: u.ban_reason})));
         } else {
             console.error('❌ Failed to load users:', result.error);
             adminData.users = [];
@@ -504,7 +512,7 @@ function renderUsersTable() {
     if (!tbody) return;
     
     tbody.innerHTML = adminData.users.map(user => {
-        const isBanned = user.is_banned === 1;
+        const isBanned = user.is_banned === true || user.is_banned === 1;
         const banBadge = isBanned ? `<span style="background: #ff4d4d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">محظور</span>` : '';
         const banReasonText = isBanned && user.ban_reason ? `<br><small style="color: #ff6b6b;">${user.ban_reason}</small>` : '';
         
@@ -576,7 +584,7 @@ function filterUsersTable(query) {
     }
     
     tbody.innerHTML = filteredUsers.map(user => {
-        const isBanned = user.is_banned === 1;
+        const isBanned = user.is_banned === true || user.is_banned === 1;
         const banBadge = isBanned ? `<span style="background: #ff4d4d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">محظور</span>` : '';
         const banReasonText = isBanned && user.ban_reason ? `<br><small style="color: #ff6b6b;">${user.ban_reason}</small>` : '';
         
