@@ -1067,11 +1067,11 @@ class DatabaseManager:
         value = self.get_setting('bot_enabled', 'true')
         return value.lower() == 'true'
     
-    def toggle_bot_status(self) -> bool:
+    def toggle_bot_status(self, admin_id: int) -> bool:
         """تبديل حالة البوت (تشغيل/إيقاف)"""
         current_status = self.is_bot_enabled()
         new_status = 'false' if current_status else 'true'
-        self.set_setting('bot_enabled', new_status)
+        self.set_setting('bot_enabled', new_status, admin_id)
         return not current_status
     
     # ═══════════════════════════════════════════════════════════
@@ -2371,7 +2371,7 @@ async def toggle_bot_status_callback(update: Update, context: ContextTypes.DEFAU
         return
     
     # تبديل الحالة
-    new_state = db.toggle_bot_status()
+    new_state = db.toggle_bot_status(user_id)
     
     status_text = "✅ مفعّل" if new_state else "❌ معطّل"
     status_emoji = "🟢" if new_state else "🔴"
