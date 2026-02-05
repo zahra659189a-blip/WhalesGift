@@ -847,6 +847,34 @@ def get_bot_stats_route():
         print(f"Error in get_bot_stats: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/bot/status', methods=['GET'])
+def get_bot_status():
+    """الحصول على حالة البوت (مفعل/معطل)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT setting_value 
+            FROM bot_settings 
+            WHERE setting_key = 'bot_enabled'
+        """)
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        bot_enabled = True  # افتراضياً مفعل
+        if row:
+            bot_enabled = row[0].lower() == 'true'
+        
+        return jsonify({
+            'success': True,
+            'bot_enabled': bot_enabled
+        })
+    except Exception as e:
+        print(f"Error in get_bot_status: {e}")
+        return jsonify({'success': True, 'bot_enabled': True}), 200
+
 @app.route('/api/tasks', methods=['GET'])
 def get_tasks():
     """الحصول على المهام النشطة للمستخدمين"""

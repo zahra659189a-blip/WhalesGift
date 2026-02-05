@@ -13,6 +13,52 @@
     
     <!-- Lottie Player -->
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    
+    <!-- Image Protection -->
+    <style>
+        /* منع تحديد النص والصور */
+        img {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-user-drag: none;
+            -webkit-touch-callout: none;
+            pointer-events: none;
+        }
+        
+        /* منع القائمة السياقية على الصور */
+        img::selection {
+            background: transparent;
+        }
+    </style>
+    <script>
+        // منع النقر بالزر الأيمن على الصور
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('contextmenu', function(e) {
+                if (e.target.tagName === 'IMG') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+            
+            // منع السحب والإفلات للصور
+            document.addEventListener('dragstart', function(e) {
+                if (e.target.tagName === 'IMG') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+            
+            // حماية من F12 و Inspect
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        });
+    </script>
 </head>
 <body>
     

@@ -404,6 +404,11 @@ class DatabaseManager:
             VALUES ('auto_withdrawal_enabled', 'false', ?)
         """, (datetime.now().isoformat(),))
         
+        cursor.execute("""
+            INSERT OR IGNORE INTO bot_settings (setting_key, setting_value, updated_at)
+            VALUES ('bot_enabled', 'true', ?)
+        """, (datetime.now().isoformat(),))
+        
         # إنشاء indexes لتحسين الأداء
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_spins_user ON spins(user_id)")
@@ -1057,6 +1062,18 @@ class DatabaseManager:
         value = self.get_setting('auto_withdrawal_enabled', 'false')
         return value.lower() == 'true'
     
+    def is_bot_enabled(self) -> bool:
+        """التحقق من تشغيل البوت"""
+        value = self.get_setting('bot_enabled', 'true')
+        return value.lower() == 'true'
+    
+    def toggle_bot_status(self) -> bool:
+        """تبديل حالة البوت (تشغيل/إيقاف)"""
+        current_status = self.is_bot_enabled()
+        new_status = 'false' if current_status else 'true'
+        self.set_setting('bot_enabled', new_status)
+        return not current_status
+    
     # ═══════════════════════════════════════════════════════════
     # 📊 STATISTICS & ANALYTICS
     # ═══════════════════════════════════════════════════════════
@@ -1679,6 +1696,30 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = user.username or f"user_{user_id}"
     full_name = user.full_name or username
     
+    # ══════════════════════════════════════════════════════════
+    # 🔴 التحقق من حالة البوت أولاً (إلا للأدمن)
+    # ══════════════════════════════════════════════════════════
+    if not is_admin(user_id) and not db.is_bot_enabled():
+        # إرسال رسالة بأن البوت معطل
+        bot_disabled_text = f"""
+🔴 <b>البوت مغلق حالياً</b>
+
+عزيزي <b>{full_name}</b>،
+
+البوت غير متاح في الوقت الحالي للصيانة.
+
+⏰ سيتم تفعيل البوت قريباً، يرجى المحاولة لاحقاً.
+
+📢 تابعنا للحصول على آخر التحديثات!
+"""
+        
+        await update.message.reply_text(
+            bot_disabled_text,
+            parse_mode=ParseMode.HTML
+        )
+        
+        return
+    
     # استخراج referrer_id إن وجد (فقط من روابط start العادية، ليس startapp)
     referrer_id = None
     is_from_mini_app = False
@@ -1709,7 +1750,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             db.create_or_update_user(user_id, username, full_name, None)
     
     # ══════════════════════════════════════════════════════════
-    # 🔴 التحقق من الحظر أولاً
+    # 🔴 التحقق من الحظر ثانياً
     # ══════════════════════════════════════════════════════════
     db_user = db.get_user(user_id)  # إعادة جلب بيانات المستخدم
     if db_user and db_user.is_banned:
@@ -2250,6 +2291,9 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 ⚙️ <b>إعدادات السحب:</b>
 {'✅ السحب التلقائي مفعّل' if db.is_auto_withdrawal_enabled() else '❌ السحب التلقائي معطّل'}
 
+🤖 <b>حالة البوت:</b>
+{'✅ البوت مفعّل' if db.is_bot_enabled() else '❌ البوت معطّل'}
+
 🔒 <b>إعدادات الأمان:</b>
 {'✅ التحقق من التعدد مفعّل' if verification_enabled else '❌ التحقق من التعدد معطّل'}
 
@@ -2269,6 +2313,10 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         [InlineKeyboardButton(
             f"{'❌ تعطيل' if db.is_auto_withdrawal_enabled() else '✅ تفعيل'} السحب التلقائي",
             callback_data="toggle_auto_withdrawal"
+        )],
+        [InlineKeyboardButton(
+            f"{'🔴 إيقاف' if db.is_bot_enabled() else '🟢 تشغيل'} البوت",
+            callback_data="toggle_bot_status"
         )],
         [InlineKeyboardButton(
             f"{'❌ إيقاف' if verification_enabled else '✅ تفعيل'} التحقق من التعدد",
@@ -2306,6 +2354,46 @@ async def toggle_auto_withdrawal_callback(update: Update, context: ContextTypes.
     await query.answer(
         f"تم! السحب التلقائي الآن {status_text}",
         show_alert=True
+    )
+    
+    # تحديث لوحة الأدمن
+    await admin_panel_callback(update, context)
+
+async def toggle_bot_status_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تبديل حالة البوت (تشغيل/إيقاف)"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    
+    if not is_admin(user_id):
+        await query.answer("❌ غير مصرح لك!", show_alert=True)
+        return
+    
+    # تبديل الحالة
+    new_state = db.toggle_bot_status()
+    
+    status_text = "✅ مفعّل" if new_state else "❌ معطّل"
+    status_emoji = "🟢" if new_state else "🔴"
+    
+    await query.answer(
+        f"{status_emoji} تم! البوت الآن {status_text}",
+        show_alert=True
+    )
+    
+    # إرسال رسالة تأكيد
+    confirmation_text = f"""
+{'🟢 <b>تم تشغيل البوت</b>' if new_state else '🔴 <b>تم إيقاف البوت</b>'}
+
+{'✅ المستخدمون يمكنهم الآن استخدام البوت بشكل طبيعي.' if new_state else '⚠️ المستخدمون لن يتمكنوا من استخدام البوت حتى تقوم بتشغيله مرة أخرى.'}
+
+🕐 التاريخ: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+👤 بواسطة: {query.from_user.full_name}
+"""
+    
+    await query.message.reply_text(
+        confirmation_text,
+        parse_mode=ParseMode.HTML
     )
     
     # تحديث لوحة الأدمن
@@ -4755,6 +4843,7 @@ def main():
     application.add_handler(CallbackQueryHandler(admin_check_user_callback, pattern="^admin_check_user$"))
     application.add_handler(CallbackQueryHandler(admin_detailed_stats_callback, pattern="^admin_detailed_stats$"))
     application.add_handler(CallbackQueryHandler(toggle_auto_withdrawal_callback, pattern="^toggle_auto_withdrawal$"))
+    application.add_handler(CallbackQueryHandler(toggle_bot_status_callback, pattern="^toggle_bot_status$"))
     application.add_handler(CallbackQueryHandler(toggle_verification_callback, pattern="^toggle_verification$"))
     application.add_handler(CallbackQueryHandler(back_to_start_callback, pattern="^back_to_start$"))
     

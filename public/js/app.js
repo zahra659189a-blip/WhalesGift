@@ -19,9 +19,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         showLoading(true);
         
         // ═══════════════════════════════════════════════════════
-        // 🔐 التحقق من حالة المستخدم (device verification)
+        // � التحقق من حالة البوت أولاً
         // ═══════════════════════════════════════════════════════
         const userId = TelegramApp.getUserId();
+        const isAdmin = CONFIG.ADMIN_IDS && CONFIG.ADMIN_IDS.includes(userId);
+        
+        if (!isAdmin) {
+            try {
+                const botStatusResp = await fetch(`${CONFIG.API_BASE_URL}/bot/status`);
+                const botStatusData = await botStatusResp.json();
+                
+                if (!botStatusData.bot_enabled) {
+                    // البوت معطل - عرض رسالة
+                    showLoading(false);
+                    
+                    document.body.innerHTML = `
+                        <div id="bot-disabled-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; 
+                            min-height: 100vh; background: #0d1117; padding: 20px; text-align: center;">
+                            <lottie-player src="/img/notallowed.json" 
+                                background="transparent" speed="1" 
+                                style="width: 250px; height: 250px; margin-bottom: 20px;" 
+                                loop autoplay>
+                            </lottie-player>
+                            <img src="/img/payment-failure.svg" alt="X" 
+                                style="width: 80px; height: 80px; margin: 20px 0; opacity: 0.9;">
+                            <h2 style="color: #ff4444; margin: 20px 0; font-size: 28px; font-weight: bold;">
+                                🔴 البوت مغلق حالياً
+                            </h2>
+                            <p style="color: #8b95a1; font-size: 18px; line-height: 1.8; max-width: 450px; margin-bottom: 20px;">
+                                البوت غير متاح في الوقت الحالي للصيانة.
+                            </p>
+                            <p style="color: #666; font-size: 16px; margin-top: 10px;">
+                                ⏰ سيتم تفعيل البوت قريباً، يرجى المحاولة لاحقاً.
+                            </p>
+                            <p style="color: #555; font-size: 14px; margin-top: 30px;">
+                                📢 تابعنا للحصول على آخر التحديثات
+                            </p>
+                        </div>
+                    `;
+                    
+                    return;
+                }
+            } catch (statusError) {
+                console.warn('⚠️ Could not check bot status:', statusError);
+                // في حالة الخطأ، نستمر عادياً
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════
+        // 🔐 التحقق من حالة المستخدم (device verification)
+        // ═══════════════════════════════════════════════════════
         
         // استخراج referrer_id من start_param إن وجد
         let referrerId = null;
@@ -37,9 +84,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) {
             console.warn('Could not extract referrer:', e);
         }
-        
-        // استثناء الأدمن من التحقق
-        const isAdmin = CONFIG.ADMIN_IDS && CONFIG.ADMIN_IDS.includes(userId);
         
         if (userId && !isAdmin) {
             try {
