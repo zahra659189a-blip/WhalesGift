@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        showToast('✅ تم التحقق من صحة جلسة تليجرام', 'success');
+        // تم التحقق من صحة جلسة تليجرام
         
         // عرض Loading مع رسالة تبين التقدم
         showLoadingWithMessage('🔄 جاري التهيئة...');
@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearTimeout(window.globalTimeoutId);
         showLoading(false);
         // لا نزيل loading class في حالة الخطأ للحفاظ على إخفاء المحتوى الثابت
-        showToast('حدث خطأ في تحميل التطبيق', 'error');
+        // حدث خطأ في تحميل التطبيق
     }
 });
 
@@ -292,9 +292,9 @@ async function loadWheelPrizes() {
                 probability: prize.probability,
                 color: prize.color
             }));
-            showToast(`✅ تم تحميل ${CONFIG.WHEEL_PRIZES.length} جائزة من قاعدة البيانات`, 'success');
+            // تم تحميل الجوائز من قاعدة البيانات
         } else {
-            showToast('⚠️ يتم استخدام الجوائز الافتراضية', 'warning');
+            // يتم استخدام الجوائز الافتراضية
         }
     } catch (error) {
         console.error('❌ Error loading prizes:', error);
@@ -410,7 +410,7 @@ async function handleReferral() {
                 const result = await response.json();
                 if (result.success) {
                     console.log('✅ Referral registered successfully');
-                    showToast('تم تسجيل الإحالة بنجاح! 🎉', 'success');
+                    // تم تسجيل الإحالة بنجاح
                 } else {
                     console.log('⚠️ Referral registration failed:', result.error);
                 }
@@ -469,7 +469,7 @@ async function loadUserData() {
             throw new Error('فشل تحميل بيانات المستخدم: ' + (response.error || 'Unknown error'));
         }
     } catch (error) {
-        showToast('حدث خطأ في تحميل البيانات', 'error');
+        // حدث خطأ في تحميل البيانات
         // لا نرمي الخطأ لنسمح للتطبيق بالاستمرار
     }
 }
@@ -1179,7 +1179,7 @@ console.log('🐼 Panda Giveaways App Loaded');
 
 window.continueAppInitialization = async function() {
     try {
-        showToast('✅ تم التحقق من القنوات! جاري المتابعة...', 'success');
+        // تم التحقق من القنوات
         
         // إلغاء الـ timeout العام إذا كان موجود
         if (window.globalTimeoutId) {
@@ -1213,9 +1213,9 @@ window.continueAppInitialization = async function() {
         showLoadingWithMessage('🎨 جاري إعداد الواجهة...');
         try {
             initUI();
-            showToast('✅ تم إعداد الواجهة بنجاح', 'success');
+            // تم إعداد الواجهة بنجاح
         } catch (error) {
-            showToast('❌ خطأ في إعداد الواجهة: ' + error.message, 'error');
+            // خطأ في إعداد الواجهة
         }
         
         // تهيئة عجلة الحظ

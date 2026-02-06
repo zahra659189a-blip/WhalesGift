@@ -59,16 +59,6 @@ class WheelOfFortune {
         if (this.spinButton) {
             this.spinButton.addEventListener('click', () => this.spin());
         }
-        
-        // إضافة مستمع لتغيير حجم النافذة لإعادة رسم العجلة
-        window.addEventListener('resize', () => {
-            setTimeout(() => {
-                this.setupHighDPI();
-                this.draw();
-            }, 100);
-        });
-        
-        this.showSuccess('✅ تم تحميل عجلة الحظ');
     }
     
     // ═══════════════════════════════════════════════════════════
@@ -76,28 +66,22 @@ class WheelOfFortune {
     // ═══════════════════════════════════════════════════════
     
     showError(message) {
-        if (typeof showToast !== 'undefined') {
-            showToast(message, 'error');
-        } else {
-            // Fallback - عرض على العجلة مباشرة
-            const wheelContainer = document.querySelector('.wheel-container');
-            if (wheelContainer) {
-                wheelContainer.innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; 
-                        height: 300px; background: #1a1a1a; border-radius: 20px; padding: 20px; text-align: center;">
-                        <div style="font-size: 60px; margin-bottom: 20px;">😔</div>
-                        <h3 style="color: #ff4444; margin-bottom: 10px;">خطأ في عجلة الحظ</h3>
-                        <p style="color: #999; font-size: 14px;">${message}</p>
-                    </div>
-                `;
-            }
+        // Fallback - عرض على العجلة مباشرة
+        const wheelContainer = document.querySelector('.wheel-container');
+        if (wheelContainer) {
+            wheelContainer.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; 
+                    height: 300px; background: #1a1a1a; border-radius: 20px; padding: 20px; text-align: center;">
+                    <div style="font-size: 60px; margin-bottom: 20px;">😔</div>
+                    <h3 style="color: #ff4444; margin-bottom: 10px;">خطأ في عجلة الحظ</h3>
+                    <p style="color: #999; font-size: 14px;">${message}</p>
+                </div>
+            `;
         }
     }
     
     showSuccess(message) {
-        if (typeof showToast !== 'undefined') {
-            showToast(message, 'success');
-        }
+        // Empty - no more success messages
     }
     
     
@@ -156,8 +140,6 @@ class WheelOfFortune {
                 this.showError('❌ لا يمكن حساب أبعاد العجلة');
                 return;
             }
-            
-            this.showSuccess('✅ تم إعداد أبعاد العجلة بنجاح');
             
         } catch (error) {
             this.showError('❌ خطأ في إعداد العجلة: ' + error.message);
