@@ -59,6 +59,31 @@ BOT_TOKEN = os.environ.get('BOT_TOKEN')
 ADMIN_IDS = [1797127532, 6603009212]
 
 # ═══════════════════════════════════════════════════════════════
+# 🛡️ ADMIN PROTECTION DECORATOR
+# ═══════════════════════════════════════════════════════════════
+
+def require_admin(f):
+    """
+    🛡️ Decorator للتحقق من أن المستخدم أدمن
+    يجب استخدامه مع @require_telegram_auth
+    """
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # التحقق من وجود is_admin flag (من require_telegram_auth)
+        if not kwargs.get('is_admin', False):
+            return jsonify({
+                'success': False,
+                'error': 'Forbidden',
+                'message': 'صلاحيات الأدمن فقط - ممنوع الوصول'
+            }), 403
+        
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+# ═══════════════════════════════════════════════════════════════
 # 🔐 TELEGRAM AUTHENTICATION - Security Fix
 # ═══════════════════════════════════════════════════════════════
 
@@ -141,36 +166,15 @@ def validate_telegram_init_data(init_data_str):
 
 def require_telegram_auth(f):
     """
-    Decorator للتحقق من صحة المصادقة في كل request
-    يسمح للأدمن بالوصول بسهولة للتطوير
+    🔐 Decorator للتحقق من صحة المصادقة في كل request
+    ✅ يتحقق من Telegram initData للجميع (بما في ذلك الأدمن)
+    ❌ لا يسمح بتزوير user_id من URL أو JSON
     """
     from functools import wraps
     
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # 🔓 استثناء للأدمن: السماح بالوصول المباشر
-        try:
-            # محاولة الحصول على user_id من أي مصدر
-            user_id_param = None
-            
-            # من URL path (مثل /api/user/123)
-            if 'user_id' in kwargs:
-                user_id_param = kwargs['user_id']
-            # من query parameters
-            elif request.args.get('user_id'):
-                user_id_param = int(request.args.get('user_id'))
-            # من JSON body
-            elif request.is_json and request.json.get('user_id'):
-                user_id_param = int(request.json.get('user_id'))
-            
-            # إذا كان أدمن، السماح بدون تحقق
-            if user_id_param and int(user_id_param) in ADMIN_IDS:
-                kwargs['authenticated_user_id'] = int(user_id_param)
-                return f(*args, **kwargs)
-        except:
-            pass
-        
-        # 🔐 للمستخدمين العاديين: التحقق من init_data
+        # 🔐 التحقق الإجباري من init_data للجميع (بدون استثناءات)
         init_data = None
         
         # محاولة الحصول من headers (الأفضل)
@@ -188,21 +192,25 @@ def require_telegram_auth(f):
             return jsonify({
                 'success': False,
                 'error': 'Unauthorized',
-                'message': 'يجب تشغيل التطبيق من خلال Telegram Bot'
+                'message': 'يجب تشغيل التطبيق من خلال Telegram Bot فقط'
             }), 401
         
-        # التحقق من صحة البيانات
+        # التحقق من صحة البيانات والتوقيع
         user_data = validate_telegram_init_data(init_data)
         
         if not user_data:
             return jsonify({
                 'success': False,
                 'error': 'Unauthorized',
-                'message': 'بيانات مصادقة غير صحيحة'
+                'message': 'بيانات مصادقة غير صحيحة أو منتهية الصلاحية'
             }), 401
         
-        # إضافة user_id المصادق عليه
-        kwargs['authenticated_user_id'] = user_data['user_id']
+        # ✅ استخدام user_id المُتحقق منه فقط (من initData الموقع)
+        verified_user_id = user_data['user_id']
+        kwargs['authenticated_user_id'] = verified_user_id
+        
+        # ✅ إضافة flag للتحقق من صلاحيات الأدمن
+        kwargs['is_admin'] = verified_user_id in ADMIN_IDS
         
         return f(*args, **kwargs)
     
@@ -750,43 +758,48 @@ def index():
 
 @app.route('/admin')
 def admin():
-    """إعادة توجيه لصفحة الأدمن في Vercel"""
+    """
+    🔐 صفحة الأدمن - محمية بالكامل
+    ✅ يتطلب Telegram initData صحيح
+    ✅ يتطلب أن يكون user_id في قائمة ADMIN_IDS
+    ❌ لا يقبل user_id من URL
+    """
     from flask import redirect
     
-    # 🔐 التحقق من المصادقة عبر init_data
+    # 🔐 التحقق الإجباري من المصادقة عبر init_data
     init_data = request.args.get('init_data')
     
-    if init_data:
-        # التحقق من صحة البيانات
-        user_data = validate_telegram_init_data(init_data)
-        if user_data and user_data['user_id'] in ADMIN_IDS:
-            # المستخدم أدمن مصادق عليه ✅
-            return redirect(f'https://panda-giveawaays.vercel.app/admin?user_id={user_data["user_id"]}', code=302)
-    
-    # Fallback للطريقة القديمة (مؤقتاً للتوافقية)
-    # سيتم إزالتها لاحقاً بعد تحديث البوت
-    user_id = request.args.get('user_id')
-    
-    if not user_id:
+    if not init_data:
         return jsonify({
-            'error': 'غير مسموح! هدا الصفحة تعمل فقط من خلال Telegram Bot',
-            'message': 'Access Denied: This page only works through Telegram Mini App'
+            'error': 'غير مسموح! هذه الصفحة تعمل فقط من خلال Telegram Bot',
+            'message': 'Access Denied: This page only works through Telegram Mini App',
+            'hint': 'لا يمكن فتح هذه الصفحة من المتصفح مباشرة'
         }), 403
     
-    # التحقق من أن المستخدم أدمن
-    try:
-        user_id_int = int(user_id)
-        if user_id_int not in ADMIN_IDS:
-            return jsonify({
-                'error': 'غير مسموح! هده الصفحة للمسؤولين فقط',
-                'message': 'Access Denied: Admin only',
-                'your_id': user_id_int
-            }), 403
-    except ValueError:
-        return jsonify({'error': 'Invalid user ID'}), 400
+    # التحقق من صحة البيانات والتوقيع
+    user_data = validate_telegram_init_data(init_data)
     
-    # إعادة توجيه لصفحة الأدمن في Vercel مع user_id
-    return redirect(f'https://panda-giveawaays.vercel.app/admin?user_id={user_id}', code=302)
+    if not user_data:
+        return jsonify({
+            'error': 'بيانات مصادقة غير صحيحة',
+            'message': 'Invalid or expired authentication data',
+            'hint': 'حاول فتح الصفحة من البوت مرة أخرى'
+        }), 401
+    
+    # التحقق من أن المستخدم أدمن
+    if user_data['user_id'] not in ADMIN_IDS:
+        return jsonify({
+            'error': 'غير مسموح! هذه الصفحة للمسؤولين فقط',
+            'message': 'Access Denied: Admin only',
+            'your_id': user_data['user_id']
+        }), 403
+    
+    # ✅ المستخدم أدمن مصادق عليه
+    # إرسال init_data للفرونت إند للاستخدام في API requests
+    return redirect(
+        f'https://panda-giveawaays.vercel.app/admin#{request.query_string.decode()}',
+        code=302
+    )
 
 @app.route('/fp.html')
 @app.route('/fp')
@@ -2188,7 +2201,9 @@ def get_verification_status(user_id):
         }), 500
 
 @app.route('/api/admin/channels', methods=['GET', 'POST', 'DELETE'])
-def manage_channels():
+@require_telegram_auth
+@require_admin
+def manage_channels(authenticated_user_id, is_admin):
     """إدارة القنوات الإجبارية"""
     try:
         if request.method == 'GET':
@@ -2277,7 +2292,9 @@ def manage_channels():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/admin/tasks', methods=['GET', 'POST', 'PUT', 'DELETE'])
-def manage_tasks():
+@require_telegram_auth
+@require_admin
+def manage_tasks(authenticated_user_id, is_admin):
     """إدارة المهام"""
     try:
         if request.method == 'GET':
@@ -2476,7 +2493,9 @@ def manage_tasks():
 # ═══════════════════════════════════════════════════════════════
 
 @app.route('/api/admin/prizes', methods=['GET', 'POST', 'PUT', 'DELETE'])
-def manage_prizes():
+@require_telegram_auth
+@require_admin
+def manage_prizes(authenticated_user_id, is_admin):
     """إدارة جوائز العجلة"""
     try:
         if request.method == 'GET':
@@ -2575,7 +2594,9 @@ def manage_prizes():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/admin/reset-prizes', methods=['POST'])
-def reset_prizes_to_default():
+@require_telegram_auth
+@require_admin
+def reset_prizes_to_default(authenticated_user_id, is_admin):
     """إعادة تعيين الجوائز إلى القيم الافتراضية"""
     try:
         conn = get_db_connection()
@@ -2619,7 +2640,9 @@ def reset_prizes_to_default():
 # ═══════════════════════════════════════════════════════════════
 
 @app.route('/api/admin/add-spins', methods=['POST'])
-def add_spins_to_user():
+@require_telegram_auth
+@require_admin
+def add_spins_to_user(authenticated_user_id, is_admin):
     """إضافة لفات لمستخدم معين"""
     try:
         data = request.get_json()
@@ -2671,7 +2694,9 @@ def add_spins_to_user():
 # ═══════════════════════════════════════════════════════════════
 
 @app.route('/api/admin/users', methods=['GET'])
-def get_all_users():
+@require_telegram_auth
+@require_admin
+def get_all_users(authenticated_user_id, is_admin):
     """جلب جميع المستخدمين للأدمن"""
     try:
         conn = get_db_connection()
@@ -2727,7 +2752,9 @@ def get_all_users():
 # ═══════════════════════════════════════════════════════════════
 
 @app.route('/api/admin/advanced-stats', methods=['GET'])
-def get_advanced_stats():
+@require_telegram_auth
+@require_admin
+def get_advanced_stats(authenticated_user_id, is_admin):
     """إحصائيات متقدمة للأدمن"""
     try:
         conn = get_db_connection()
@@ -2777,7 +2804,9 @@ def get_advanced_stats():
 # ═══════════════════════════════════════════════════════════════
 
 @app.route('/api/admin/unban-user', methods=['POST'])
-def unban_user():
+@require_telegram_auth
+@require_admin
+def unban_user(authenticated_user_id, is_admin):
     """إلغاء حظر مستخدم والسماح له بالوصول بدون تحقق"""
     try:
         data = request.get_json()
@@ -2822,7 +2851,9 @@ def unban_user():
 # ═══════════════════════════════════════════════════════════════
 
 @app.route('/api/admin/user-referrals', methods=['GET'])
-def get_admin_user_referrals():
+@require_telegram_auth
+@require_admin
+def get_admin_user_referrals(authenticated_user_id, is_admin):
     """جلب إحالات مستخدم معين للأدمن"""
     try:
         user_id = request.args.get('user_id')
@@ -2874,15 +2905,11 @@ def get_admin_user_referrals():
 # ═══════════════════════════════════════════════════════════════
 
 @app.route('/api/admin/verification-settings', methods=['GET', 'POST'])
-def verification_settings():
+@require_telegram_auth
+@require_admin
+def verification_settings(authenticated_user_id, is_admin):
     """الحصول على/تحديث إعدادات التحقق من التعدد"""
     try:
-        admin_id = request.args.get('admin_id') or (request.get_json() or {}).get('admin_id')
-        
-        # التحقق من صلاحية الأدمن
-        if not admin_id or int(admin_id) not in ADMIN_IDS:
-            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
-        
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -2910,7 +2937,7 @@ def verification_settings():
                 INSERT OR REPLACE INTO system_settings 
                 (setting_key, setting_value, updated_at, updated_by)
                 VALUES ('verification_enabled', ?, ?, ?)
-            """, ('true' if new_status else 'false', datetime.now().isoformat(), admin_id))
+            """, ('true' if new_status else 'false', datetime.now().isoformat(), authenticated_user_id))
             
             conn.commit()
             conn.close()
