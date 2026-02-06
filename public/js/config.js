@@ -11,15 +11,52 @@ const CONFIG = {
     // Admin IDs (استثناء من التحقق)
     ADMIN_IDS: [1797127532, 6603009212],
     
-    // Wheel Configuration
-    WHEEL_PRIZES: [
-        { name: '0.05 TON', amount: 0.05, probability: 45 },
-        { name: '0.1 TON', amount: 0.1, probability: 30 },
-        { name: '0.15 TON', amount: 0.15, probability: 15 },
-        { name: '0.5 TON', amount: 0.5, probability: 0 },
-        { name: '1.0 TON', amount: 1.0, probability: 0 },
-        { name: 'حظ أوفر', amount: 0, probability: 10 }
+    // 🎰 WHEEL FIXED SLOTS SYSTEM (نظام الـ 20 مكان الثابت)
+    WHEEL_COLORS: [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',  // 1-5
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',  // 6-10  
+        '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D2B4DE',  // 11-15
+        '#A3E4D7', '#F9E79F', '#FADBD8', '#D5DBDB', '#808080'   // 16-20
     ],
+    
+    // Default wheel configuration مع 20 مكان
+    WHEEL_PRIZES: [],  // سيملأ من قاعدة البيانات أو default values
+    
+    // Initialize default 20 slots
+    WHEEL_DEFAULT_SLOTS: (() => {
+        const slots = [];
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',  // 1-5
+            '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',  // 6-10  
+            '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D2B4DE',  // 11-15
+            '#A3E4D7', '#F9E79F', '#FADBD8', '#D5DBDB', '#808080'   // 16-20
+        ];
+        
+        for (let i = 0; i < 20; i++) {
+            slots.push({
+                position: i,
+                name: 'حظ أوفر',
+                amount: 0,
+                probability: 5, // التوزيع الافتراضي
+                color: colors[i],
+                id: null,
+                isEmpty: true,
+                isActive: true
+            });
+        }
+        return slots;
+    })(),
+    
+    // جائزة "حظ أوفر" الثابتة
+    LUCK_PRIZE: {
+        name: 'حظ أوفر',
+        amount: 0,
+        probability: 0, // يتم حسابها ديناميكياً
+        color: '#808080',
+        id: 'luck',
+        isEmpty: true,
+        isActive: true
+    },
     
     // Referral & Tasks (تذاكر بدلاً من عملات)
     SPINS_PER_REFERRALS: 5,        // عدد الإحالات للحصول على لفة
@@ -33,9 +70,6 @@ const CONFIG = {
         { id: '@PandaAdds', name: 'Panda Adds', url: 'https://t.me/PandaAdds' },
         { id: '@CRYPTO_FLASSH', name: 'Crypto Flash', url: 'https://t.me/CRYPTO_FLASSH' }
     ],
-    
-    // Admin IDs
-    ADMIN_IDS: [1797127532, 6603009212],
     
     // Security
     MAX_SPINS_PER_DAY: 100,  // حد أقصى للفات اليومية

@@ -312,3 +312,25 @@ window.DebugError = DebugError;
 window.getEnhancedUserData = getEnhancedUserData;
 window.updateUserDisplay = updateUserDisplay;
 window.handleApiError = handleApiError;
+
+// تفعيل الـ Debug تلقائياً عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        DebugError.init();
+        
+        // إظهار Debug UI إذا كان مفعل
+        if (DEBUG_CONFIG.SHOW_DEBUG_UI) {
+            const toggleBtn = document.getElementById('debug-toggle-btn');
+            if (toggleBtn) {
+                toggleBtn.style.display = 'flex';
+            }
+            
+            // رسالة ترحيب في الـ debug
+            DebugError.add('Debug system initialized successfully', 'info');
+        }
+        
+        console.log('🐛 Debug system ready!');
+    } catch (error) {
+        console.error('Error initializing debug system:', error);
+    }
+});
