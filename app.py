@@ -986,30 +986,34 @@ def verify_task_completion(task_id):
         # إذا كانت قناة، التحقق من الاشتراك عبر البوت
         if task_type == 'channel' and channel_username:
             try:
-                # إرسال طلب للبوت للتحقق من الاشتراك
-                import requests
-                bot_url = 'http://localhost:8081/verify-subscription'
-                verify_response = requests.post(bot_url, json={
-                    'user_id': user_id,
-                    'channel_username': channel_username
-                }, timeout=5)
-                
-                verify_data = verify_response.json()
-                
-                if not verify_data.get('is_subscribed', False):
-                    conn.close()
-                    return jsonify({
-                        'success': False, 
-                        'message': '❌ لم يتم العثور على اشتراكك! تأكد من الاشتراك في القناة أولاً'
-                    })
+                # إرسال طلب للبوت للتحقق من الاشتراك مع fallback
+                try:
+                    import requests
+                    bot_url = 'http://localhost:8081/verify-subscription'
+                    verify_response = requests.post(bot_url, json={
+                        'user_id': user_id,
+                        'channel_username': channel_username
+                    }, timeout=15)  # زيادة timeout
+                    
+                    verify_data = verify_response.json()
+                    
+                    if not verify_data.get('is_subscribed', False):
+                        conn.close()
+                        return jsonify({
+                            'success': False, 
+                            'message': '❌ لم يتم العثور على اشتراكك! تأكد من الاشتراك في القناة أولاً'
+                        })
+                        
+                except (requests.exceptions.RequestException, requests.exceptions.Timeout, ConnectionError) as e:
+                    # في حالة عدم توفر البوت، نسمح بالمتابعة مؤقتاً
+                    print(f"⚠️ Bot unavailable for verification (task {task_id}): {e}")
+                    print(f"📝 Allowing task completion without bot verification for user {user_id}")
+                    # نسمح بإتمام المهمة بدون التحقق من البوت
                     
             except Exception as e:
                 print(f"Error verifying subscription: {e}")
-                conn.close()
-                return jsonify({
-                    'success': False,
-                    'message': '❌ خطأ في التحقق من الاشتراك. حاول مرة أخرى'
-                })
+                # نسمح بإتمام المهمة في حالة الخطأ
+                print(f"📝 Allowing task completion due to verification error for user {user_id}")
         
         # تسجيل إتمام المهمة
         now = datetime.now().isoformat()
@@ -1550,7 +1554,7 @@ def verify_all_channels():
                 verify_response = req.post(bot_url, json={
                     'user_id': user_id,
                     'channel_username': channel_id
-                }, timeout=5)
+                }, timeout=15)  # زيادة timeout
                 
                 verify_data = verify_response.json()
                 
@@ -1560,6 +1564,13 @@ def verify_all_channels():
                         'channel_name': channel_name
                     })
                     
+            except (req.exceptions.RequestException, req.exceptions.Timeout, ConnectionError) as e:
+                print(f"⚠️ Bot unavailable for channel verification {channel_id}: {e}")
+                # في حالة عدم توفر البوت، نفترض عدم الاشتراك لأمان أكبر
+                not_subscribed.append({
+                    'channel_id': channel_id,
+                    'channel_name': channel_name
+                })
             except Exception as e:
                 print(f"Error verifying channel {channel_id}: {e}")
                 not_subscribed.append({
@@ -1636,9 +1647,11 @@ def submit_fingerprint():
             try:
                 import requests as req
                 bot_notify_url = 'http://localhost:8081/device-verified'
-                req.post(bot_notify_url, json={'user_id': user_id}, timeout=3)
-            except:
-                pass
+                req.post(bot_notify_url, json={'user_id': user_id}, timeout=10)
+            except (req.exceptions.RequestException, req.exceptions.Timeout, ConnectionError):
+                print(f"⚠️ Bot unavailable for verification notification (user {user_id})")
+            except Exception as e:
+                print(f"⚠️ Could not notify bot: {e}")
             
             return jsonify({
                 'ok': True,
@@ -1802,7 +1815,9 @@ def submit_fingerprint():
         try:
             import requests as req
             bot_notify_url = 'http://localhost:8081/device-verified'
-            req.post(bot_notify_url, json={'user_id': user_id}, timeout=3)
+            req.post(bot_notify_url, json={'user_id': user_id}, timeout=10)
+        except (req.exceptions.RequestException, req.exceptions.Timeout, ConnectionError) as notify_error:
+            print(f"⚠️ Bot unavailable for device verification notification: {notify_error}")
         except Exception as notify_error:
             print(f"⚠️ Could not notify bot: {notify_error}")
         

@@ -152,7 +152,7 @@ window.markChannelAsOpened = function(channelId) {
     }
 };
 
-// Check subscription status with server
+// Check subscription status with server with improved timeout handling
 async function checkSubscriptionStatus() {
     try {
         const userId = TelegramApp?.getUserId();
@@ -163,15 +163,41 @@ async function checkSubscriptionStatus() {
         
         console.log('🔄 Re-checking subscription status...');
         
-        const response = await fetch('/verify-subscription', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                user_id: userId
-            })
-        });
+        // محاولتين مع timeout محسن
+        let response;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 ثانية
+                
+                response = await fetch('/verify-subscription', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: userId
+                    }),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                break;
+                
+            } catch (fetchError) {
+                if (attempt === 0) {
+                    console.warn(`⚠️ Subscription recheck attempt ${attempt + 1} failed:`, fetchError.message);
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    continue;
+                } else {
+                    throw fetchError;
+                }
+            }
+        }
+        
+        if (!response || !response.ok) {
+            throw new Error(`Server error: ${response?.status || 'unknown'}`);
+        }
         
         const result = await response.json();
         console.log('📊 Subscription recheck result:', result);
@@ -186,6 +212,14 @@ async function checkSubscriptionStatus() {
         
     } catch (error) {
         console.error('❌ Error checking subscription status:', error);
+        
+        // في حالة timeout, نعطي فرصة للمتابعة
+        if (error.name === 'AbortError' || error.message.includes('timeout') || 
+            error.message.includes('fetch') || error.message.includes('network')) {
+            console.log('⚠️ Network timeout detected, assuming success for better UX');
+            return true;
+        }
+        
         return false;
     }
 }

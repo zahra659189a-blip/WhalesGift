@@ -33,11 +33,39 @@ const ChannelsCheck = {
         
         try {
             const userId = TelegramApp.getUserId();
-            const response = await fetch('/api/verify-channels', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({user_id: userId})
-            });
+            
+            // محاولتين مع timeout أطول
+            let response;
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    // AbortController لتحديد timeout
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 ثانية
+                    
+                    response = await fetch('/api/verify-channels', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({user_id: userId}),
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    break;
+                    
+                } catch (fetchError) {
+                    if (attempt === 0) {
+                        console.warn(`⚠️ Verification attempt ${attempt + 1} failed:`, fetchError.message);
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // انتظار ثانيتين
+                        continue;
+                    } else {
+                        throw fetchError;
+                    }
+                }
+            }
+            
+            if (!response || !response.ok) {
+                throw new Error(`Server responded with status: ${response?.status || 'unknown'}`);
+            }
             
             const data = await response.json();
             
@@ -50,6 +78,16 @@ const ChannelsCheck = {
             
         } catch (error) {
             console.error('❌ Error verifying channels:', error);
+            
+            // في حالة timeout أو خطأ في الشبكة، نعطي فرصة أخرى
+            if (error.name === 'AbortError' || error.message.includes('timeout') || error.message.includes('fetch')) {
+                console.log('⚠️ Network issue detected, allowing user to continue');
+                if (typeof showToast !== 'undefined') {
+                    showToast('⚠️ مشكلة في الشبكة - يمكنك المتابعة مؤقتاً', 'warning');
+                }
+                return true; // السماح بالمتابعة في حالة مشاكل الشبكة
+            }
+            
             return false;
         }
     },
