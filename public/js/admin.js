@@ -303,11 +303,11 @@ function renderPrizesList() {
     
     // 🎨 الألوان الزيتية بالترتيب (نفس العجلة)
     const oilColors = [
-        '#9370db',  // Purple (0.01)
-        '#00bfff',  // Blue (0.05)
-        '#ffa500',  // Orange (0.1)
-        '#32cd32',  // Green (0.5)
-        '#ff1493',  // Pink (1.0)
+        '#00bfff',  // Blue (0.05 TON)
+        '#ffa500',  // Orange (0.1 TON)  
+        '#9370db',  // Purple (0.15 TON)
+        '#32cd32',  // Green (0.5 TON)
+        '#ff1493',  // Pink (1.0 TON)
         '#808080'   // Gray (حظ أوفر)
     ];
     

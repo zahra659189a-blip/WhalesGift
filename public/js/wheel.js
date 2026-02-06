@@ -191,11 +191,11 @@ class WheelOfFortune {
         
         // 🎨 ألوان زيتية محسنة - بالترتيب للجوائز
         const oilColors = [
-            { start: '#9370db', end: '#6a4fb5' },  // Purple (0.01)
-            { start: '#00bfff', end: '#0080cc' },  // Blue (0.05)
-            { start: '#ffa500', end: '#cc7700' },  // Orange (0.1)
-            { start: '#32cd32', end: '#228b22' },  // Green (0.5)
-            { start: '#ff1493', end: '#cc0066' },  // Pink (1.0)
+            { start: '#00bfff', end: '#0080cc' },  // Blue (0.05 TON)
+            { start: '#ffa500', end: '#cc7700' },  // Orange (0.1 TON)  
+            { start: '#9370db', end: '#6a4fb5' },  // Purple (0.15 TON)
+            { start: '#32cd32', end: '#228b22' },  // Green (0.5 TON)
+            { start: '#ff1493', end: '#cc0066' },  // Pink (1.0 TON)
             { start: '#808080', end: '#404040' }   // Gray (حظ أوفر)
         ];
         

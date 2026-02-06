@@ -152,7 +152,7 @@ const MockAPI = {
         { prize_name: '0.05 TON', prize_amount: 0.05, spin_time: new Date(Date.now() - 7200000).toISOString() },
         { prize_name: 'حظ أوفر', prize_amount: 0, spin_time: new Date(Date.now() - 10800000).toISOString() },
         { prize_name: '0.2 TON', prize_amount: 0.2, spin_time: new Date(Date.now() - 14400000).toISOString() },
-        { prize_name: '0.01 TON', prize_amount: 0.01, spin_time: new Date(Date.now() - 18000000).toISOString() }
+        { prize_name: '0.05 TON', prize_amount: 0.05, spin_time: new Date(Date.now() - 18000000).toISOString() }
     ],
     
     referrals: [
