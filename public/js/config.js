@@ -22,7 +22,7 @@ const CONFIG = {
     // Default wheel configuration مع 20 مكان
     WHEEL_PRIZES: [],  // سيملأ من قاعدة البيانات أو default values
     
-    // Initialize default 20 slots
+    // Initialize default 20 EMPTY slots (no prizes until admin adds them)
     WHEEL_DEFAULT_SLOTS: (() => {
         const slots = [];
         const colors = [
@@ -32,16 +32,18 @@ const CONFIG = {
             '#A3E4D7', '#F9E79F', '#FADBD8', '#D5DBDB', '#808080'   // 16-20
         ];
         
+        // ❌ عجلة فاضية بالكامل - مفيش جوائز default
+        // الأدمن لازم يضيف الجوائز من صفحة الأدمن
         for (let i = 0; i < 20; i++) {
             slots.push({
                 position: i,
-                name: 'حظ أوفر',
+                name: '',  // فاضي
                 amount: 0,
-                probability: 5, // التوزيع الافتراضي
+                probability: 0,
                 color: colors[i],
                 id: null,
                 isEmpty: true,
-                isActive: true
+                isActive: false  // مش مفعل
             });
         }
         return slots;

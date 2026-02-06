@@ -1482,17 +1482,12 @@ window.continueAppInitialization = async function() {
         await new Promise(resolve => setTimeout(resolve, 200));
         
         try {
-            // التأكد من وجود الجوائز
-            if (!CONFIG.WHEEL_PRIZES || CONFIG.WHEEL_PRIZES.length === 0) {
-                showToast('⚠️ جوائز العجلة غير متوفرة، سيتم استخدام الجوائز الافتراضية', 'warning');
-                CONFIG.WHEEL_PRIZES = [
-                    { name: '0.05 TON', amount: 0.05, probability: 45 },
-                    { name: '0.1 TON', amount: 0.1, probability: 30 },
-                    { name: '0.15 TON', amount: 0.15, probability: 15 },
-                    { name: '0.5 TON', amount: 0.5, probability: 0 },
-                    { name: '1.0 TON', amount: 1.0, probability: 0 },
-                    { name: 'حظ أوفر', amount: 0, probability: 10 }
-                ];
+            // ✅ فحص الجوائز - لا جوائز default - فقط من الأدمن
+            const activeSlots = CONFIG.WHEEL_PRIZES.filter(slot => !slot.isEmpty && slot.isActive !== false);
+            
+            if (!CONFIG.WHEEL_PRIZES || CONFIG.WHEEL_PRIZES.length === 0 || activeSlots.length === 0) {
+                DebugError.add('❌ No prizes configured - Admin must add prizes first', 'error');
+                throw new Error('⚠️ لم يتم إضافة جوائز بعد - يرجى التواصل مع الإدارة');
             }
             
             // التحقق من وجود العجلة في DOM
@@ -1501,6 +1496,7 @@ window.continueAppInitialization = async function() {
                 throw new Error('عنصر العجلة غير موجود في الصفحة');
             }
             
+            DebugError.add(`🎯 Creating wheel with ${activeSlots.length} active prizes`, 'info');
             showToast('🎯 بدء إنشاء العجلة...', 'info');
             wheel = new WheelOfFortune('wheel-canvas', CONFIG.WHEEL_PRIZES);
             
