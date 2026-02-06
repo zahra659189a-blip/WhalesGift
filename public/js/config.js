@@ -338,43 +338,35 @@ const TelegramApp = {
         }
     },
     
-    // الحصول على معرف المستخدم
+    // الحصول على معرف المستخدم  
     getUserId() {
-        // 1. من Telegram WebApp (الخيار المفضل)
-        let userId = this.user?.id || null;
-        
-        if (userId) {
-            console.log('🆔 getUserId() from Telegram WebApp:', userId);
-            return userId;
-        }
-        
-        // 2. من URL parameters (fallback)
         try {
-            const urlParams = new URLSearchParams(window.location.search);
-            userId = urlParams.get('user_id');
+            // 1. من Telegram WebApp (الخيار المفضل)
+            let userId = this.user?.id || null;
+            
             if (userId) {
-                userId = parseInt(userId);
-                console.log('🆔 getUserId() from URL params:', userId);
+                DebugError.add(`getUserId() from Telegram WebApp: ${userId}`, 'info');
                 return userId;
             }
-        } catch (e) {
-            console.warn('Error parsing user_id from URL');
-        }
-        
-        // 3. من localStorage (cache)
-        try {
+            
+            // 2. من URL parameters (fallback)
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlUserId = urlParams.get('user_id');
+            if (urlUserId) {
+                userId = parseInt(urlUserId);
+                DebugError.add(`getUserId() from URL params: ${userId}`, 'info');
+                return userId;
+            }
+            
+            // 3. من localStorage (cache)
             const cachedUserId = localStorage.getItem('telegram_user_id');
             if (cachedUserId) {
                 userId = parseInt(cachedUserId);
-                console.log('🆔 getUserId() from localStorage:', userId);
+                DebugError.add(`getUserId() from localStorage: ${userId}`, 'info');
                 return userId;
             }
-        } catch (e) {
-            console.warn('Error reading from localStorage');
-        }
-        
-        // 4. من Telegram initData (alternative method)
-        try {
+            
+            // 4. من Telegram initData (alternative method)
             if (window.Telegram?.WebApp?.initData) {
                 const initData = window.Telegram.WebApp.initData;
                 const urlParams = new URLSearchParams(initData);
@@ -382,18 +374,20 @@ const TelegramApp = {
                 if (userString) {
                     const userObj = JSON.parse(decodeURIComponent(userString));
                     userId = userObj.id;
-                    console.log('🆔 getUserId() from initData:', userId);
+                    DebugError.add(`getUserId() from initData: ${userId}`, 'info');
                     // حفظ في localStorage للمرات القادمة
                     localStorage.setItem('telegram_user_id', userId.toString());
                     return userId;
                 }
             }
-        } catch (e) {
-            console.warn('Error parsing initData');
+            
+            DebugError.add('No user ID found from any source!', 'error');
+            return null;
+            
+        } catch (error) {
+            DebugError.add(`Error in getUserId(): ${error.message}`, 'error', error);
+            return null;
         }
-        
-        console.warn('❌ No user ID found from any source');
-        return null;
     },
     
     // التحقق من صحة التشغيل
@@ -403,18 +397,110 @@ const TelegramApp = {
     
     // الحصول على الاسم الكامل
     getFullName() {
-        if (!this.user) return 'Guest';
-        return `${this.user.first_name} ${this.user.last_name || ''}`.trim();
+        try {
+            if (!this.user) {
+                // محاولة الحصول من cache
+                const cachedUserData = localStorage.getItem('telegram_user_data');
+                if (cachedUserData) {
+                    const user = JSON.parse(cachedUserData);
+                    return `${user.first_name} ${user.last_name || ''}`.trim();
+                }
+                return 'جاري التحميل...';
+            }
+            
+            const fullName = `${this.user.first_name} ${this.user.last_name || ''}`.trim();
+            DebugError.add(`getFullName(): ${fullName}`, 'info');
+            return fullName;
+            
+        } catch (error) {
+            DebugError.add(`Error in getFullName(): ${error.message}`, 'error', error);
+            return 'مستخدم';
+        }
     },
     
     // الحصول على اسم المستخدم
     getUsername() {
-        return this.user?.username || `user${this.getUserId()}`;
+        try {
+            if (this.user?.username) {
+                DebugError.add(`getUsername(): @${this.user.username}`, 'info');
+                return this.user.username;
+            }
+            
+            // محاولة الحصول من cache
+            const cachedUserData = localStorage.getItem('telegram_user_data');
+            if (cachedUserData) {
+                const user = JSON.parse(cachedUserData);
+                if (user.username) {
+                    return user.username;
+                }
+            }
+            
+            // fallback للـ user ID
+            const userId = this.getUserId();
+            return userId ? `user${userId}` : 'username';
+            
+        } catch (error) {
+            DebugError.add(`Error in getUsername(): ${error.message}`, 'error', error);
+            return 'username';
+        }
     },
     
     // الحصول على صورة البروفايل
     getPhotoUrl() {
-        return this.user?.photo_url || 'https://via.placeholder.com/100';
+        try {
+            // 1. من Telegram user data
+            if (this.user?.photo_url) {
+                DebugError.add(`getPhotoUrl(): ${this.user.photo_url}`, 'info');
+                return this.user.photo_url;
+            }
+            
+            // 2. محاولة الحصول من cache
+            const cachedUserData = localStorage.getItem('telegram_user_data');
+            if (cachedUserData) {
+                const user = JSON.parse(cachedUserData);
+                if (user.photo_url) {
+                    return user.photo_url;
+                }
+            }
+            
+            // 3. استخدام Telegram API لجلب الصورة
+            if (this.webApp && this.user?.id) {
+                // محاولة جلب الصورة عبر API
+                this.fetchUserPhoto(this.user.id);
+            }
+            
+            // 4. صورة افتراضية
+            const defaultPhoto = '/img/user-placeholder.svg';
+            DebugError.add(`getPhotoUrl(): Using default photo`, 'warn');
+            return defaultPhoto;
+            
+        } catch (error) {
+            DebugError.add(`Error in getPhotoUrl(): ${error.message}`, 'error', error);
+            return '/img/user-placeholder.svg';
+        }
+    },
+    
+    // جلب صورة المستخدم من الـ API
+    async fetchUserPhoto(userId) {
+        try {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/user/${userId}/photo`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.photo_url) {
+                    DebugError.add(`Fetched user photo from API: ${data.photo_url}`, 'info');
+                    // حفظ في cache
+                    if (this.user) {
+                        this.user.photo_url = data.photo_url;
+                        localStorage.setItem('telegram_user_data', JSON.stringify(this.user));
+                    }
+                    // تحديث الواجهة
+                    updateUserDisplay({ photo_url: data.photo_url });
+                    return data.photo_url;
+                }
+            }
+        } catch (error) {
+            DebugError.add(`Error fetching user photo: ${error.message}`, 'error', error);
+        }
     },
     
     // إغلاق التطبيق

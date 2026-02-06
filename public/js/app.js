@@ -455,17 +455,28 @@ async function handleReferral() {
 
 async function loadUserData() {
     try {
+        DebugError.add('Starting user data loading...', 'info');
+        
         let userId = TelegramApp.getUserId();
         
         // إذا لم نجد user_id حقيقي، لا نستمر
         if (!userId) {
+            DebugError.add('No valid user ID found!', 'error');
             throw new Error('لا يمكن التحميل بدون معرف مستخدم صحيح من تليجرام');
-        };
+        }
+        
+        DebugError.add(`Loading data for user ID: ${userId}`, 'info');
+        
+        // الحصول على بيانات محسنة من Telegram
+        const enhancedUserData = getEnhancedUserData();
+        DebugError.add('Enhanced user data retrieved:', 'info', enhancedUserData);
         
         // تحديث بيانات المستخدم من Telegram أولاً
         try {
             const username = TelegramApp.getUsername() || `user_${userId}`;
             const fullName = TelegramApp.getFullName() || username;
+            
+            DebugError.add(`Updating profile: ${username} | ${fullName}`, 'info');
             
             await fetch(`${CONFIG.API_BASE_URL}/user/${userId}/update-profile`, {
                 method: 'POST',
@@ -478,50 +489,90 @@ async function loadUserData() {
                 })
             });
         } catch (profileError) {
-            // في حالة الخطأ، نستمر
+            DebugError.add(`Profile update error: ${profileError.message}`, 'warn', profileError);
         }
+        
+        DebugError.add('Fetching user data from API...', 'info');
         
         const response = await Promise.race([
             API.getUserData(userId),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('getUserData API timeout')), 8000)) // تقليل إلى 8 ثوان
+            new Promise((_, reject) => setTimeout(() => reject(new Error('getUserData API timeout')), 8000))
         ]);
+        
+        DebugError.add('API Response received:', 'info', response);
         
         if (response.success) {
             UserState.init(response.data);
+            
+            DebugError.add('User state initialized successfully', 'info', response.data);
+            
+            // تحديث الواجهة بالبيانات المحسنة
+            updateUserDisplay(enhancedUserData);
             
             updateUserProfile();
             
             updateUI();
             
         } else {
+            DebugError.add(`Failed to load user data: ${response.error}`, 'error', response);
             throw new Error('فشل تحميل بيانات المستخدم: ' + (response.error || 'Unknown error'));
         }
     } catch (error) {
-        // حدث خطأ في تحميل البيانات
+        DebugError.add(`Critical error in loadUserData: ${error.message}`, 'error', error);
+        handleApiError(error, 'loadUserData');
         // لا نرمي الخطأ لنسمح للتطبيق بالاستمرار
     }
 }
 
 function updateUserProfile() {
-    const avatar = document.getElementById('user-avatar');
-    const name = document.getElementById('user-name');
-    const username = document.getElementById('user-username');
-    
-    // التحقق من وجود البيانات الحقيقية من تليجرام
-    const userPhoto = TelegramApp.getPhotoUrl();
-    const fullName = TelegramApp.getFullName();
-    const telegramUsername = TelegramApp.getUsername();
-    
-    if (avatar && userPhoto) {
-        avatar.src = userPhoto;
-    }
-    
-    if (name && fullName) {
-        name.textContent = fullName;
-    }
-    
-    if (username && telegramUsername) {
-        username.textContent = `@${telegramUsername}`;
+    try {
+        DebugError.add('Updating user profile UI...', 'info');
+        
+        const avatar = document.getElementById('user-avatar');
+        const name = document.getElementById('user-name');
+        const username = document.getElementById('user-username');
+        
+        // الحصول على البيانات المحسنة
+        const enhancedUserData = getEnhancedUserData();
+        
+        // تحديث الصورة
+        if (avatar) {
+            const userPhoto = enhancedUserData.photo_url;
+            DebugError.add(`Setting avatar: ${userPhoto}`, 'info');
+            avatar.src = userPhoto;
+            avatar.onerror = function() {
+                DebugError.add('Avatar failed to load, using default', 'warn');
+                this.src = '/img/user-placeholder.svg';
+            };
+        }
+        
+        // تحديث الاسم الكامل
+        if (name) {
+            const fullName = enhancedUserData.first_name && enhancedUserData.first_name !== 'جاري التحميل...' 
+                ? `${enhancedUserData.first_name} ${enhancedUserData.last_name}`.trim()
+                : 'جاري التحميل...';
+            DebugError.add(`Setting full name: ${fullName}`, 'info');
+            name.textContent = fullName;
+        }
+        
+        // تحديث اسم المستخدم
+        if (username) {
+            const telegramUsername = enhancedUserData.username;
+            if (telegramUsername && telegramUsername !== '') {
+                DebugError.add(`Setting username: @${telegramUsername}`, 'info');
+                username.textContent = `@${telegramUsername}`;
+            } else {
+                const userId = enhancedUserData.id;
+                const fallbackUsername = userId ? `user${userId}` : 'username';
+                DebugError.add(`Setting fallback username: ${fallbackUsername}`, 'warn');
+                username.textContent = fallbackUsername;
+            }
+        }
+        
+        DebugError.add('User profile UI updated successfully', 'info');
+        
+    } catch (error) {
+        DebugError.add(`Error updating user profile UI: ${error.message}`, 'error', error);
     }
 }
 

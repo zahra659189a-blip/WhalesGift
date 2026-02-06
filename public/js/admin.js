@@ -277,20 +277,55 @@ function filterUsersByStatus(status) {
 
 async function loadPrizes() {
     try {
-        console.log('🎁 Loading prizes from API...');
-        const response = await fetch('/api/admin/prizes');
+        DebugError.add('Loading prizes from API...', 'info');
+        
+        // استخدام الـ API URL الصحيح
+        const apiUrl = `${CONFIG.API_BASE_URL}/admin/prizes`;
+        DebugError.add(`Fetching prizes from: ${apiUrl}`, 'info');
+        
+        const response = await fetch(apiUrl);
+        DebugError.add(`Prizes API Response Status: ${response.status}`, 'info');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        DebugError.add(`Prizes API Response:`, 'info', result);
         
         if (result.success && result.data) {
             adminData.prizes = result.data;
-            console.log(`✅ Loaded ${adminData.prizes.length} prizes`);
+            DebugError.add(`Successfully loaded ${adminData.prizes.length} prizes`, 'info', adminData.prizes);
+            showToast(`تم تحميل ${adminData.prizes.length} جائزة بنجاح`, 'success');
         } else {
-            console.error('❌ Failed to load prizes:', result.error);
+            DebugError.add(`Failed to load prizes: ${result.error || 'Unknown error'}`, 'error', result);
             showToast('فشل تحميل الجوائز', 'error');
+            // استخدام جوائز افتراضية
+            adminData.prizes = CONFIG.WHEEL_PRIZES.map((prize, index) => ({
+                id: index + 1,
+                name: prize.name,
+                value: prize.amount,
+                probability: prize.probability,
+                color: prize.color || `#${Math.floor(Math.random()*16777215).toString(16)}`
+            }));
+            DebugError.add('Using default prizes from CONFIG', 'warn', adminData.prizes);
         }
     } catch (error) {
-        console.error('❌ Error loading prizes:', error);
-        showToast('خطأ في تحميل الجوائز', 'error');
+        DebugError.add(`Error loading prizes: ${error.message}`, 'error', {
+            error: error.stack,
+            url: CONFIG.API_BASE_URL
+        });
+        handleApiError(error, 'admin/prizes');
+        
+        // استخدام جوائز افتراضية في حالة الخطأ
+        adminData.prizes = CONFIG.WHEEL_PRIZES.map((prize, index) => ({
+            id: index + 1,
+            name: prize.name,
+            value: prize.amount,
+            probability: prize.probability,
+            color: prize.color || `#${Math.floor(Math.random()*16777215).toString(16)}`
+        }));
+        DebugError.add('Fallback to default prizes', 'warn');
     }
     
     renderPrizesList();
