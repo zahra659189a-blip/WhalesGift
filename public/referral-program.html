@@ -293,7 +293,7 @@
                 
                 DebugError.add(`Updating profile for user ${userData.id}: ${fullName}`, 'info');
                 
-                const response = await API.request(`/api/user/${userData.id}/update-profile`, 'POST', {
+                const response = await API.request(`/user/${userData.id}/update-profile`, 'POST', {
                     username: username,
                     full_name: fullName
                 });
@@ -312,8 +312,8 @@
             // Load user data and referral stats from API
             DebugError.add(`Making API calls for user ${userData.id}...`, 'info');
             Promise.all([
-                API.request(`/api/user/${userData.id}`, 'GET'),
-                API.request(`/api/user/${userData.id}/referrals`, 'GET')
+                API.request(`/user/${userData.id}`, 'GET'),
+                API.request(`/user/${userData.id}/referrals`, 'GET')
             ])
             .then(([userDataResponse, referralsDataResponse]) => {
                 DebugError.add('Received API responses:', 'info', {

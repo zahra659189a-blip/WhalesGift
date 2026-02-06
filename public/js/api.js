@@ -15,8 +15,12 @@ const API = {
         
         try {
             DebugError.add('Attempting to wake up server...', 'info');
-            updateServerStatus('connecting', 'يقظة السيرفر...');
-            showLoadingWithMessage('🌐 جاري تشغيل السيرفر...');
+            if (typeof updateServerStatus === 'function') {
+                updateServerStatus('connecting', 'يقظة السيرفر...');
+            }
+            if (typeof showLoadingWithMessage === 'function') {
+                showLoadingWithMessage('🌐 جاري تشغيل السيرفر...');
+            }
             
             // محاولة ping بسيط
             const pingUrl = `${this.baseUrl}/ping`;
@@ -34,21 +38,29 @@ const API = {
             if (response.ok) {
                 this.isServerWake = true;
                 DebugError.add('Server is awake and responding', 'info');
-                updateServerStatus('online', 'السيرفر متصل');
+                if (typeof updateServerStatus === 'function') {
+                    updateServerStatus('online', 'السيرفر متصل');
+                }
                 return true;
             } else {
                 DebugError.add(`Server ping failed: ${response.status}`, 'warn');
-                updateServerStatus('error', 'السيرفر غير مستجيب');
+                if (typeof updateServerStatus === 'function') {
+                    updateServerStatus('error', 'السيرفر غير مستجيب');
+                }
                 return false;
             }
             
         } catch (error) {
             if (error.name === 'AbortError') {
                 DebugError.add('Server wake up timeout - server may be sleeping', 'warn');
-                updateServerStatus('offline', 'السيرفر نائم');
+                if (typeof updateServerStatus === 'function') {
+                    updateServerStatus('offline', 'السيرفر نائم');
+                }
             } else {
                 DebugError.add(`Server wake up error: ${error.message}`, 'error', error);
-                updateServerStatus('error', 'خطأ في الاتصال');
+                if (typeof updateServerStatus === 'function') {
+                    updateServerStatus('error', 'خطأ في الاتصال');
+                }
             }
             return false;
         }
@@ -89,7 +101,9 @@ const API = {
             try {
                 if (attempt > 0) {
                     DebugError.add(`Retry attempt ${attempt}/${retries} for ${endpoint}`, 'info');
-                    showLoadingWithMessage(`🔄 محاولة ${attempt}/${retries}...`);
+                    if (typeof showLoadingWithMessage === 'function') {
+                        showLoadingWithMessage(`🔄 محاولة ${attempt}/${retries}...`);
+                    }
                     // انتظار قصير بين المحاولات
                     await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
                 }
