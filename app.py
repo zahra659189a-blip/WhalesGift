@@ -58,6 +58,144 @@ def calculate_egp_amount(ton_amount):
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 ADMIN_IDS = [1797127532, 6603009212]
 
+# ═══════════════════════════════════════════════════════════════
+# 🔐 TELEGRAM AUTHENTICATION - Security Fix
+# ═══════════════════════════════════════════════════════════════
+
+def validate_telegram_init_data(init_data_str):
+    """
+    التحقق من صحة initData من Telegram WebApp
+    يمنع أي محاولة للتلاعب بـ user_id
+    """
+    try:
+        import hmac
+        import json
+        from urllib.parse import parse_qsl, unquote
+        
+        if not init_data_str or not BOT_TOKEN:
+            print("⚠️ Missing init_data or BOT_TOKEN")
+            return None
+            
+        # تحليل البيانات
+        parsed_data = dict(parse_qsl(init_data_str, keep_blank_values=True))
+        
+        if 'hash' not in parsed_data:
+            print("⚠️ No hash in init_data")
+            return None
+            
+        received_hash = parsed_data.pop('hash')
+        
+        # التحقق من auth_date (صلاحية 24 ساعة)
+        if 'auth_date' in parsed_data:
+            auth_date = int(parsed_data['auth_date'])
+            current_time = int(datetime.now().timestamp())
+            # التحقق من أن البيانات ليست قديمة (24 ساعة)
+            if current_time - auth_date > 86400:
+                print(f"⚠️ Expired auth_date: {current_time - auth_date} seconds old")
+                return None
+        
+        # إنشاء البيانات للتحقق
+        data_check_string = '\n'.join(
+            f"{k}={v}" for k, v in sorted(parsed_data.items())
+        )
+        
+        # حساب الـ secret key
+        secret_key = hmac.new(
+            b"WebAppData",
+            BOT_TOKEN.encode(),
+            hashlib.sha256
+        ).digest()
+        
+        # حساب الـ hash المتوقع
+        calculated_hash = hmac.new(
+            secret_key,
+            data_check_string.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        # مقارنة الـ hashes
+        if calculated_hash != received_hash:
+            print(f"⚠️ Hash mismatch!")
+            print(f"   Received: {received_hash}")
+            print(f"   Calculated: {calculated_hash}")
+            return None
+        
+        # استخراج بيانات المستخدم
+        if 'user' in parsed_data:
+            user_data = json.loads(unquote(parsed_data['user']))
+            print(f"✅ Valid Telegram auth for user {user_data.get('id')}")
+            return {
+                'user_id': user_data.get('id'),
+                'username': user_data.get('username', ''),
+                'first_name': user_data.get('first_name', ''),
+                'last_name': user_data.get('last_name', ''),
+                'is_premium': user_data.get('is_premium', False),
+                'language_code': user_data.get('language_code', 'en')
+            }
+        
+        return None
+        
+    except Exception as e:
+        print(f"❌ Error validating Telegram init_data: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def require_telegram_auth(f):
+    """
+    Decorator للتحقق من صحة المصادقة في كل request
+    """
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # استثناء للأدمن في وضع التطوير
+        user_id_param = request.args.get('user_id') or request.json.get('user_id') if request.is_json else None
+        if user_id_param and int(user_id_param) in ADMIN_IDS:
+            # للأدمن: السماح بالوصول المباشر
+            kwargs['authenticated_user_id'] = int(user_id_param)
+            return f(*args, **kwargs)
+        
+        # الحصول على init_data من الـ request
+        init_data = None
+        
+        # محاولة الحصول من headers
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        
+        # محاولة الحصول من JSON body
+        if not init_data and request.is_json:
+            init_data = request.json.get('init_data')
+        
+        # محاولة الحصول من query params
+        if not init_data:
+            init_data = request.args.get('init_data')
+        
+        if not init_data:
+            print("⚠️ No init_data provided")
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized',
+                'message': 'يجب تشغيل التطبيق من خلال Telegram Bot'
+            }), 401
+        
+        # التحقق من صحة البيانات
+        user_data = validate_telegram_init_data(init_data)
+        
+        if not user_data:
+            print("⚠️ Invalid init_data")
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized',
+                'message': 'بيانات مصادقة غير صحيحة'
+            }), 401
+        
+        # إضافة user_id المصادق عليه للـ kwargs
+        kwargs['authenticated_user_id'] = user_data['user_id']
+        
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
 def send_withdrawal_notification_to_admin(user_id, username, full_name, amount, withdrawal_type, wallet_address, phone_number, withdrawal_id, auto_process=False):
     """إرسال إشعار للأدمن في البوت عند طلب سحب"""
     try:
@@ -595,13 +733,21 @@ def index():
 def admin():
     """إعادة توجيه لصفحة الأدمن في Vercel"""
     from flask import redirect
-    # الحصول على user_id من query params
+    
+    # 🔐 التحقق من المصادقة عبر init_data
+    init_data = request.args.get('init_data')
+    
+    if init_data:
+        # التحقق من صحة البيانات
+        user_data = validate_telegram_init_data(init_data)
+        if user_data and user_data['user_id'] in ADMIN_IDS:
+            # المستخدم أدمن مصادق عليه ✅
+            return redirect(f'https://panda-giveawaays.vercel.app/admin?user_id={user_data["user_id"]}', code=302)
+    
+    # Fallback للطريقة القديمة (مؤقتاً للتوافقية)
+    # سيتم إزالتها لاحقاً بعد تحديث البوت
     user_id = request.args.get('user_id')
     
-    # قائمة الأدمن
-    ADMIN_IDS = [1797127532, 6603009212]
-    
-    # التحقق من أن الطلب من Telegram
     if not user_id:
         return jsonify({
             'error': 'غير مسموح! هدا الصفحة تعمل فقط من خلال Telegram Bot',
@@ -635,9 +781,17 @@ def fingerprint_page():
 # ═══════════════════════════════════════════════════════════════
 
 @app.route('/api/user/<int:user_id>', methods=['GET'])
-def get_user_data(user_id):
+@require_telegram_auth
+def get_user_data(user_id, authenticated_user_id=None):
     """الحصول على بيانات المستخدم"""
     try:
+        # التحقق من أن user_id يطابق الـ authenticated_user_id
+        if user_id != authenticated_user_id:
+            return jsonify({
+                'success': False, 
+                'error': 'Unauthorized access - User ID mismatch'
+            }), 403
+        
         user = get_user(user_id)
         
         # إذا المستخدم غير موجود، أنشئه
@@ -674,9 +828,17 @@ def get_user_data(user_id):
         }), 500
 
 @app.route('/api/user/<int:user_id>/update-profile', methods=['POST'])
-def update_user_profile(user_id):
+@require_telegram_auth
+def update_user_profile(user_id, authenticated_user_id=None):
     """تحديث username و full_name للمستخدم من Telegram"""
     try:
+        # التحقق من المصادقة
+        if user_id != authenticated_user_id:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access'
+            }), 403
+        
         data = request.get_json()
         username = data.get('username', '')
         full_name = data.get('full_name', 'User')
@@ -722,9 +884,17 @@ def update_user_profile(user_id):
         }), 500
 
 @app.route('/api/user/<int:user_id>/referrals', methods=['GET'])
-def get_user_referrals(user_id):
+@require_telegram_auth
+def get_user_referrals(user_id, authenticated_user_id=None):
     """الحصول على إحالات المستخدم"""
     try:
+        # التحقق من المصادقة
+        if user_id != authenticated_user_id:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access'
+            }), 403
+        
         referrals = get_user_referrals_db(user_id)
         return jsonify({
             'success': True,
@@ -735,9 +905,17 @@ def get_user_referrals(user_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/user/<int:user_id>/spins', methods=['GET'])
-def get_user_spins(user_id):
+@require_telegram_auth
+def get_user_spins(user_id, authenticated_user_id=None):
     """الحصول على تاريخ لفات المستخدم"""
     try:
+        # التحقق من المصادقة
+        if user_id != authenticated_user_id:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access'
+            }), 403
+        
         limit = request.args.get('limit', 50, type=int)
         spins = get_user_spins_db(user_id, limit)
         return jsonify({
@@ -749,13 +927,14 @@ def get_user_spins(user_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/spin', methods=['POST'])
-def perform_spin():
+@require_telegram_auth
+def perform_spin(authenticated_user_id=None):
     """تنفيذ لفة العجلة"""
     import random
     import hashlib
     try:
-        data = request.get_json()
-        user_id = data.get('user_id')
+        # استخدام user_id المصادق عليه
+        user_id = authenticated_user_id
         
         if not user_id:
             return jsonify({'success': False, 'error': 'User ID required'}), 400
@@ -938,9 +1117,17 @@ def get_tasks():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/user/<int:user_id>/completed-tasks', methods=['GET'])
-def get_user_completed_tasks(user_id):
+@require_telegram_auth
+def get_user_completed_tasks(user_id, authenticated_user_id=None):
     """الحصول على المهام المكتملة للمستخدم"""
     try:
+        # التحقق من المصادقة
+        if user_id != authenticated_user_id:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access'
+            }), 403
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -1092,9 +1279,17 @@ def verify_task_completion(task_id):
         return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
 
 @app.route('/api/user/<int:user_id>/withdrawals', methods=['GET'])
-def get_user_withdrawals(user_id):
+@require_telegram_auth
+def get_user_withdrawals(user_id, authenticated_user_id=None):
     """الحصول على طلبات السحب للمستخدم"""
     try:
+        # التحقق من المصادقة
+        if user_id != authenticated_user_id:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized access'
+            }), 403
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
@@ -1113,11 +1308,14 @@ def get_user_withdrawals(user_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/withdrawal/request', methods=['POST'])
-def request_withdrawal():
+@require_telegram_auth
+def request_withdrawal(authenticated_user_id=None):
     """طلب سحب جديد"""
     try:
+        # استخدام user_id المصادق عليه
+        user_id = authenticated_user_id
+        
         data = request.get_json()
-        user_id = data.get('user_id')
         amount = float(data.get('amount', 0))
         withdrawal_type = data.get('withdrawal_type') or data.get('type') or 'TON'
         wallet_address = data.get('wallet_address') or data.get('address', '')

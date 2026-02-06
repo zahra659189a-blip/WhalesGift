@@ -71,7 +71,24 @@ const API = {
     // ═══════════════════════════════════════════════════════════
     
     async request(endpoint, method = 'GET', data = null, retries = 2) {
-        const url = `${this.baseUrl}${endpoint}`;
+        // 🔐 الحصول على initData من Telegram للمصادقة
+        let initData = '';
+        try {
+            if (window.Telegram?.WebApp?.initData) {
+                initData = window.Telegram.WebApp.initData;
+            }
+        } catch (e) {
+            console.warn('Could not get Telegram initData:', e);
+        }
+        
+        // إضافة init_data للـ URL في حالة GET requests
+        let urlWithParams = `${this.baseUrl}${endpoint}`;
+        if (method === 'GET' && initData) {
+            const separator = endpoint.includes('?') ? '&' : '?';
+            urlWithParams += `${separator}init_data=${encodeURIComponent(initData)}`;
+        }
+        
+        const url = urlWithParams;
         DebugError.add(`API Request: ${method} ${url}`, 'info');
         
         // محاولة إيقاظ السيرفر أولاً إذا كان نائم
@@ -83,7 +100,8 @@ const API = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'X-Session-ID': UserState?.sessionId || 'no-session',
-            'X-User-ID': TelegramApp.getUserId()?.toString() || ''
+            'X-User-ID': TelegramApp.getUserId()?.toString() || '',
+            'X-Telegram-Init-Data': initData  // ✅ إرسال initData للتحقق
         };
         
         const options = {
@@ -93,6 +111,10 @@ const API = {
         };
         
         if (data && method !== 'GET') {
+            // ✅ إضافة init_data للـ body أيضاً
+            if (initData && typeof data === 'object') {
+                data.init_data = initData;
+            }
             options.body = JSON.stringify(data);
             DebugError.add(`API Request body:`, 'info', data);
         }
