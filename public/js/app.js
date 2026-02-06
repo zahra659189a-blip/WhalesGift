@@ -348,7 +348,15 @@ function savePendingReferral() {
  * تسجيل الإحالة بعد التحقق من القنوات
  */
 async function registerPendingReferral() {
+    // تجنب التسجيل المكرر
+    if (window.referralProcessing) {
+        console.log('⚠️ Referral already being processed, skipping...');
+        return;
+    }
+    
     try {
+        window.referralProcessing = true;
+        
         const pendingData = localStorage.getItem('pendingReferral');
         
         if (!pendingData) {
@@ -359,6 +367,10 @@ async function registerPendingReferral() {
         const referralData = JSON.parse(pendingData);
         console.log('📎 Registering pending referral after channel verification:', referralData);
         
+        // timeout قصير لتسجيل الإحالة
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 ثوان فقط
+        
         // تسجيل الإحالة
         const response = await fetch(`${CONFIG.API_BASE_URL}/referral/register`, {
             method: 'POST',
@@ -368,8 +380,11 @@ async function registerPendingReferral() {
             body: JSON.stringify({
                 referrer_id: referralData.referrer_id,
                 referred_id: referralData.referred_id
-            })
+            }),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         const result = await response.json();
         if (result.success) {
@@ -382,9 +397,16 @@ async function registerPendingReferral() {
             console.log('⚠️ Referral registration failed:', result.error);
             // نبقي البيانات للمحاولة مرة أخرى
         }
+        
     } catch (error) {
-        console.error('Error registering pending referral:', error);
+        if (error.name === 'AbortError') {
+            console.log('⚠️ Referral registration timeout - will retry later');
+        } else {
+            console.error('Error registering pending referral:', error);
+        }
         // نبقي البيانات للمحاولة مرة أخرى
+    } finally {
+        window.referralProcessing = false;
     }
 }
 
@@ -461,7 +483,7 @@ async function loadUserData() {
         
         const response = await Promise.race([
             API.getUserData(userId),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('getUserData API timeout')), 12000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('getUserData API timeout')), 8000)) // تقليل إلى 8 ثوان
         ]);
         
         if (response.success) {
@@ -553,7 +575,7 @@ async function loadInitialData() {
                     return null;
                 })
             ]),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('loadInitialData timeout')), 12000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('loadInitialData timeout')), 6000)) // تقليل إلى 6 ثوان
         ]);
         console.log('✅ Initial data loading completed (some may have failed, but continuing)');
     } catch (error) {
@@ -1196,15 +1218,38 @@ window.continueAppInitialization = async function() {
         showLoading(true);
         showLoadingWithMessage('✅ تم التحقق من القنوات! جاري المتابعة...');
 
-        // بعد التحقق من القنوات، نسجل الإحالة
-        await registerPendingReferral();
+        // بعد التحقق من القنوات، نسجل الإحالة (بدون انتظار وبحماية من التكرار)
+        if (!window.referralProcessed) { // حماية إضافية من التكرار
+            window.referralProcessed = true;
+            setTimeout(() => {
+                if (!window.referralProcessing) {
+                    registerPendingReferral().catch(err => {
+                        console.log('⚠️ Referral registration failed silently:', err.message);
+                        window.referralProcessed = false; // إعادة تعيين في حالة الفشل للمحاولة لاحقاً
+                    });
+                }
+            }, 200); // تأخير أطول قليلاً لتجنب التداخل
+        }
         
-        // تحميل بيانات المستخدم
+        // تحميل بيانات المستخدม بtimeout محسن
         showLoadingWithMessage('📊 جاري تحميل بياناتك...');
-        await Promise.race([
-            loadUserData(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('loadUserData timeout')), 15000))
-        ]);
+        
+        try {
+            await Promise.race([
+                loadUserData(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('loadUserData timeout')), 8000) // تقليل إلى 8 ثوان
+                )
+            ]);
+        } catch (loadError) {
+            console.warn('⚠️ Load user data timeout, using fallback');
+            // فالباك بسيط بدلاً من الفشل
+            const userId = TelegramApp.getUserId();
+            if (userId) {
+                const userIdEl = document.getElementById('user-id');
+                if (userIdEl) userIdEl.textContent = userId;
+            }
+        }
         showLoadingWithMessage('✅ تم تحميل بياناتك!');
         
         // تحميل جوائز العجلة من API
@@ -1273,12 +1318,17 @@ window.continueAppInitialization = async function() {
             }
         }
         
-        // تحميل البيانات الأولية
-        showLoadingWithMessage('� جاري تحميل البيانات...');
-        await Promise.race([
-            loadInitialData(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('loadInitialData timeout')), 8000))
-        ]);
+        // تحميل البيانات الأولية مع timeout مختصر
+        showLoadingWithMessage('📊 جاري تحميل البيانات...');
+        try {
+            await Promise.race([
+                loadInitialData(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('loadInitialData timeout')), 5000)) // 5 ثوان
+            ]);
+        } catch (dataError) {
+            console.warn('⚠️ Initial data loading timeout, continuing anyway:', dataError.message);
+            // نواصل بدون إيقاف التطبيق
+        }
         
         // التحقق من معاملات URL للتنقل
         const urlParams = new URLSearchParams(window.location.search);

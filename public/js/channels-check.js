@@ -174,10 +174,11 @@ const ChannelsCheck = {
                 showToast('<img src="/img/payment-success.svg" style="width: 16px; height: 16px; vertical-align: middle;"> تم التحقق من الاشتراك بنجاح!', 'success');
             }
             
+            // ⚠️ إزالة تسجيل الإحالة من هنا - سيتم في continueAppInitialization
             // تسجيل الإحالة المعلقة بعد التحقق من القنوات
-            if (typeof registerPendingReferral !== 'undefined') {
-                await registerPendingReferral();
-            }
+            // if (typeof registerPendingReferral !== 'undefined') {
+            //     await registerPendingReferral();
+            // }
             
             // بدلاً من reload، استدعي استكمال تهيئة التطبيق مباشرة
             console.log('✅ Channels verified, continuing app initialization...');

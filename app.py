@@ -1350,7 +1350,7 @@ def reject_withdrawal():
 
 @app.route('/api/referral/register', methods=['POST'])
 def register_referral():
-    """تسجيل إحالة جديدة"""
+    """تسجيل إحالة جديدة مع تحسينات أداء"""
     try:
         data = request.get_json()
         referrer_id = data.get('referrer_id')
@@ -1368,6 +1368,13 @@ def register_referral():
         now = datetime.now().isoformat()
         
         try:
+            # فحص سريع للإحالة المكررة أولاً
+            cursor.execute("SELECT id FROM referrals WHERE referrer_id = ? AND referred_id = ? LIMIT 1", 
+                          (referrer_id, referred_id))
+            if cursor.fetchone():
+                conn.close()
+                return jsonify({'success': True, 'message': 'Referral already exists'}) # نرجع success لتجنب المحاولات
+            
             # تسجيل الإحالة
             cursor.execute("""
                 INSERT INTO referrals (referrer_id, referred_id, is_valid, created_at, validated_at)
@@ -1395,6 +1402,7 @@ def register_referral():
             conn.commit()
             conn.close()
             
+            print(f"✅ Quick referral registered: {referrer_id} -> {referred_id}")
             return jsonify({
                 'success': True,
                 'message': 'Referral registered successfully'
@@ -1402,9 +1410,9 @@ def register_referral():
         except sqlite3.IntegrityError:
             conn.close()
             return jsonify({
-                'success': False,
-                'error': 'Referral already exists'
-            }), 400
+                'success': True,  # تغيير من False إلى True لتجنب المحاولات المكررة
+                'message': 'Referral already exists'
+            })
             
     except Exception as e:
         print(f"Error in register_referral: {e}")
