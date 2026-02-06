@@ -20,9 +20,93 @@ function showLoadingWithMessage(message) {
         const loadingText = loadingOverlay.querySelector('.loading-text');
         if (loadingText) {
             loadingText.textContent = message;
+        } else {
+            // إنشاء عنصر النص إذا لم يكن موجود
+            const textElement = document.createElement('p');
+            textElement.className = 'loading-text';
+            textElement.textContent = message;
+            loadingOverlay.appendChild(textElement);
         }
     }
-    console.log('📱 Status:', message);
+    DebugError.add(`Loading Status: ${message}`, 'info');
+}
+
+// إضافة مؤشر حالة السيرفر
+function addServerStatusIndicator() {
+    // تحقق من عدم وجود المؤشر بالفعل
+    if (document.getElementById('server-status-indicator')) return;
+    
+    const indicator = document.createElement('div');
+    indicator.id = 'server-status-indicator';
+    indicator.style.cssText = `
+        position: fixed;
+        top: 60px;
+        right: 10px;
+        background: rgba(40, 40, 40, 0.9);
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 15px;
+        font-size: 12px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        border: 1px solid #555;
+    `;
+    
+    indicator.innerHTML = `
+        <div id="server-status-dot" style="width: 8px; height: 8px; background: #ffa500; border-radius: 50%; animation: pulse 1.5s infinite;"></div>
+        <span id="server-status-text">جاري الاتصال...</span>
+    `;
+    
+    // إضافة CSS للـ animation
+    if (!document.getElementById('server-status-style')) {
+        const style = document.createElement('style');
+        style.id = 'server-status-style';
+        style.textContent = `
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.5; }
+                100% { opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(indicator);
+}
+
+// تحديث مؤشر حالة السيرفر
+function updateServerStatus(status, message) {
+    const indicator = document.getElementById('server-status-indicator');
+    const dot = document.getElementById('server-status-dot');
+    const text = document.getElementById('server-status-text');
+    
+    if (!indicator || !dot || !text) return;
+    
+    switch (status) {
+        case 'connecting':
+            dot.style.background = '#ffa500';
+            dot.style.animation = 'pulse 1.5s infinite';
+            text.textContent = message || 'جاري الاتصال...';
+            break;
+        case 'online':
+            dot.style.background = '#4CAF50';
+            dot.style.animation = 'none';
+            text.textContent = message || 'متصل';
+            break;
+        case 'offline':
+            dot.style.background = '#ff4444';
+            dot.style.animation = 'pulse 1.5s infinite';
+            text.textContent = message || 'غير متصل';
+            break;
+        case 'error':
+            dot.style.background = '#ff6b6b';
+            dot.style.animation = 'pulse 0.8s infinite';
+            text.textContent = message || 'خطأ في الاتصال';
+            break;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -30,6 +114,10 @@ function showLoadingWithMessage(message) {
 // ═══════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // إضافة مؤشر حالة السيرفر
+    addServerStatusIndicator();
+    updateServerStatus('connecting', 'جاري التهيئة...');
+    
     // إضافة timeout للتحميل لمنع التحميل اللا نهائي
     const LOADING_TIMEOUT = 60000; // 60 ثانية
     const timeoutId = setTimeout(() => {
@@ -506,6 +594,9 @@ async function loadUserData() {
             
             DebugError.add('User state initialized successfully', 'info', response.data);
             
+            // تأكيد الاتصال بالسيرفر
+            updateServerStatus('online', 'متصل بنجاح');
+            
             // تحديث الواجهة بالبيانات المحسنة
             updateUserDisplay(enhancedUserData);
             
@@ -520,6 +611,31 @@ async function loadUserData() {
     } catch (error) {
         DebugError.add(`Critical error in loadUserData: ${error.message}`, 'error', error);
         handleApiError(error, 'loadUserData');
+        
+        // إذا فشل تحميل البيانات من API، استخدم بيانات أساسية
+        DebugError.add('Using offline fallback for user data', 'warn');
+        
+        const offlineUserData = {
+            id: userId,
+            balance: 0,
+            available_spins: 0,
+            total_referrals: 0,
+            total_withdrawals: 0,
+            registration_date: new Date().toISOString(),
+            last_spin: null,
+            username: TelegramApp.getUsername() || `user_${userId}`,
+            full_name: TelegramApp.getFullName() || 'مستخدم'
+        };
+        
+        UserState.init(offlineUserData);
+        
+        // تحديث الواجهة بالبيانات المحسنة
+        updateUserDisplay(getEnhancedUserData());
+        updateUserProfile();
+        updateUI();
+        
+        // إظهار رسالة للمستخدم
+        showToast('⚠️ تم التحميل في وضع محدود - تحقق من الاتصال', 'warn', 5000);
         // لا نرمي الخطأ لنسمح للتطبيق بالاستمرار
     }
 }

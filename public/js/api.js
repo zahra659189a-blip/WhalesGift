@@ -4,41 +4,151 @@
 
 const API = {
     baseUrl: CONFIG.API_BASE_URL,
+    isServerWake: false,
     
     // ═══════════════════════════════════════════════════════════
-    // 🔧 CORE METHODS
+    // 🌐 SERVER WAKE UP & HEALTH CHECK
     // ═══════════════════════════════════════════════════════════
     
-    async request(endpoint, method = 'GET', data = null) {
+    async wakeUpServer() {
+        if (this.isServerWake) return true;
+        
+        try {
+            DebugError.add('Attempting to wake up server...', 'info');
+            updateServerStatus('connecting', 'يقظة السيرفر...');
+            showLoadingWithMessage('🌐 جاري تشغيل السيرفر...');
+            
+            // محاولة ping بسيط
+            const pingUrl = `${this.baseUrl}/ping`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 ثانية
+            
+            const response = await fetch(pingUrl, {
+                method: 'GET',
+                signal: controller.signal,
+                mode: 'cors'
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+                this.isServerWake = true;
+                DebugError.add('Server is awake and responding', 'info');
+                updateServerStatus('online', 'السيرفر متصل');
+                return true;
+            } else {
+                DebugError.add(`Server ping failed: ${response.status}`, 'warn');
+                updateServerStatus('error', 'السيرفر غير مستجيب');
+                return false;
+            }
+            
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                DebugError.add('Server wake up timeout - server may be sleeping', 'warn');
+                updateServerStatus('offline', 'السيرفر نائم');
+            } else {
+                DebugError.add(`Server wake up error: ${error.message}`, 'error', error);
+                updateServerStatus('error', 'خطأ في الاتصال');
+            }
+            return false;
+        }
+    },
+    
+    // ═══════════════════════════════════════════════════════════
+    // 🔧 ENHANCED REQUEST WITH RETRY
+    // ═══════════════════════════════════════════════════════════
+    
+    async request(endpoint, method = 'GET', data = null, retries = 2) {
         const url = `${this.baseUrl}${endpoint}`;
+        DebugError.add(`API Request: ${method} ${url}`, 'info');
+        
+        // محاولة إيقاظ السيرفر أولاً إذا كان نائم
+        if (!this.isServerWake && endpoint !== '/ping') {
+            await this.wakeUpServer();
+        }
+        
         const headers = {
             'Content-Type': 'application/json',
-            'X-Session-ID': UserState.sessionId,
+            'Accept': 'application/json',
+            'X-Session-ID': UserState?.sessionId || 'no-session',
             'X-User-ID': TelegramApp.getUserId()?.toString() || ''
         };
         
         const options = {
             method,
             headers,
-            credentials: 'include'
+            mode: 'cors'
         };
         
         if (data && method !== 'GET') {
             options.body = JSON.stringify(data);
+            DebugError.add(`API Request body:`, 'info', data);
         }
         
-        try {
-            const response = await fetch(url, options);
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'حدث خطأ في الاتصال');
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                if (attempt > 0) {
+                    DebugError.add(`Retry attempt ${attempt}/${retries} for ${endpoint}`, 'info');
+                    showLoadingWithMessage(`🔄 محاولة ${attempt}/${retries}...`);
+                    // انتظار قصير بين المحاولات
+                    await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+                }
+                
+                DebugError.add(`Sending request to: ${url}`, 'info');
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 ثانية
+                
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                DebugError.add(`API Response Status: ${response.status}`, 'info');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    DebugError.add(`API Error Response: ${errorText}`, 'error');
+                    
+                    // إذا كان server error (5xx)، نحاول مرة أخرى
+                    if (response.status >= 500 && attempt < retries) {
+                        DebugError.add(`Server error ${response.status}, retrying...`, 'warn');
+                        continue;
+                    }
+                    
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                DebugError.add(`API Success:`, 'info', result);
+                
+                // تأكيد أن السيرفر شغال
+                this.isServerWake = true;
+                
+                return result;
+                
+            } catch (error) {
+                DebugError.add(`API Attempt ${attempt + 1} failed: ${error.message}`, 'error', {
+                    url,
+                    method,
+                    attempt: attempt + 1,
+                    error: error.message
+                });
+                
+                // إذا كانت آخر محاولة، ارمي الخطأ
+                if (attempt >= retries) {
+                    // إضافة معلومات مفيدة للخطأ
+                    if (error.name === 'AbortError') {
+                        throw new Error('انتهت مهلة الاستجابة - السيرفر قد يكون بطيء');
+                    } else if (error.message.includes('fetch')) {
+                        throw new Error('فشل الاتصال بالسيرفر - تحقق من الإنترنت أو حالة السيرفر');
+                    } else {
+                        throw error;
+                    }
+                }
             }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('API Error:', error);
-            throw error;
         }
     },
     

@@ -879,6 +879,15 @@ def get_bot_status():
         print(f"Error in get_bot_status: {e}")
         return jsonify({'success': True, 'bot_enabled': True}), 200
 
+@app.route('/api/ping', methods=['GET'])
+def ping():
+    """Simple health check endpoint"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'Server is running',
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
 @app.route('/api/tasks', methods=['GET'])
 def get_tasks():
     """الحصول على المهام النشطة للمستخدمين"""
