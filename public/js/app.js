@@ -1241,16 +1241,20 @@ window.continueAppInitialization = async function() {
                 throw new Error('عنصر العجلة غير موجود في الصفحة');
             }
             
-            // التحقق من تحميل WheelOfFortune class
+            // التحقق النهائي من تحميل WheelOfFortune class
             if (typeof WheelOfFortune === 'undefined' && typeof window.WheelOfFortune === 'undefined') {
-                throw new Error('WheelOfFortune class غير متاح');
+                throw new Error('WheelOfFortune class غير متاح - فشل تحميل wheel.js');
             }
             
             const WheelClass = WheelOfFortune || window.WheelOfFortune;
+            if (!WheelClass) {
+                throw new Error('WheelOfFortune class لم يتم تعريفه بشكل صحيح');
+            }
+            
             wheel = new WheelClass('wheel-canvas', CONFIG.WHEEL_PRIZES);
             
             if (!wheel || !wheel.canvas) {
-                throw new Error('فشل في إنشاء العجلة');
+                throw new Error('فشل في إنشاء العجلة - قد تكون مشكلة في Canvas');
             }
         } catch (error) {
             // خطأ في تحميل عجلة الحظ
