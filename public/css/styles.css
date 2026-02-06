@@ -245,6 +245,8 @@ body {
 #wheel-canvas {
     display: block;
     margin: 0 auto;
+    width: 350px;
+    height: 350px;
     border-radius: var(--radius-full);
     /* 🎨 ظل محسن للعجلة */
     box-shadow: 

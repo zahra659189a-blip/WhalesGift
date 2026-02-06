@@ -1220,6 +1220,9 @@ window.continueAppInitialization = async function() {
         
         // تهيئة عجلة الحظ
         showLoadingWithMessage('🎰 جاري إعداد عجلة الحظ...');
+        // تأخير صغير لضمان أن DOM جاهز للعجلة
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
         try {
             // التأكد من وجود الجوائز
             if (!CONFIG.WHEEL_PRIZES || CONFIG.WHEEL_PRIZES.length === 0) {
@@ -1232,7 +1235,15 @@ window.continueAppInitialization = async function() {
                 ];
             }
             
+            // التحقق من وجود العجلة في DOM
+            const wheelCanvas = document.getElementById('wheel-canvas');
+            if (!wheelCanvas) {
+                throw new Error('عنصر العجلة غير موجود في الصفحة');
+            }
+            
+            showToast('🎯 بدء إنشاء العجلة...', 'info');
             wheel = new WheelOfFortune('wheel-canvas', CONFIG.WHEEL_PRIZES);
+            
             if (!wheel || !wheel.canvas) {
                 throw new Error('فشل في إنشاء العجلة');
             }

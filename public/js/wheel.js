@@ -45,18 +45,29 @@ class WheelOfFortune {
             win: null
         };
         
-        // رسم العجلة الأولية
-        try {
-            this.draw();
-        } catch (drawError) {
-            this.showError('❌ خطأ في رسم العجلة: ' + drawError.message);
-            return;
-        }
+        // رسم العجلة الأولية مع تأخير صغير لضمان DOM جاهز
+        setTimeout(() => {
+            try {
+                this.draw();
+                this.showSuccess('✅ تم رسم العجلة بنجاح');
+            } catch (drawError) {
+                this.showError('❌ خطأ في رسم العجلة: ' + drawError.message);
+                return;
+            }
+        }, 100);
         
         // إضافة مستمع للنقر
         if (this.spinButton) {
             this.spinButton.addEventListener('click', () => this.spin());
         }
+        
+        // إضافة مستمع لتغيير حجم النافذة لإعادة رسم العجلة
+        window.addEventListener('resize', () => {
+            setTimeout(() => {
+                this.setupHighDPI();
+                this.draw();
+            }, 100);
+        });
         
         this.showSuccess('✅ تم تحميل عجلة الحظ بنجاح');
     }
@@ -100,9 +111,21 @@ class WheelOfFortune {
             const dpr = window.devicePixelRatio || 1;
             const rect = this.canvas.getBoundingClientRect();
             
-            // حفظ الأبعاد الأصلية
-            const width = rect.width;
-            const height = rect.height;
+            // حفظ الأبعاد الأصلية - استخدم الأبعاد من HTML إذا لم تكن موجودة في CSS
+            let width = rect.width;
+            let height = rect.height;
+            
+            // إذا لم تكن الأبعاد محددة في CSS، استخدم أبعاد HTML
+            if (!width || width < 50) {
+                width = this.canvas.getAttribute('width') || 350;
+            }
+            if (!height || height < 50) {
+                height = this.canvas.getAttribute('height') || 350;
+            }
+            
+            // تحويل إلى رقم
+            width = Number(width);
+            height = Number(height);
             
             // التحقق من صحة الأبعاد
             if (!width || !height || width < 50 || height < 50) {
@@ -134,6 +157,8 @@ class WheelOfFortune {
                 this.showError('❌ لا يمكن حساب أبعاد العجلة');
                 return;
             }
+            
+            this.showSuccess('✅ تم إعداد أبعاد العجلة بنجاح: ' + width + 'x' + height + ', نصف القطر: ' + this.radius);
             
         } catch (error) {
             this.showError('❌ خطأ في إعداد العجلة: ' + error.message);
@@ -173,6 +198,11 @@ class WheelOfFortune {
         if (!prizes || prizes.length === 0) {
             this.showError('❌ لا توجد جوائز للعرض');
             return;
+        }
+        
+        // معلومات debug مرئية
+        if (typeof showToast !== 'undefined') {
+            showToast(`🎯 بدء رسم العجلة: ${prizes.length} جائزة، نصف القطر: ${radius}`, 'info');
         }
         
         // مسح الـ canvas
@@ -300,6 +330,11 @@ class WheelOfFortune {
             if (typeof showToast !== 'undefined') {
                 showToast('⚠️ خطأ في رسم حدود العجلة', 'warning');
             }
+        }
+        
+        // رسالة نجاح الرسم
+        if (typeof showToast !== 'undefined') {
+            showToast(`✅ تم رسم العجلة بنجاح مع ${prizes.length} جائزة`, 'success');
         }
     }
     
