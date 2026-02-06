@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 تحديث نسب جوائز العجلة في قاعدة البيانات
-Update wheel prize probabilities to: 25% each for 0.01, 0.05, 0.1, حظ أوفر
+Update wheel prize probabilities to match config.js: 0.05@94%, 0.1@5%, 0.15@1%, others@0%
 """
 import sqlite3
 import os
@@ -31,14 +31,14 @@ def update_prizes():
     for name, value, prob in current_prizes:
         print(f"  {name}: {prob}%")
     
-    # النسب الجديدة
+    # النسب الجديدة (مطابقة لـ config.js)
     new_probabilities = {
-        0.01: 25,    # 0.01 TON
-        0.05: 25,    # 0.05 TON
-        0.1: 25,     # 0.1 TON
+        0.05: 94,    # 0.05 TON
+        0.1: 5,      # 0.1 TON
+        0.15: 1,     # 0.15 TON
         0.5: 0,      # 0.5 TON
         1.0: 0,      # 1.0 TON
-        0: 25        # حظ أوفر (value = 0)
+        0.25: 0      # 0.25 TON
     }
     
     # تحديث النسب
@@ -46,19 +46,11 @@ def update_prizes():
     updated_count = 0
     
     for value, new_prob in new_probabilities.items():
-        if value == 0:
-            # حالة خاصة لـ "حظ أوفر"
-            cursor.execute("""
-                UPDATE wheel_prizes 
-                SET probability = ?, updated_at = ?
-                WHERE value = ? AND name LIKE '%حظ%' AND is_active = 1
-            """, (new_prob, now, value))
-        else:
-            cursor.execute("""
-                UPDATE wheel_prizes 
-                SET probability = ?, updated_at = ?
-                WHERE value = ? AND is_active = 1
-            """, (new_prob, now, value))
+        cursor.execute("""
+            UPDATE wheel_prizes 
+            SET probability = ?, updated_at = ?
+            WHERE value = ? AND is_active = 1
+        """, (new_prob, now, value))
         
         updated_count += cursor.rowcount
     

@@ -105,14 +105,14 @@ PAYMENT_PROOF_CHANNEL = os.getenv("PAYMENT_PROOF_CHANNEL")
 # 📢 قنوات الاشتراك الإجباري (سيتم تحميلها من قاعدة البيانات)
 MANDATORY_CHANNELS = []
 
-# 🎁 إعدادات عجلة الحظ (النسب والجوائز)
+# 🎁 إعدادات عجلة الحظ (النسب والجوائز - مطابقة لـ config.js)
 WHEEL_PRIZES = [
-    {"name": "0.01 TON", "amount": 0.01, "probability": 25},   # 25%
-    {"name": "0.05 TON", "amount": 0.05, "probability": 25},   # 25%
-    {"name": "0.1 TON", "amount": 0.1, "probability": 25},     # 25%
+    {"name": "0.05 TON", "amount": 0.05, "probability": 94},   # 94%
+    {"name": "0.1 TON", "amount": 0.1, "probability": 5},      # 5%
+    {"name": "0.15 TON", "amount": 0.15, "probability": 1},    # 1%
     {"name": "0.5 TON", "amount": 0.5, "probability": 0},      # 0%
     {"name": "1.0 TON", "amount": 1.0, "probability": 0},      # 0%
-    {"name": "حظ أوفر المرة القادمة", "amount": 0, "probability": 25}  # 25%
+    {"name": "0.25 TON", "amount": 0.25, "probability": 0}     # 0%
 ]
 
 # 💰 إعدادات الإحالات والمهام

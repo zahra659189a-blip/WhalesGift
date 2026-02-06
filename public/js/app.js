@@ -383,44 +383,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ═══════════════════════════════════════════════════════════════
 
 async function loadWheelPrizes() {
-    try {
-        DebugError.add('🎁 Starting to load wheel prizes from API...', 'info');
-        
-        const result = await API.request('/admin/prizes', 'GET');
-        
-        if (result.success && result.data && result.data.length > 0) {
-            DebugError.add(`✅ Got ${result.data.length} prizes from API`, 'info', result.data);
-            
-            // تحويل صيغة الجوائز من DB إلى صيغة العجلة
-            CONFIG.WHEEL_PRIZES = result.data.map(prize => ({
-                name: prize.name,
-                amount: parseFloat(prize.value) || 0,
-                probability: parseFloat(prize.probability) || 1,
-                color: prize.color || '#4CAF50',
-                id: prize.id
-            }));
-            
-            DebugError.add('✅ Wheel prizes loaded and converted successfully', 'info', CONFIG.WHEEL_PRIZES);
-            
-            // التحقق من تطابق الجوائز مع ما هو متوقع
-            if (CONFIG.WHEEL_PRIZES.length === 0) {
-                DebugError.add('❌ No prizes loaded - wheel will not work!', 'error');
-            } else {
-                const totalProbability = CONFIG.WHEEL_PRIZES.reduce((sum, p) => sum + p.probability, 0);
-                DebugError.add(`📊 Total wheel probability: ${totalProbability}%`, 'info');
-                
-                if (Math.abs(totalProbability - 100) > 0.1) {
-                    DebugError.add(`⚠️ Warning: Total probability is ${totalProbability}%, not 100%`, 'warn');
-                }
-            }
-        } else {
-            DebugError.add('❌ Failed to load prizes from API, using default', 'error', result);
-            // يتم استخدام الجوائز الافتراضية من config.js
-        }
-    } catch (error) {
-        DebugError.add(`💥 Error loading wheel prizes: ${error.message}`, 'error', error);
-        DebugError.add('⚠️ Using default prizes from config', 'warn');
+    // ❌ تعطيل تحميل الجوائز من API - استخدام الافتراضية فقط
+    DebugError.add('🎁 Using default wheel prizes from config.js', 'info', CONFIG.WHEEL_PRIZES);
+    DebugError.add(`✅ Wheel configured with ${CONFIG.WHEEL_PRIZES.length} prizes`, 'info');
+    
+    // التحقق من تطابق الجوائز
+    const totalProbability = CONFIG.WHEEL_PRIZES.reduce((sum, p) => sum + p.probability, 0);
+    DebugError.add(`📊 Total wheel probability: ${totalProbability}%`, 'info');
+    
+    if (Math.abs(totalProbability - 100) > 0.1 && totalProbability !== 0) {
+        DebugError.add(`⚠️ Warning: Total probability is ${totalProbability}%, not 100%`, 'warn');
     }
+    
+    return CONFIG.WHEEL_PRIZES;
 }
 
 // ═══════════════════════════════════════════════════════════════

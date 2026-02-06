@@ -11,14 +11,14 @@ const CONFIG = {
     // Admin IDs (استثناء من التحقق)
     ADMIN_IDS: [1797127532, 6603009212],
     
-    // Wheel Configuration
+    // Wheel Configuration - نفس النسب بالضبط من صفحة الأدمن
     WHEEL_PRIZES: [
-        { name: '0.05 TON', amount: 0.05, probability: 45 },
-        { name: '0.1 TON', amount: 0.1, probability: 30 },
-        { name: '0.15 TON', amount: 0.15, probability: 15 },
-        { name: '0.5 TON', amount: 0.5, probability: 0 },
-        { name: '1.0 TON', amount: 1.0, probability: 0 },
-        { name: 'حظ أوفر', amount: 0, probability: 10 }
+        { name: '0.05 TON', amount: 0.05, probability: 94, color: '#808080', emoji: '🎁', id: 1 },
+        { name: '0.1 TON', amount: 0.1, probability: 5, color: '#FFA500', emoji: '🎁', id: 2 },
+        { name: '0.15 TON', amount: 0.15, probability: 1, color: '#9370DB', emoji: '🎁', id: 3 },
+        { name: '0.5 TON', amount: 0.5, probability: 0, color: '#32CD32', emoji: '🏆', id: 4 },
+        { name: '1.0 TON', amount: 1.0, probability: 0, color: '#FF1493', emoji: '🎁', id: 5 },
+        { name: '0.25 TON', amount: 0.25, probability: 0, color: '#808080', emoji: '🎁', id: 6 }
     ],
     
     // Referral & Tasks (تذاكر بدلاً من عملات)

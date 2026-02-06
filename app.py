@@ -421,14 +421,14 @@ def init_database():
     count = cursor.fetchone()[0]
     if count == 0:
         now = datetime.now().isoformat()
-        # النسب الجديدة: 25% لكل من (0.01, 0.05, 0.1, حظ أوفر) و 0% للباقي
+        # الجوائز مطابقة لـ config.js: 0.05@94%, 0.1@5%, 0.15@1%, باقي 0%
         default_prizes = [
-            ('0.01 TON', 0.01, 25, '#9370db', '🪙', 0),
-            ('0.05 TON', 0.05, 25, '#00bfff', '💎', 1),
-            ('0.1 TON', 0.1, 25, '#ffa500', '💰', 2),
-            ('0.5 TON', 0.5, 0, '#32cd32', '🏆', 3),
-            ('1.0 TON', 1.0, 0, '#ff1493', '👑', 4),
-            ('حظ أوفر', 0, 25, '#808080', '😔', 5)
+            ('0.05 TON', 0.05, 94, '#4CAF50', '🎯', 0),
+            ('0.1 TON', 0.1, 5, '#2196F3', '💎', 1),
+            ('0.15 TON', 0.15, 1, '#FF9800', '⭐', 2),
+            ('0.5 TON', 0.5, 0, '#9C27B0', '🌟', 3),
+            ('1.0 TON', 1.0, 0, '#FFD700', '💰', 4),
+            ('0.25 TON', 0.25, 0, '#E91E63', '✨', 5)
         ]
         for name, value, prob, color, emoji, pos in default_prizes:
             cursor.execute("""
@@ -763,14 +763,14 @@ def perform_spin():
         if user['available_spins'] <= 0:
             return jsonify({'success': False, 'error': 'ليس لديك لفات متاحة'}), 400
         
-        # Define prizes with probabilities
+        # Define prizes with probabilities (مطابقة لـ config.js)
         prizes = [
-            {'name': '0.01 TON', 'amount': 0.01, 'probability': 25},
-            {'name': '0.05 TON', 'amount': 0.05, 'probability': 25},
-            {'name': '0.1 TON', 'amount': 0.1, 'probability': 25},
+            {'name': '0.05 TON', 'amount': 0.05, 'probability': 94},
+            {'name': '0.1 TON', 'amount': 0.1, 'probability': 5},
+            {'name': '0.15 TON', 'amount': 0.15, 'probability': 1},
             {'name': '0.5 TON', 'amount': 0.5, 'probability': 0},
             {'name': '1.0 TON', 'amount': 1.0, 'probability': 0},
-            {'name': 'حظ أوفر', 'amount': 0.0, 'probability': 25}
+            {'name': '0.25 TON', 'amount': 0.25, 'probability': 0}
         ]
         
         # Select prize based on probability
