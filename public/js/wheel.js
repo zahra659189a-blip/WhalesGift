@@ -1,6 +1,11 @@
 // ═══════════════════════════════════════════════════════════════
-// 🎰 WHEEL OF FORTUNE - عجلة الحظ
+// 🎰 WHEEL OF FORTUNE - عجلة الحظ - v2.1 UPDATED ✅
 // ═══════════════════════════════════════════════════════════════
+
+// Force refresh wheel configuration
+if (typeof CONFIG !== 'undefined' && CONFIG.WHEEL_PRIZES) {
+    console.log('✅ Wheel config loaded - v2.1:', CONFIG.WHEEL_PRIZES.length, 'prizes');
+}
 
 class WheelOfFortune {
     constructor(canvasId, prizes) {

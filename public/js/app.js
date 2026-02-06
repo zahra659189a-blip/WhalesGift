@@ -8,6 +8,12 @@ let wheel = null;
 // � VISUAL DEBUGGING & LOADING MESSAGES
 // ═══════════════════════════════════════════════════════════════
 
+// 🏁 Updated v2.1 - تم تحديث جوائز العجلة
+
+// Clear cache for updated configuration
+localStorage.removeItem('wheel-config-cache');
+sessionStorage.clear();
+
 function showLoadingWithMessage(message) {
     const loadingOverlay = document.getElementById('loading-overlay');
     if (loadingOverlay) {
