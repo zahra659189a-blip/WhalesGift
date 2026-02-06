@@ -2,6 +2,10 @@
   "version": 2,
   "name": "panda-giveaways-frontend",
   "public": true,
+  "framework": null,
+  "buildCommand": "echo 'No build needed - static files only'",
+  "outputDirectory": "public",
+  "installCommand": "echo 'No dependencies to install'",
   "rewrites": [
     {
       "source": "/admin(.*)",

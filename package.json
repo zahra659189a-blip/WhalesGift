@@ -3,6 +3,16 @@
   "version": "1.0.0",
   "description": "Static Frontend Only - No Build Required",
   "private": true,
-  "scripts": {},
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Static files - no build needed'",
+    "start": "echo 'Static files ready'",
+    "dev": "echo 'Development server not needed'"
+  },
+  "devDependencies": {},
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "keywords": ["static", "frontend", "telegram", "miniapp"]
 }

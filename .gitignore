@@ -1,13 +1,14 @@
 # ═══════════════════════════════════════════════════════════════
-# 🚫 GITIGNORE
+# 🚫 GITIGNORE - FRONTEND ONLY PROJECT
 # ═══════════════════════════════════════════════════════════════
 
 # Environment Variables
-.env
-.env.local
-.env.production
+.env*
+*.log
 
-# Python
+# BACKEND FILES - EXCLUDE FROM GIT
+# Python files
+*.py
 __pycache__/
 *.py[cod]
 *$py.class
@@ -28,6 +29,28 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Database files  
+*.db
+*.sqlite3
+*.sqlite
+*.sql
+
+# Backend dependencies
+requirements.txt
+runtime.txt  
+Pipfile*
+poetry.lock
+
+# Deployment files (Backend)
+Procfile
+render.yaml
+start_render.sh
+restart_bot.sh
+deploy-guide.sh
+start_all.py
+start.sh
+start.bat
 MANIFEST
 
 # Database
