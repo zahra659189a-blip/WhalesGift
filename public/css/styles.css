@@ -775,6 +775,15 @@ body {
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* منع العناصر الداخلية من اعتراض الضغطات */
+.withdraw-btn * {
+    pointer-events: none;
 }
 
 .withdraw-btn:hover:not(:disabled) {
@@ -782,9 +791,14 @@ body {
     transform: translateY(-2px);
 }
 
+.withdraw-btn:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
 .withdraw-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
+    pointer-events: none;
 }
 
 .withdrawal-history {

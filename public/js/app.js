@@ -799,12 +799,25 @@ function initUI() {
     });
     
     // Withdrawal Buttons
-    document.getElementById('withdraw-btn-ton')?.addEventListener('click', () => {
-        submitWithdrawal('ton');
-    });
-    document.getElementById('withdraw-btn-vodafone')?.addEventListener('click', () => {
-        submitWithdrawal('vodafone');
-    });
+    const withdrawBtnTon = document.getElementById('withdraw-btn-ton');
+    if (withdrawBtnTon) {
+        withdrawBtnTon.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('💰 TON Withdraw button clicked');
+            submitWithdrawal('ton');
+        }, true);
+    }
+    
+    const withdrawBtnVodafone = document.getElementById('withdraw-btn-vodafone');
+    if (withdrawBtnVodafone) {
+        withdrawBtnVodafone.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('💰 Vodafone Withdraw button clicked');
+            submitWithdrawal('vodafone');
+        }, true);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1145,7 +1158,29 @@ function setMaxAmount(method) {
     TelegramApp.hapticFeedback('light');
 }
 
+// منع الضغطات المتعددة على زر السحب
+let isWithdrawalProcessing = false;
+let lastWithdrawalAttempt = 0;
+const WITHDRAWAL_COOLDOWN = 1000; // 1 ثانية
+
 async function submitWithdrawal(method) {
+    console.log('🔄 submitWithdrawal called for:', method);
+    
+    // منع الضغطات السريعة المتتالية
+    const now = Date.now();
+    if (now - lastWithdrawalAttempt < WITHDRAWAL_COOLDOWN) {
+        console.log('⏳ Cooldown active, ignoring click');
+        return;
+    }
+    lastWithdrawalAttempt = now;
+    
+    // منع الضغطات المتعددة أثناء المعالجة
+    if (isWithdrawalProcessing) {
+        console.log('⏳ Already processing withdrawal');
+        showToast('⏳ جاري معالجة الطلب...', 'warning');
+        return;
+    }
+    
     const amountInput = document.getElementById(`${method}-amount-input`);
     const amount = parseFloat(amountInput.value);
     
@@ -1198,12 +1233,35 @@ async function submitWithdrawal(method) {
         withdrawalData.phone_number = phone;
     }
     
+    // تعطيل الزر
+    const withdrawBtn = document.getElementById(`withdraw-btn-${method}`);
+    if (withdrawBtn) {
+        withdrawBtn.disabled = true;
+        withdrawBtn.style.opacity = '0.6';
+    }
+    
     // Confirm
     TelegramApp.showConfirm(
         `هل تريد سحب ${amount} TON؟\n\nسيتم خصم المبلغ من رصيدك فوراً وسيتم المراجعة من قبل الإدارة.`,
         async (confirmed) => {
             if (confirmed) {
-                await processWithdrawal(withdrawalData);
+                isWithdrawalProcessing = true;
+                try {
+                    await processWithdrawal(withdrawalData);
+                } finally {
+                    isWithdrawalProcessing = false;
+                    // إعادة تفعيل الزر
+                    if (withdrawBtn) {
+                        withdrawBtn.disabled = false;
+                        withdrawBtn.style.opacity = '1';
+                    }
+                }
+            } else {
+                // إعادة تفعيل الزر عند الإلغاء
+                if (withdrawBtn) {
+                    withdrawBtn.disabled = false;
+                    withdrawBtn.style.opacity = '1';
+                }
             }
         }
     );
