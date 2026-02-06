@@ -1,22 +1,18 @@
 {
   "version": 2,
   "name": "panda-giveaways-frontend",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/",
-      "dest": "/index.html"
+      "source": "/",
+      "destination": "/index.html"
     },
     {
-      "src": "/admin",
-      "dest": "/admin.html"
+      "source": "/admin",
+      "destination": "/admin.html"
     },
     {
-      "src": "/referral-program",
-      "dest": "/referral-program.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/referral-program",
+      "destination": "/referral-program.html"
     }
   ],
   "cleanUrls": true,
