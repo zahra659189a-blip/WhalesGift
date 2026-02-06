@@ -109,9 +109,14 @@
         <section id="tab-prizes" class="admin-tab-content active">
             <div class="content-header">
                 <h2>🎁 إدارة جوائز عجلة الحظ</h2>
-                <button class="primary-btn" onclick="openAddPrizeModal()">
-                    <span>➕ إضافة جائزة جديدة</span>
-                </button>
+                <div class="header-actions">
+                    <button class="secondary-btn" onclick="resetPrizesToDefault()" style="margin-left: 10px;">
+                        <span>🔄 إعادة تعيين للافتراضي</span>
+                    </button>
+                    <button class="primary-btn" onclick="openAddPrizeModal()">
+                        <span>➕ إضافة جائزة جديدة</span>
+                    </button>
+                </div>
             </div>
 
             <div class="prizes-manager">

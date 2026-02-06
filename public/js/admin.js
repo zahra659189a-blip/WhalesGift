@@ -508,6 +508,42 @@ async function deletePrize(prizeId) {
     }
 }
 
+async function resetPrizesToDefault() {
+    if (!confirm('⚠️ هل أنت متأكد من إعادة تعيين جميع الجوائز إلى القيم الافتراضية؟\n\nسيتم حذف جميع الجوائز الحالية واستبدالها بـ:\n\n🎯 0.05 TON - 94%\n💎 0.1 TON - 5%\n⭐ 0.15 TON - 1%\n🌟 0.5 TON - 0%\n💰 1.0 TON - 0%\n✨ 0.25 TON - 0%')) {
+        return;
+    }
+    
+    try {
+        showLoading();
+        DebugError.add('🔄 Resetting prizes to default...', 'info');
+        
+        const response = await fetch(`${CONFIG.API_BASE_URL}/admin/reset-prizes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        hideLoading();
+        
+        if (result.success) {
+            DebugError.add(`✅ Prizes reset successfully: ${result.count} prizes added`, 'info');
+            showToast(`✅ ${result.message}`, 'success');
+            await loadPrizes();
+        } else {
+            DebugError.add('❌ Failed to reset prizes', 'error', result);
+            showToast('❌ فشل إعادة تعيين الجوائز: ' + result.error, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('Error resetting prizes:', error);
+        DebugError.add('❌ Error resetting prizes', 'error', error);
+        showToast('❌ خطأ في إعادة تعيين الجوائز', 'error');
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // 👥 USERS MANAGEMENT
 // ═══════════════════════════════════════════════════════════════

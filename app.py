@@ -2332,6 +2332,46 @@ def manage_prizes():
         print(f"Error in manage_prizes: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/admin/reset-prizes', methods=['POST'])
+def reset_prizes_to_default():
+    """إعادة تعيين الجوائز إلى القيم الافتراضية"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # حذف جميع الجوائز الحالية
+        cursor.execute("DELETE FROM wheel_prizes")
+        
+        # إضافة الجوائز الافتراضية (مطابقة لـ config.js)
+        now = datetime.now().isoformat()
+        default_prizes = [
+            ('0.05 TON', 0.05, 94, '#4CAF50', '🎯', 0),
+            ('0.1 TON', 0.1, 5, '#2196F3', '💎', 1),
+            ('0.15 TON', 0.15, 1, '#FF9800', '⭐', 2),
+            ('0.5 TON', 0.5, 0, '#9C27B0', '🌟', 3),
+            ('1.0 TON', 1.0, 0, '#FFD700', '💰', 4),
+            ('0.25 TON', 0.25, 0, '#E91E63', '✨', 5)
+        ]
+        
+        for name, value, prob, color, emoji, pos in default_prizes:
+            cursor.execute("""
+                INSERT INTO wheel_prizes (name, value, probability, color, emoji, position, is_active, added_at)
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+            """, (name, value, prob, color, emoji, pos, now))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'تم إعادة تعيين الجوائز إلى القيم الافتراضية بنجاح',
+            'count': len(default_prizes)
+        })
+        
+    except Exception as e:
+        print(f"Error in reset_prizes_to_default: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ═══════════════════════════════════════════════════════════════
 # 👤 ADD SPINS TO USER
 # ═══════════════════════════════════════════════════════════════
