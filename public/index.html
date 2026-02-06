@@ -339,13 +339,25 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/config.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/tasks.js"></script>
-    <script src="js/channels-check.js"></script>
-    <script src="js/channels.js"></script>
-    <script src="js/wheel.js" defer></script>
-    <script src="js/app.js" defer></script>
+    <script>
+        // تحقق من تحميل جميع الملفات
+        window.scriptsLoaded = {
+            config: false,
+            api: false,
+            tasks: false,
+            channelsCheck: false,
+            channels: false,
+            wheel: false,
+            app: false
+        };
+    </script>
+    <script src="js/config.js" onload="window.scriptsLoaded.config = true;"></script>
+    <script src="js/api.js" onload="window.scriptsLoaded.api = true;"></script>
+    <script src="js/tasks.js" onload="window.scriptsLoaded.tasks = true;"></script>
+    <script src="js/channels-check.js" onload="window.scriptsLoaded.channelsCheck = true;"></script>
+    <script src="js/channels.js" onload="window.scriptsLoaded.channels = true;"></script>
+    <script src="js/wheel.js" onload="window.scriptsLoaded.wheel = true;" defer></script>
+    <script src="js/app.js" onload="window.scriptsLoaded.app = true;" defer></script>
 </body>
 </html>
 

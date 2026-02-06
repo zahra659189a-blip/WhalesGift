@@ -4,6 +4,25 @@
 
 let wheel = null;
 
+// Backup wheel loader
+window.addEventListener('load', () => {
+    if (!wheel && (typeof WheelOfFortune !== 'undefined' || typeof window.WheelOfFortune !== 'undefined')) {
+        // محاولة إنشاء العجلة إذا لم تُنشأ بعد
+        setTimeout(() => {
+            if (!wheel) {
+                try {
+                    const WheelClass = WheelOfFortune || window.WheelOfFortune;
+                    if (WheelClass && CONFIG && CONFIG.WHEEL_PRIZES) {
+                        wheel = new WheelClass('wheel-canvas', CONFIG.WHEEL_PRIZES);
+                    }
+                } catch (e) {
+                    // Backup failed, no big deal
+                }
+            }
+        }, 1000);
+    }
+});
+
 // ═══════════════════════════════════════════════════════════════
 // � VISUAL DEBUGGING & LOADING MESSAGES
 // ═══════════════════════════════════════════════════════════════
@@ -24,6 +43,13 @@ function showLoadingWithMessage(message) {
 // ═══════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // التأكد من تحميل wheel.js class قبل بدء التطبيق
+    let wheelLoadWait = 0;
+    while (typeof WheelOfFortune === 'undefined' && typeof window.WheelOfFortune === 'undefined' && wheelLoadWait < 50) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        wheelLoadWait++;
+    }
+    
     // إضافة timeout للتحميل لمنع التحميل اللا نهائي
     const LOADING_TIMEOUT = 60000; // 60 ثانية
     const timeoutId = setTimeout(() => {
@@ -1217,10 +1243,20 @@ window.continueAppInitialization = async function() {
         
         // انتظار تحميل WheelOfFortune class إذا لم يكن متاح
         let retries = 0;
-        const maxRetries = 10;
+        const maxRetries = 20;
         while ((typeof WheelOfFortune === 'undefined' && typeof window.WheelOfFortune === 'undefined') && retries < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // انتظار تحميل wheel.js
+            if (window.scriptsLoaded && !window.scriptsLoaded.wheel) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+            } else {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
             retries++;
+        }
+        
+        // إذا لم يتم تحميل العجلة بعد كل المحاولات
+        if (retries >= maxRetries && typeof WheelOfFortune === 'undefined' && typeof window.WheelOfFortune === 'undefined') {
+            throw new Error('فشل في تحميل WheelOfFortune class - تأكد من تحميل wheel.js صحيحاً');
         }
         
         try {
@@ -1243,7 +1279,9 @@ window.continueAppInitialization = async function() {
             
             // التحقق النهائي من تحميل WheelOfFortune class
             if (typeof WheelOfFortune === 'undefined' && typeof window.WheelOfFortune === 'undefined') {
-                throw new Error('WheelOfFortune class غير متاح - فشل تحميل wheel.js');
+                // يطلع تفاصيل أكتر عن المشكلة
+                const scriptsStatus = window.scriptsLoaded ? JSON.stringify(window.scriptsLoaded) : 'scripts tracking not available';
+                throw new Error(`WheelOfFortune class غير متاح - فشل تحميل wheel.js. Scripts status: ${scriptsStatus}`);
             }
             
             const WheelClass = WheelOfFortune || window.WheelOfFortune;

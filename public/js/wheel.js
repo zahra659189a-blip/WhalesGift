@@ -2,6 +2,11 @@
 // 🎰 WHEEL OF FORTUNE - عجلة الحظ
 // ═══════════════════════════════════════════════════════════════
 
+// Debugging: إشعار التحميل
+if (typeof console !== 'undefined') {
+    console.log('🎰 Wheel.js is loading...');
+}
+
 // Global variable declaration
 window.WheelOfFortune = null;
 
@@ -661,5 +666,7 @@ window.loadSpinHistory = loadSpinHistory;
 // 🎰 Wheel of Fortune Loaded Successfully
 // إشعار لـ console بأن الملف تم التحميل
 if (typeof console !== 'undefined') {
-    // Wheel loaded
+    console.log('✅ WheelOfFortune class loaded successfully!');
+    console.log('🔍 WheelOfFortune available?', typeof WheelOfFortune !== 'undefined');
+    console.log('🔍 window.WheelOfFortune available?', typeof window.WheelOfFortune !== 'undefined');
 }
