@@ -76,9 +76,20 @@ const API = {
         try {
             if (window.Telegram?.WebApp?.initData) {
                 initData = window.Telegram.WebApp.initData;
+                console.log('✅ initData found:', initData ? initData.substring(0, 50) + '...' : 'EMPTY');
+            } else {
+                console.error('❌ Telegram.WebApp.initData is not available!');
             }
         } catch (e) {
             console.warn('Could not get Telegram initData:', e);
+        }
+        
+        // 🚨 تحذير إذا كان initData فاضي
+        if (!initData) {
+            console.error('❌ CRITICAL: No initData available for authentication!');
+            if (typeof showToast !== 'undefined') {
+                showToast('❌ يرجى إعادة فتح التطبيق من البوت', 'error');
+            }
         }
         
         // إضافة init_data للـ URL في حالة GET requests
@@ -147,6 +158,15 @@ const API = {
                 if (!response.ok) {
                     const errorText = await response.text();
                     DebugError.add(`API Error Response: ${errorText}`, 'error');
+                    
+                    // 🚨 معالجة خاصة لأخطاء 401 Unauthorized
+                    if (response.status === 401) {
+                        console.error('❌ 401 Unauthorized - initData غير صالح أو منتهي');
+                        if (typeof showToast !== 'undefined') {
+                            showToast('⚠️ انتهت صلاحية الجلسة - أعد فتح التطبيق من البوت', 'error');
+                        }
+                        throw new Error('Unauthorized: Please reopen app from Telegram bot');
+                    }
                     
                     // إذا كان server error (5xx)، نحاول مرة أخرى
                     if (response.status >= 500 && attempt < retries) {

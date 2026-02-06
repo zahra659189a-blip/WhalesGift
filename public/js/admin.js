@@ -839,26 +839,23 @@ async function rejectWithdrawal(id) {
 async function loadTasks() {
     console.log('📥 Loading tasks from API...');
     try {
-        const API_BASE_URL = window.CONFIG?.API_BASE_URL || '/api';
-        const response = await fetch(`${API_BASE_URL}/admin/tasks`);
+        // ✅ استخدام API.request للتأكد من إرسال initData
+        const result = await API.request('/admin/tasks', 'GET');
+        console.log('✅ Tasks loaded:', result);
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('✅ Tasks loaded:', data);
-        
-        if (data.success && data.tasks) {
-            adminData.tasks = data.tasks;
+        if (result.success && result.tasks) {
+            adminData.tasks = result.tasks;
             renderAdminTasks();
+            showToast('✅ تم تحميل المهام', 'success');
         } else {
-            console.error('❌ Failed to load tasks:', data.message);
+            console.error('❌ Failed to load tasks:', result.message);
             showToast('فشل تحميل المهام', 'error');
+            adminData.tasks = [];
+            renderAdminTasks();
         }
     } catch (error) {
         console.error('❌ Error loading tasks:', error);
-        showToast('خطأ في تحميل المهام', 'error');
+        showToast(`خطأ في تحميل المهام: ${error.message}`, 'error');
         // استخدام بيانات تجريبية في حالة الخطأ
         adminData.tasks = [];
         renderAdminTasks();
@@ -1104,26 +1101,23 @@ async function deleteTask(taskId) {
 async function loadChannels() {
     console.log('📥 Loading channels from API...');
     try {
-        const API_BASE_URL = window.CONFIG?.API_BASE_URL || '/api';
-        const response = await fetch(`${API_BASE_URL}/admin/channels`);
+        // ✅ استخدام API.request للتأكد من إرسال initData
+        const result = await API.request('/admin/channels', 'GET');
+        console.log('✅ Channels loaded:', result);
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('✅ Channels loaded:', data);
-        
-        if (data.success && data.channels) {
-            adminData.channels = data.channels;
+        if (result.success && result.channels) {
+            adminData.channels = result.channels;
             renderAdminChannels();
+            showToast('✅ تم تحميل القنوات', 'success');
         } else {
-            console.error('❌ Failed to load channels:', data.message);
+            console.error('❌ Failed to load channels:', result.message);
             showToast('فشل تحميل القنوات', 'error');
+            adminData.channels = [];
+            renderAdminChannels();
         }
     } catch (error) {
         console.error('❌ Error loading channels:', error);
-        showToast('خطأ في تحميل القنوات', 'error');
+        showToast(`خطأ في تحميل القنوات: ${error.message}`, 'error');
         adminData.channels = [];
         renderAdminChannels();
     }
