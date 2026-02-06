@@ -1241,11 +1241,13 @@ window.continueAppInitialization = async function() {
                 throw new Error('عنصر العجلة غير موجود في الصفحة');
             }
             
+            showToast('🎯 بدء إنشاء العجلة...', 'info');
             wheel = new WheelOfFortune('wheel-canvas', CONFIG.WHEEL_PRIZES);
             
             if (!wheel || !wheel.canvas) {
                 throw new Error('فشل في إنشاء العجلة');
             }
+            showToast('✅ تم تحميل عجلة الحظ بنجاح', 'success');
         } catch (error) {
             showToast('❌ خطأ في تحميل عجلة الحظ: ' + error.message, 'error');
             
