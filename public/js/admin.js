@@ -1030,7 +1030,7 @@ async function deleteTask(taskId) {
         const result = await API.request(`/admin/tasks?task_id=${taskId}`, 'DELETE');
         hideLoading();
         
-        if (data.success) {
+        if (result.success) {
             showToast('✅ تم حذف المهمة بنجاح', 'success');
             loadTasks(); // إعادة تحميل القائمة
         } else {
@@ -1214,32 +1214,6 @@ async function createChannel() {
         hideLoading();
         console.error('❌ Error creating channel:', error);
         showToast('❌ خطأ في الاتصال بالسيرفر', 'error');
-    }
-}
-
-/**
- * حذف قناة
- */
-async function deleteChannel(channelId) {
-    if (!confirm('هل أنت متأكد من حذف هذه القناة؟')) {
-        return;
-    }
-    
-    try {
-        showLoading();
-        const result = await API.request(`/admin/channels?channel_id=${encodeURIComponent(channelId)}`, 'DELETE');
-        hideLoading();
-        
-        if (data.success) {
-            showToast('✅ تم حذف القناة بنجاح', 'success');
-            loadChannels(); // إعادة تحميل القائمة
-        } else {
-            showToast('❌ فشل حذف القناة', 'error');
-        }
-    } catch (error) {
-        hideLoading();
-        console.error('❌ Error deleting channel:', error);
-        showToast('❌ خطأ في الاتصال', 'error');
     }
 }
 
