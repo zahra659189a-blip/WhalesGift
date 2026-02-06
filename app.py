@@ -89,9 +89,9 @@ def validate_telegram_init_data(init_data_str):
         if 'auth_date' in parsed_data:
             auth_date = int(parsed_data['auth_date'])
             current_time = int(datetime.now().timestamp())
-            # التحقق من أن البيانات ليست قديمة (24 ساعة)
-            if current_time - auth_date > 86400:
-                print(f"⚠️ Expired auth_date: {current_time - auth_date} seconds old")
+            # التحقق من أن البيانات ليست قديمة (48 ساعة - مرونة أكثر)
+            if current_time - auth_date > 172800:
+                print(f"⚠️ Expired auth_date: {(current_time - auth_date) / 3600:.1f} hours old")
                 return None
         
         # إنشاء البيانات للتحقق
@@ -115,9 +115,7 @@ def validate_telegram_init_data(init_data_str):
         
         # مقارنة الـ hashes
         if calculated_hash != received_hash:
-            print(f"⚠️ Hash mismatch!")
-            print(f"   Received: {received_hash}")
-            print(f"   Calculated: {calculated_hash}")
+            print(f"⚠️ Hash mismatch! Auth failed.")
             return None
         
         # استخراج بيانات المستخدم
@@ -144,34 +142,49 @@ def validate_telegram_init_data(init_data_str):
 def require_telegram_auth(f):
     """
     Decorator للتحقق من صحة المصادقة في كل request
+    يسمح للأدمن بالوصول بسهولة للتطوير
     """
     from functools import wraps
     
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # استثناء للأدمن في وضع التطوير
-        user_id_param = request.args.get('user_id') or request.json.get('user_id') if request.is_json else None
-        if user_id_param and int(user_id_param) in ADMIN_IDS:
-            # للأدمن: السماح بالوصول المباشر
-            kwargs['authenticated_user_id'] = int(user_id_param)
-            return f(*args, **kwargs)
+        # 🔓 استثناء للأدمن: السماح بالوصول المباشر
+        try:
+            # محاولة الحصول على user_id من أي مصدر
+            user_id_param = None
+            
+            # من URL path (مثل /api/user/123)
+            if 'user_id' in kwargs:
+                user_id_param = kwargs['user_id']
+            # من query parameters
+            elif request.args.get('user_id'):
+                user_id_param = int(request.args.get('user_id'))
+            # من JSON body
+            elif request.is_json and request.json.get('user_id'):
+                user_id_param = int(request.json.get('user_id'))
+            
+            # إذا كان أدمن، السماح بدون تحقق
+            if user_id_param and int(user_id_param) in ADMIN_IDS:
+                kwargs['authenticated_user_id'] = int(user_id_param)
+                return f(*args, **kwargs)
+        except:
+            pass
         
-        # الحصول على init_data من الـ request
+        # 🔐 للمستخدمين العاديين: التحقق من init_data
         init_data = None
         
-        # محاولة الحصول من headers
+        # محاولة الحصول من headers (الأفضل)
         init_data = request.headers.get('X-Telegram-Init-Data')
-        
-        # محاولة الحصول من JSON body
-        if not init_data and request.is_json:
-            init_data = request.json.get('init_data')
         
         # محاولة الحصول من query params
         if not init_data:
             init_data = request.args.get('init_data')
         
+        # محاولة الحصول من JSON body
+        if not init_data and request.is_json:
+            init_data = request.json.get('init_data')
+        
         if not init_data:
-            print("⚠️ No init_data provided")
             return jsonify({
                 'success': False,
                 'error': 'Unauthorized',
@@ -182,14 +195,13 @@ def require_telegram_auth(f):
         user_data = validate_telegram_init_data(init_data)
         
         if not user_data:
-            print("⚠️ Invalid init_data")
             return jsonify({
                 'success': False,
                 'error': 'Unauthorized',
                 'message': 'بيانات مصادقة غير صحيحة'
             }), 401
         
-        # إضافة user_id المصادق عليه للـ kwargs
+        # إضافة user_id المصادق عليه
         kwargs['authenticated_user_id'] = user_data['user_id']
         
         return f(*args, **kwargs)
@@ -289,7 +301,13 @@ CORS(app,
                 'http://localhost:5000'
             ],
             "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Accept", "Authorization"],
+            "allow_headers": [
+                "Content-Type", 
+                "Accept", 
+                "Authorization",
+                "X-Telegram-Init-Data",
+                "X-User-Id"
+            ],
             "supports_credentials": False
         }
     }

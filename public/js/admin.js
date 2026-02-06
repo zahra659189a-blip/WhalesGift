@@ -171,8 +171,7 @@ function formatNumber(num) {
 
 async function loadAdvancedStats() {
     try {
-        const response = await fetch('/api/admin/advanced-stats');
-        const result = await response.json();
+        const result = await API.request('/admin/advanced-stats', 'GET');
         
         if (result.success && result.data) {
             const stats = result.data;
@@ -415,18 +414,12 @@ async function addPrize() {
     }
     
     try {
-        const response = await fetch('/api/admin/prizes', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                name,
-                value,
-                probability,
-                position: adminData.prizes.length
-            })
+        const result = await API.request('/admin/prizes', 'POST', {
+            name,
+            value,
+            probability,
+            position: adminData.prizes.length
         });
-        
-        const result = await response.json();
         
         if (result.success) {
             await loadPrizes();
@@ -465,13 +458,7 @@ async function updatePrize() {
     };
     
     try {
-        const response = await fetch('/api/admin/prizes', {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(updatedData)
-        });
-        
-        const result = await response.json();
+        const result = await API.request('/admin/prizes', 'PUT', updatedData);
         
         if (result.success) {
             await loadPrizes();
@@ -490,11 +477,7 @@ async function deletePrize(prizeId) {
     if (!confirm('هل أنت متأكد من حذف هذه الجائزة؟')) return;
     
     try {
-        const response = await fetch(`/api/admin/prizes?id=${prizeId}`, {
-            method: 'DELETE'
-        });
-        
-        const result = await response.json();
+        const result = await API.request(`/admin/prizes?id=${prizeId}`, 'DELETE');
         
         if (result.success) {
             await loadPrizes();
