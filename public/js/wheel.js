@@ -49,7 +49,6 @@ class WheelOfFortune {
         setTimeout(() => {
             try {
                 this.draw();
-                this.showSuccess('✅ تم رسم العجلة بنجاح');
             } catch (drawError) {
                 this.showError('❌ خطأ في رسم العجلة: ' + drawError.message);
                 return;
@@ -60,14 +59,6 @@ class WheelOfFortune {
         if (this.spinButton) {
             this.spinButton.addEventListener('click', () => this.spin());
         }
-        
-        // إضافة مستمع لتغيير حجم النافذة لإعادة رسم العجلة
-        window.addEventListener('resize', () => {
-            setTimeout(() => {
-                this.setupHighDPI();
-                this.draw();
-            }, 100);
-        });
         
         this.showSuccess('✅ تم تحميل عجلة الحظ بنجاح');
     }
@@ -158,7 +149,7 @@ class WheelOfFortune {
                 return;
             }
             
-            this.showSuccess('✅ تم إعداد أبعاد العجلة بنجاح: ' + width + 'x' + height + ', نصف القطر: ' + this.radius);
+            this.showSuccess('✅ تم إعداد أبعاد العجلة بنجاح');
             
         } catch (error) {
             this.showError('❌ خطأ في إعداد العجلة: ' + error.message);
@@ -189,7 +180,7 @@ class WheelOfFortune {
     draw() {
         const { ctx, centerX, centerY, radius, prizes, rotation } = this;
         
-        // التحقق من صحة البيانات قبل الرسم
+        // معالجة البيانات قبل الرسم
         if (!ctx || !centerX || !centerY || !radius || radius <= 0) {
             this.showError('❌ بيانات العجلة غير صالحة للرسم');
             return;
@@ -198,11 +189,6 @@ class WheelOfFortune {
         if (!prizes || prizes.length === 0) {
             this.showError('❌ لا توجد جوائز للعرض');
             return;
-        }
-        
-        // معلومات debug مرئية
-        if (typeof showToast !== 'undefined') {
-            showToast(`🎯 بدء رسم العجلة: ${prizes.length} جائزة، نصف القطر: ${radius}`, 'info');
         }
         
         // مسح الـ canvas
@@ -278,9 +264,6 @@ class WheelOfFortune {
                 
             } catch (segmentError) {
                 // تسجيل الخطأ بصمت ومتابعة رسم باقي القطاعات
-                if (typeof showToast !== 'undefined') {
-                    showToast('⚠️ خطأ في رسم جزء من العجلة', 'warning');
-                }
             }
         });
         
@@ -327,14 +310,6 @@ class WheelOfFortune {
             ctx.stroke();
         } catch (borderError) {
             // في حالة خطأ الحدود، لا نفعل شيء (العجلة ستكون بدون حدود فقط)
-            if (typeof showToast !== 'undefined') {
-                showToast('⚠️ خطأ في رسم حدود العجلة', 'warning');
-            }
-        }
-        
-        // رسالة نجاح الرسم
-        if (typeof showToast !== 'undefined') {
-            showToast(`✅ تم رسم العجلة بنجاح مع ${prizes.length} جائزة`, 'success');
         }
     }
     
@@ -379,7 +354,7 @@ class WheelOfFortune {
             }
             
             const { prize, new_balance, new_spins } = response.data;
-            showToast('🎁 استلام نتيجة اللفة من الخادم', 'info');
+            // استلام نتيجة اللفة من الخادم
             
             // إخفاء Loading
             showLoading(false);
