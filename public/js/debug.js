@@ -14,6 +14,8 @@ class DebugError {
     static container = null;
     static isVisible = false;
     static errors = [];
+    static initLogs = []; // لحفظ logs التهيئة
+    static channelsCheckLogs = []; // لحفظ logs التحقق من القنوات
     
     static init() {
         // تعطيل الـ debug UI في الإنتاج
@@ -312,3 +314,92 @@ window.DebugError = DebugError;
 window.getEnhancedUserData = getEnhancedUserData;
 window.updateUserDisplay = updateUserDisplay;
 window.handleApiError = handleApiError;
+
+// ======================================================================
+// 📊 CHANNELS CHECK LOGGER - لتسجيل logs التحقق من القنوات
+// ======================================================================
+
+class ChannelsLogger {
+    static logs = [];
+    static maxLogs = 100;
+    
+    static log(message, data = null) {
+        const timestamp = new Date().toLocaleTimeString('ar-EG', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            fractionalSecondDigits: 3 
+        });
+        
+        const logEntry = {
+            time: timestamp,
+            message: message,
+            data: data
+        };
+        
+        this.logs.push(logEntry);
+        
+        if (this.logs.length > this.maxLogs) {
+            this.logs.shift();
+        }
+        
+        // طباعة في console مع تنسيق مميز
+        console.log(`%c[📢 CHANNELS] ${timestamp}%c ${message}`, 
+            'color: #ff6b35; font-weight: bold;',
+            'color: inherit;',
+            data || '');
+    }
+    
+    static getSummary() {
+        const summary = {
+            totalLogs: this.logs.length,
+            logs: this.logs,
+            lastCheck: this.logs.length > 0 ? this.logs[this.logs.length - 1] : null
+        };
+        
+        console.log('%c═══════════════════════════════════════════', 'color: #ff6b35');
+        console.log('%c    📢 CHANNELS CHECK LOGS SUMMARY', 'color: #ff6b35; font-size: 14px; font-weight: bold');
+        console.log('%c═══════════════════════════════════════════', 'color: #ff6b35');
+        console.table(this.logs);
+        console.log('%c═══════════════════════════════════════════', 'color: #ff6b35');
+        
+        return summary;
+    }
+    
+    static copyToClipboard() {
+        const text = this.logs.map(log => `[${log.time}] ${log.message}${log.data ? '\n  Data: ' + JSON.stringify(log.data) : ''}`).join('\n\n');
+        
+        navigator.clipboard.writeText(text).then(() => {
+            console.log('✅ Logs copied to clipboard!');
+            if (typeof showToast === 'function') {
+                showToast('✅ تم نسخ logs القنوات', 'success');
+            }
+        }).catch(err => {
+            console.error('❌ Failed to copy:', err);
+        });
+    }
+    
+    static clear() {
+        this.logs = [];
+        console.log('%c📢 Channels logs cleared', 'color: #ff6b35; font-weight: bold;');
+    }
+}
+
+// تصدير
+window.ChannelsLogger = ChannelsLogger;
+
+// دوال مساعدة سريعة في console
+window.showChannelsLogs = () => ChannelsLogger.getSummary();
+window.copyChannelsLogs = () => ChannelsLogger.copyToClipboard();
+window.clearChannelsLogs = () => ChannelsLogger.clear();
+
+console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #00ff88');
+console.log('%c✅ Channels Logger Initialized', 'color: #00ff88; font-weight: bold; font-size: 14px');
+console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #00ff88');
+console.log('%c💡 استخدم هذه الأوامر في Console للتشخيص:', 'color: #ffcc00; font-size: 13px; font-weight: bold');
+console.log('');
+console.log('%c  📊 showChannelsLogs()   %c- عرض كل logs التحقق من القنوات مع الوقت', 'color: #00ff88; font-weight: bold', 'color: #aaa');
+console.log('%c  📋 copyChannelsLogs()   %c- نسخ logs القنوات إلى الحافظة', 'color: #00ff88; font-weight: bold', 'color: #aaa');
+console.log('%c  🗑️  clearChannelsLogs()  %c- مسح logs القنوات', 'color: #00ff88; font-weight: bold', 'color: #aaa');
+console.log('');
+console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #00ff88');

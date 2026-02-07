@@ -7,8 +7,13 @@ console.log('📦 Checking dependencies:');
 console.log('  - TelegramApp:', typeof TelegramApp !== 'undefined' ? '✅' : '❌');
 console.log('  - CONFIG:', typeof CONFIG !== 'undefined' ? '✅' : '❌');
 console.log('  - ChannelsCheck:', typeof ChannelsCheck !== 'undefined' ? '✅' : '❌');
+console.log('  - ChannelsLogger:', typeof ChannelsLogger !== 'undefined' ? '✅' : '❌');
 console.log('  - showLoading:', typeof showLoading !== 'undefined' ? '✅' : '❌');
 console.log('  - createChannelPhotoHTML:', typeof createChannelPhotoHTML !== 'undefined' ? '✅' : '❌');
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log('%c💡 للحصول على logs التحقق من القنوات:', 'color: #ffcc00; font-size: 13px; font-weight: bold');
+console.log('%c   اكتب في Console: showChannelsLogs()', 'color: #00ff88; font-size: 12px');
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
 let wheel = null;
 
@@ -363,23 +368,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (ChannelsCheck.channels.length > 0) {
                 console.log('🔎 Verifying user subscription...');
+                if (typeof ChannelsLogger !== 'undefined') {
+                    ChannelsLogger.log('🔎 Calling verifySubscription()...');
+                }
                 channelsVerified = await ChannelsCheck.verifySubscription();
                 console.log(`📌 Verification result: ${channelsVerified}`);
+                if (typeof ChannelsLogger !== 'undefined') {
+                    ChannelsLogger.log(`📌 verifySubscription() returned: ${channelsVerified}`);
+                }
             } else {
                 console.log('ℹ️ No channels to verify');
+                if (typeof ChannelsLogger !== 'undefined') {
+                    ChannelsLogger.log('ℹ️ No channels configured - allowing access');
+                }
                 channelsVerified = true;
             }
         } else if (typeof checkRequiredChannels !== 'undefined') {
             console.log('⚠️ Using fallback checkRequiredChannels');
+            if (typeof ChannelsLogger !== 'undefined') {
+                ChannelsLogger.log('⚠️ ChannelsCheck not found - using fallback checkRequiredChannels');
+            }
             channelsVerified = await checkRequiredChannels();
         } else {
             console.warn('⚠️⚠️ No channels check module available!');
+            if (typeof ChannelsLogger !== 'undefined') {
+                ChannelsLogger.log('❌ ERROR: No channels check module available!');
+            }
             channelsVerified = true;
         }
         
         // إذا لم يتم التحقق، نوقف التحميل هنا
         if (!channelsVerified) {
             console.log('❌ User NOT subscribed - showing modal and stopping initialization');
+            if (typeof ChannelsLogger !== 'undefined') {
+                ChannelsLogger.log('❌ channelsVerified = FALSE - Stopping here, modal should be visible');
+                ChannelsLogger.log('='.repeat(50));
+            }
             // Hide loading - channels modal will be shown
             clearTimeout(timeoutId);
             clearTimeout(window.globalTimeoutId);
@@ -389,6 +413,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         console.log('✅ Channels verification passed - continuing initialization');
+        if (typeof ChannelsLogger !== 'undefined') {
+            ChannelsLogger.log('✅ Channels verification PASSED - continuing app initialization');
+            ChannelsLogger.log('='.repeat(50));
+        }
         
         // ✅ تفعيل مراقبة القنوات عند عودة المستخدم للتطبيق
         if (typeof ChannelsCheck !== 'undefined' && typeof ChannelsCheck.setupVisibilityCheck === 'function') {

@@ -7,6 +7,9 @@ const ChannelsCheck = {
     
     async init() {
         console.log('📢 Initializing Required Channels Check...');
+        if (typeof ChannelsLogger !== 'undefined') {
+            ChannelsLogger.log('init() - Starting channels check initialization');
+        }
         await this.loadChannels();
         await this.verifySubscription();
     },
@@ -14,16 +17,29 @@ const ChannelsCheck = {
     async loadChannels() {
         try {
             console.log('📡 Fetching required channels from API...');
+            if (typeof ChannelsLogger !== 'undefined') {
+                ChannelsLogger.log('loadChannels() - Fetching from /api/required-channels');
+            }
+            
             const response = await fetch('/api/required-channels');
             const data = await response.json();
             
             console.log('📦 API Response:', data);
+            if (typeof ChannelsLogger !== 'undefined') {
+                ChannelsLogger.log('loadChannels() - API Response received', data);
+            }
             
             if (data.success && data.channels && data.channels.length > 0) {
                 this.channels = data.channels;
                 console.log(`✅ Loaded ${this.channels.length} required channels:`, this.channels);
+                if (typeof ChannelsLogger !== 'undefined') {
+                    ChannelsLogger.log(`loadChannels() - ✅ Loaded ${this.channels.length} channels`, this.channels);
+                }
             } else {
                 console.warn('⚠️ No channels in API response, checking CONFIG...');
+                if (typeof ChannelsLogger !== 'undefined') {
+                    ChannelsLogger.log('loadChannels() - ⚠️ No channels in API, checking CONFIG');
+                }
                 // استخدام القنوات من CONFIG كبديل
                 if (window.CONFIG && window.CONFIG.REQUIRED_CHANNELS && window.CONFIG.REQUIRED_CHANNELS.length > 0) {
                     this.channels = window.CONFIG.REQUIRED_CHANNELS.map(ch => ({
@@ -46,13 +62,22 @@ const ChannelsCheck = {
     
     async verifySubscription() {
         console.log('🔍 Starting channels verification...');
+        if (typeof ChannelsLogger !== 'undefined') {
+            ChannelsLogger.log('verifySubscription() - Starting verification');
+        }
         
         if (this.channels.length === 0) {
             console.log('✅ No required channels');
+            if (typeof ChannelsLogger !== 'undefined') {
+                ChannelsLogger.log('verifySubscription() - ✅ No channels to verify');
+            }
             return true;
         }
         
         console.log(`📢 Verifying ${this.channels.length} channels:`, this.channels);
+        if (typeof ChannelsLogger !== 'undefined') {
+            ChannelsLogger.log(`verifySubscription() - Checking ${this.channels.length} channels`, this.channels);
+        }
         
         try {
             const userId = TelegramApp.getUserId();
@@ -93,22 +118,37 @@ const ChannelsCheck = {
             
             const data = await response.json();
             console.log('📊 Verification response:', data);
+            if (typeof ChannelsLogger !== 'undefined') {
+                ChannelsLogger.log('verifySubscription() - API Response', data);
+            }
             
             if (!data.all_subscribed) {
                 console.log('❌ User not subscribed to all channels. Missing:', data.not_subscribed);
                 console.log('🔔 About to show subscription modal...');
+                if (typeof ChannelsLogger !== 'undefined') {
+                    ChannelsLogger.log('❌ User NOT subscribed - Missing channels', data.not_subscribed);
+                }
                 
                 // التأكد من وجود قنوات غير مشترك فيها
                 if (!data.not_subscribed || data.not_subscribed.length === 0) {
                     console.error('⚠️ API says not subscribed but no channels list provided!');
+                    if (typeof ChannelsLogger !== 'undefined') {
+                        ChannelsLogger.log('⚠️ ERROR: API says not subscribed but no channels list!');
+                    }
                     return false;
                 }
                 
+                if (typeof ChannelsLogger !== 'undefined') {
+                    ChannelsLogger.log('🔔 Showing subscription modal', { channelsCount: data.not_subscribed.length });
+                }
                 this.showSubscriptionModal(data.not_subscribed);
                 return false;
             }
             
             console.log('✅ User subscribed to all channels!');
+            if (typeof ChannelsLogger !== 'undefined') {
+                ChannelsLogger.log('✅ User subscribed to ALL channels!');
+            }
             return true;
             
         } catch (error) {
@@ -129,6 +169,9 @@ const ChannelsCheck = {
     
     showSubscriptionModal(notSubscribed) {
         console.log('🔔 Showing channels subscription modal for', notSubscribed.length, 'channels');
+        if (typeof ChannelsLogger !== 'undefined') {
+            ChannelsLogger.log(`showSubscriptionModal() - Creating modal for ${notSubscribed.length} channels`, notSubscribed);
+        }
         
         // 🔥 إخفاء الـ loading overlay أولاً قبل عرض الـ modal
         if (typeof showLoading !== 'undefined') {
