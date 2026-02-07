@@ -174,17 +174,7 @@ window.clearAllLogs = function() {
 };
 
 window.originalConsoleLog('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #ff00ff; font-weight: bold');
-window.originalConsoleLog('%c📊 PERSISTENT LOGS SYSTEM v2.6 ACTIVATED!', 'color: #ff00ff; font-size: 18px; font-weight: bold');
-window.originalConsoleLog('%c🔥 الـ logs بتتحفظ في localStorage - حتى لو عملت reload!', 'color: #ff00ff; font-size: 14px; font-weight: bold');
-window.originalConsoleLog('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #ff00ff; font-weight: bold');
-window.originalConsoleLog('%cالأوامر المتاحة:', 'color: #ffcc00; font-size: 13px');
-window.originalConsoleLog('');
-window.originalConsoleLog('%c  📊 showAllLogs()      %c- عرض جميع الـ logs المحفوظة', 'color: #00ff88; font-weight: bold', 'color: #aaa');
-window.originalConsoleLog('%c  📋 copyAllLogs()      %c- نسخ جميع الـ logs للحافظة', 'color: #00ff88; font-weight: bold', 'color: #aaa');
-window.originalConsoleLog('%c  🔍 searchLogs("كلمة") %c- البحث في الـ logs', 'color: #00ff88; font-weight: bold', 'color: #aaa');
-window.originalConsoleLog('%c  🗑️  clearAllLogs()     %c- مسح الـ logs المحفوظة', 'color: #00ff88; font-weight: bold', 'color: #aaa');
-window.originalConsoleLog('');
-window.originalConsoleLog('%c💾 Logs المحفوظة حالياً: ' + window.appStartupLogs.length, 'color: #00aaff; font-size: 12px');
+window.originalConsoleLog('%c📊 Debug System v2.7 Ready', 'color: #ff00ff; font-size: 14px; font-weight: bold');
 window.originalConsoleLog('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #ff00ff; font-weight: bold');
 window.originalConsoleLog('');
 
@@ -194,10 +184,10 @@ window.originalConsoleLog('');
 
 // Enable/disable debug modes for production
 const DEBUG_CONFIG = {
-    SHOW_DEBUG_UI: true,         // ✅ إظهار UI الـ debug على الشاشة - مفعل للتشخيص
-    SHOW_SERVER_STATUS: true,    // ✅ إظهار مؤشر حالة السيرفر - مفعل للتشخيص
-    CONSOLE_LOGGING: true,       // ✅ الـ logging في الـ console (مفعل للتشخيص)
-    AUTO_SHOW_ERRORS: true       // ✅ إظهار تلقائي للأخطاء - مفعل للتشخيص
+    SHOW_DEBUG_UI: false,         // ✅ إظهار UI الـ debug على الشاشة - مفعل للتشخيص
+    SHOW_SERVER_STATUS: false,    // ✅ إظهار مؤشر حالة السيرفر - مفعل للتشخيص
+    CONSOLE_LOGGING: false,       // ✅ الـ logging في الـ console (مفعل للتشخيص)
+    AUTO_SHOW_ERRORS: false       // ✅ إظهار تلقائي للأخطاء - مفعل للتشخيص
 };
 
 class DebugError {
