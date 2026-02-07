@@ -13,15 +13,34 @@ const ChannelsCheck = {
     
     async loadChannels() {
         try {
+            console.log('📡 Fetching required channels from API...');
             const response = await fetch('/api/required-channels');
             const data = await response.json();
             
-            if (data.success && data.channels) {
+            console.log('📦 API Response:', data);
+            
+            if (data.success && data.channels && data.channels.length > 0) {
                 this.channels = data.channels;
-                console.log(`✅ Loaded ${this.channels.length} required channels`);
+                console.log(`✅ Loaded ${this.channels.length} required channels:`, this.channels);
+            } else {
+                console.warn('⚠️ No channels in API response, checking CONFIG...');
+                // استخدام القنوات من CONFIG كبديل
+                if (window.CONFIG && window.CONFIG.REQUIRED_CHANNELS && window.CONFIG.REQUIRED_CHANNELS.length > 0) {
+                    this.channels = window.CONFIG.REQUIRED_CHANNELS.map(ch => ({
+                        id: ch.id,
+                        channel_id: ch.id,
+                        channel_name: ch.name,
+                        channel_url: ch.url
+                    }));
+                    console.log(`✅ Loaded ${this.channels.length} channels from CONFIG:`, this.channels);
+                } else {
+                    console.log('ℹ️ No channels configured anywhere');
+                    this.channels = [];
+                }
             }
         } catch (error) {
             console.error('❌ Error loading channels:', error);
+            this.channels = [];
         }
     },
     
@@ -77,6 +96,14 @@ const ChannelsCheck = {
             
             if (!data.all_subscribed) {
                 console.log('❌ User not subscribed to all channels. Missing:', data.not_subscribed);
+                console.log('🔔 About to show subscription modal...');
+                
+                // التأكد من وجود قنوات غير مشترك فيها
+                if (!data.not_subscribed || data.not_subscribed.length === 0) {
+                    console.error('⚠️ API says not subscribed but no channels list provided!');
+                    return false;
+                }
+                
                 this.showSubscriptionModal(data.not_subscribed);
                 return false;
             }
@@ -160,8 +187,24 @@ const ChannelsCheck = {
         
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         
+        // التأكد من إضافة الـ modal
+        const addedModal = document.getElementById('channels-modal');
+        if (addedModal) {
+            console.log('✅ Channels modal added to DOM successfully');
+            console.log('📊 Modal element:', addedModal);
+        } else {
+            console.error('❌ Failed to add modal to DOM!');
+        }
+        
         // منع التفاعل مع بقية الصفحة
         document.body.style.overflow = 'hidden';
+        
+        // إزالة أي loading overlay قد يكون موجود
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+            console.log('🔄 Hidden loading overlay');
+        }
     },
     
     openChannel(link) {
@@ -243,3 +286,6 @@ const ChannelsCheck = {
 
 // ⚠️ لا تقم بالتشغيل التلقائي - سيتم الاستدعاء من app.js
 // التشغيل التلقائي يسبب تضارب مع app.js initialization
+
+console.log('✅ ChannelsCheck module loaded successfully');
+console.log('📦 ChannelsCheck:', ChannelsCheck);

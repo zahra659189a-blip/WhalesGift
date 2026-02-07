@@ -2,13 +2,21 @@
 // 🐼 PANDA GIVEAWAYS - MAIN APP
 // ═══════════════════════════════════════════════════════════════
 
+console.log('🐼 Panda Giveaways - Main App v2.2 Starting...');
+console.log('📦 Checking dependencies:');
+console.log('  - TelegramApp:', typeof TelegramApp !== 'undefined' ? '✅' : '❌');
+console.log('  - CONFIG:', typeof CONFIG !== 'undefined' ? '✅' : '❌');
+console.log('  - ChannelsCheck:', typeof ChannelsCheck !== 'undefined' ? '✅' : '❌');
+console.log('  - showLoading:', typeof showLoading !== 'undefined' ? '✅' : '❌');
+console.log('  - createChannelPhotoHTML:', typeof createChannelPhotoHTML !== 'undefined' ? '✅' : '❌');
+
 let wheel = null;
 
 // ═══════════════════════════════════════════════════════════════
-// � VISUAL DEBUGGING & LOADING MESSAGES
+// 📊 VISUAL DEBUGGING & LOADING MESSAGES
 // ═══════════════════════════════════════════════════════════════
 
-// 🏁 Updated v2.1 - تم تحديث جوائز العجلة
+// 🏁 Updated v2.2 - إصلاح التحقق من القنوات الإجبارية
 
 // Clear cache for updated configuration
 localStorage.removeItem('wheel-config-cache');
@@ -338,32 +346,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         // حفظ referrer_id مؤقتاً إذا موجود (سيتم تسجيله بعد التحقق من القنوات)
         savePendingReferral();
         
-        // Check required channels FIRST before loading anything
+        // ═══════════════════════════════════════════════════════
+        // 📢 التحقق من القنوات الإجبارية (يجب أن يكتمل قبل أي شيء)
+        // ═══════════════════════════════════════════════════════
+        
         showLoadingWithMessage('📺 جاري التحقق من اشتراكك في القنوات...');
+        console.log('🔍 Starting required channels verification...');
         
         let channelsVerified = false;
-        try {
-            // Use the proper channels check module
-            if (typeof ChannelsCheck !== 'undefined') {
-                await ChannelsCheck.loadChannels();
+        
+        // تحميل القنوات أولاً
+        if (typeof ChannelsCheck !== 'undefined') {
+            console.log('✅ ChannelsCheck module found');
+            await ChannelsCheck.loadChannels();
+            console.log(`📊 Loaded ${ChannelsCheck.channels.length} channels`);
+            
+            if (ChannelsCheck.channels.length > 0) {
+                console.log('🔎 Verifying user subscription...');
                 channelsVerified = await ChannelsCheck.verifySubscription();
+                console.log(`📌 Verification result: ${channelsVerified}`);
             } else {
-                channelsVerified = await checkRequiredChannels();
+                console.log('ℹ️ No channels to verify');
+                channelsVerified = true;
             }
-        } catch (error) {
-            // في حالة الخطأ، نسمح للمستخدم بالمتابعة
+        } else if (typeof checkRequiredChannels !== 'undefined') {
+            console.log('⚠️ Using fallback checkRequiredChannels');
+            channelsVerified = await checkRequiredChannels();
+        } else {
+            console.warn('⚠️⚠️ No channels check module available!');
             channelsVerified = true;
         }
         
-        // Chapter verification completed
-        
+        // إذا لم يتم التحقق، نوقف التحميل هنا
         if (!channelsVerified) {
+            console.log('❌ User NOT subscribed - showing modal and stopping initialization');
             // Hide loading - channels modal will be shown
             clearTimeout(timeoutId);
             clearTimeout(window.globalTimeoutId);
             showLoading(false);
+            // ⚠️ التوقف هنا - لا نكمل التهيئة حتى يشترك المستخدم
             return;
         }
+        
+        console.log('✅ Channels verification passed - continuing initialization');
         
         // ✅ تفعيل مراقبة القنوات عند عودة المستخدم للتطبيق
         if (typeof ChannelsCheck !== 'undefined' && typeof ChannelsCheck.setupVisibilityCheck === 'function') {
