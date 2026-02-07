@@ -20,10 +20,17 @@ document.addEventListener('click', (e) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎯 DOM Content Loaded - Starting Admin Panel');
+    DebugError.add('🎯 Admin panel initializing...', 'info');
+    
     console.log('Checking required globals:', {
         CONFIG: !!window.CONFIG,
         Telegram: !!window.Telegram,
         showToast: typeof showToast !== 'undefined'
+    });
+    
+    DebugError.add('🔍 Checking admin authentication...', 'info', {
+        hasToken: !!window.adminToken,
+        tokenExpiry: window.adminTokenExpiry
     });
     
     try {
@@ -31,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         checkAdminAuth();
     } catch (error) {
         console.error('❌ Failed to initialize admin panel:', error);
+        DebugError.add('❌ Initialization failed', 'error', error);
     }
 });
 
@@ -189,15 +197,19 @@ async function initAdminPanel() {
 }
 
 async function loadDashboardData() {
+    DebugError.add('🚀 Starting dashboard data load...', 'info');
     showLoading();
     
     // Safety timeout to hide loading after 10 seconds max
     const loadingTimeout = setTimeout(() => {
         console.warn('⏱️ Loading timeout - force hiding loading overlay');
+        DebugError.add('⏱️ Loading timeout reached - some data may not have loaded', 'warn');
         hideLoading();
     }, 10000);
     
     try {
+        DebugError.add('📡 Making parallel API requests...', 'info');
+        
         // Load all data
         await Promise.all([
             loadStatistics(),
@@ -212,10 +224,12 @@ async function loadDashboardData() {
         
         clearTimeout(loadingTimeout);
         hideLoading();
+        DebugError.add('✅ Dashboard data loaded successfully', 'info');
         showToast('✅ تم تحميل البيانات بنجاح', 'success');
     } catch (error) {
         clearTimeout(loadingTimeout);
         hideLoading();
+        DebugError.add('❌ Dashboard loading failed', 'error', error);
         showToast('❌ خطأ في تحميل البيانات', 'error');
         console.error(error);
     }

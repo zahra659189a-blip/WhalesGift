@@ -4,10 +4,10 @@
 
 // Enable/disable debug modes for production
 const DEBUG_CONFIG = {
-    SHOW_DEBUG_UI: false,        // إظهار UI الـ debug على الشاشة
-    SHOW_SERVER_STATUS: false,   // إظهار مؤشر حالة السيرفر  
+    SHOW_DEBUG_UI: true,         // ✅ إظهار UI الـ debug على الشاشة - مفعل للتشخيص
+    SHOW_SERVER_STATUS: true,    // ✅ إظهار مؤشر حالة السيرفر - مفعل للتشخيص
     CONSOLE_LOGGING: true,       // ✅ الـ logging في الـ console (مفعل للتشخيص)
-    AUTO_SHOW_ERRORS: false      // إظهار تلقائي للأخطاء
+    AUTO_SHOW_ERRORS: true       // ✅ إظهار تلقائي للأخطاء - مفعل للتشخيص
 };
 
 class DebugError {
@@ -57,7 +57,7 @@ class DebugError {
             
             document.body.appendChild(this.container);
             
-            // إضافة زر toggle في الزاوية (معطل في الإنتاج)
+            // إضافة زر toggle في الزاوية
             const toggleBtn = document.createElement('div');
             toggleBtn.id = 'debug-toggle-btn';
             toggleBtn.style.cssText = `
@@ -69,7 +69,7 @@ class DebugError {
                 width: 40px;
                 height: 40px;
                 border-radius: 50%;
-                display: none; /* مخفي في الإنتاج */
+                display: flex; /* ظاهر الآن */
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;

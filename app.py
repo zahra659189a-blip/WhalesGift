@@ -389,14 +389,15 @@ CORS(app,
                 'http://127.0.0.1:5000',
                 'http://localhost:5000'
             ],
-            "methods": ["GET", "POST", "OPTIONS"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": [
                 "Content-Type", 
                 "Accept", 
                 "Authorization",
                 "X-Telegram-Init-Data",
                 "X-User-Id",
-                "X-Session-Id"
+                "X-Session-Id",
+                "X-Admin-Token"  # ✅ إضافة Admin Token header
             ],
             "supports_credentials": False
         }

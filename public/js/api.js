@@ -14,7 +14,7 @@ const API = {
         if (this.isServerWake) return true;
         
         try {
-            DebugError.add('Attempting to wake up server...', 'info');
+            DebugError.add('🌐 Attempting to wake up server...', 'info');
             if (typeof updateServerStatus === 'function') {
                 updateServerStatus('connecting', 'يقظة السيرفر...');
             }
@@ -71,21 +71,27 @@ const API = {
     // ═══════════════════════════════════════════════════════════
     
     async request(endpoint, method = 'GET', data = null, retries = 2) {
+        DebugError.add(`📤 API Request: ${method} ${endpoint}`, 'info', { method, endpoint, hasData: !!data, adminToken: !!window.adminToken });
+        
         // 🔐 الحصول على initData من Telegram للمصادقة
         let initData = '';
         try {
             if (window.Telegram?.WebApp?.initData) {
                 initData = window.Telegram.WebApp.initData;
                 console.log('✅ initData found from Telegram WebApp:', initData ? initData.substring(0, 50) + '...' : 'EMPTY');
+                DebugError.add('✅ initData available', 'info');
             } else if (window._restored_init_data) {
                 // 🔄 Fallback: استخدام البيانات المحفوظة من sessionStorage
                 initData = window._restored_init_data;
                 console.log('✅ Using restored initData from sessionStorage');
+                DebugError.add('✅ Using restored initData', 'info');
             } else {
                 console.error('❌ Telegram.WebApp.initData is not available!');
+                DebugError.add('❌ No initData available!', 'error');
             }
         } catch (e) {
             console.warn('Could not get Telegram initData:', e);
+            DebugError.add('⚠️ Error getting initData', 'warn', e);
         }
         
         // 🚨 تحذير إذا كان initData فاضي
@@ -123,7 +129,16 @@ const API = {
         if (window.adminToken) {
             headers['X-Admin-Token'] = window.adminToken;
             console.log('🔐 Admin token added to request headers');
+            DebugError.add('🔐 Admin token added to headers', 'info');
+        } else {
+            DebugError.add('⚠️ No admin token available', 'warn');
         }
+        
+        DebugError.add('📋 Request headers prepared', 'info', {
+            hasInitData: !!initData,
+            hasAdminToken: !!headers['X-Admin-Token'],
+            hasUserId: !!headers['X-User-ID']
+        });
         
         const options = {
             method,
@@ -163,11 +178,16 @@ const API = {
                 
                 clearTimeout(timeoutId);
                 
-                DebugError.add(`API Response Status: ${response.status}`, 'info');
+                DebugError.add(`📥 Response received: ${response.status} ${response.statusText}`, 'info', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok,
+                    headers: Object.fromEntries(response.headers.entries())
+                });
                 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    DebugError.add(`API Error Response: ${errorText}`, 'error');
+                    DebugError.add(`❌ API Error Response: ${response.status}`, 'error', errorText);
                     
                     // 🚨 معالجة خاصة لأخطاء 401 Unauthorized
                     if (response.status === 401) {
