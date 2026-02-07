@@ -93,7 +93,8 @@ async function handleAdminLogin(event) {
         }
         
         // إرسال طلب login
-        const response = await fetch(`${window.CONFIG.API_URL}/api/admin/login`, {
+        const apiUrl = window.CONFIG.API_URL || window.CONFIG.API_BASE_URL || '';
+        const response = await fetch(`${apiUrl}/admin/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

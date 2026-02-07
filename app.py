@@ -62,7 +62,7 @@ ADMIN_IDS = [1797127532, 6603009212]
 
 # 🔐 ADMIN LOGIN CREDENTIALS (من متغيرات البيئة)
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'OmarShehata@123')
-ADMIN_PASSWORD_HASH = os.environ.get('Ommsaa#@123')
+ADMIN_PASSWORD_HASH = os.environ.get('ADMIN_PASSWORD_HASH')
 # إذا لم يكن هناك password hash، استخدم كلمة سر افتراضية (للتطوير فقط)
 if not ADMIN_PASSWORD_HASH:
     # Default password: Ommsaa#@123 (يجب تغييرها في الإنتاج!)
