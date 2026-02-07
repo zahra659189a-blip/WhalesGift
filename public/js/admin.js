@@ -5,9 +5,9 @@
 
 console.log('📄 admin.js loaded successfully');
 
-// 🔐 Admin Token Management
-let adminToken = localStorage.getItem('admin_token');
-let adminTokenExpiry = localStorage.getItem('admin_token_expiry');
+// 🔐 Admin Token Management (global للوصول من api.js)
+window.adminToken = localStorage.getItem('admin_token');
+window.adminTokenExpiry = localStorage.getItem('admin_token_expiry');
 
 // Test: إضافة click listener للـ body للتأكد من الأحداث بتشتغل
 document.addEventListener('click', (e) => {
@@ -42,8 +42,8 @@ function checkAdminAuth() {
     console.log('🔐 Checking admin authentication...');
     
     // التحقق من وجود token وصلاحيته
-    if (adminToken && adminTokenExpiry) {
-        const expiryDate = new Date(adminTokenExpiry);
+    if (window.adminToken && window.adminTokenExpiry) {
+        const expiryDate = new Date(window.adminTokenExpiry);
         const now = new Date();
         
         if (expiryDate > now) {
@@ -107,10 +107,10 @@ async function handleAdminLogin(event) {
         
         if (response.ok && data.success) {
             // حفظ token
-            adminToken = data.admin_token;
-            adminTokenExpiry = data.expires_at;
-            localStorage.setItem('admin_token', adminToken);
-            localStorage.setItem('admin_token_expiry', adminTokenExpiry);
+            window.adminToken = data.admin_token;
+            window.adminTokenExpiry = data.expires_at;
+            localStorage.setItem('admin_token', window.adminToken);
+            localStorage.setItem('admin_token_expiry', window.adminTokenExpiry);
             
             console.log('✅ Admin login successful');
             
@@ -139,8 +139,8 @@ async function handleAdminLogin(event) {
 }
 
 function clearAdminToken() {
-    adminToken = null;
-    adminTokenExpiry = null;
+    window.adminToken = null;
+    window.adminTokenExpiry = null;
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_token_expiry');
 }
@@ -149,6 +149,10 @@ function logout() {
     clearAdminToken();
     location.reload();
 }
+
+// جعل الدوال عامة للوصول إليها من api.js
+window.clearAdminToken = clearAdminToken;
+window.logout = logout;
 
 // ═══════════════════════════════════════════════════════════════
 // 📊 DATA MANAGEMENT

@@ -120,8 +120,8 @@ const API = {
         };
         
         // 🔐 إضافة Admin Token للـ headers إذا كان موجود (للـ admin panel)
-        if (typeof adminToken !== 'undefined' && adminToken) {
-            headers['X-Admin-Token'] = adminToken;
+        if (window.adminToken) {
+            headers['X-Admin-Token'] = window.adminToken;
             console.log('🔐 Admin token added to request headers');
         }
         
@@ -176,8 +176,8 @@ const API = {
                             // إذا كان الخطأ بسبب admin login
                             if (errorData.require_login) {
                                 console.error('❌ 401 - Admin login required');
-                                if (typeof clearAdminToken === 'function') {
-                                    clearAdminToken();
+                                if (typeof window.clearAdminToken === 'function') {
+                                    window.clearAdminToken();
                                 }
                                 if (typeof showToast !== 'undefined') {
                                     showToast('⚠️ انتهت صلاحية الجلسة - يرجى تسجيل الدخول مرة أخرى', 'error');
