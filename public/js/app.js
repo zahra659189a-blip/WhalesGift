@@ -2,7 +2,7 @@
 // 🐼 PANDA GIVEAWAYS - MAIN APP
 // ═══════════════════════════════════════════════════════════════
 
-console.log('🐼 Panda Giveaways - Main App v2.3 Starting...');
+console.log('🐼 Panda Giveaways - Main App v2.7 Starting...');
 console.log('📦 Checking dependencies:');
 console.log('  - TelegramApp:', typeof TelegramApp !== 'undefined' ? '✅' : '❌');
 console.log('  - CONFIG:', typeof CONFIG !== 'undefined' ? '✅' : '❌');

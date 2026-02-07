@@ -19,12 +19,13 @@ const ChannelsCheck = {
     
     async loadChannels() {
         try {
-            console.log('📡 Fetching required channels from API...');
+            const apiUrl = `${CONFIG.API_BASE_URL}/required-channels`;
+            console.log('📡 Fetching required channels from API:', apiUrl);
             if (typeof ChannelsLogger !== 'undefined') {
-                ChannelsLogger.log('loadChannels() - Fetching from /api/required-channels');
+                ChannelsLogger.log('loadChannels() - Fetching from: ' + apiUrl);
             }
             
-            const response = await fetch('/api/required-channels');
+            const response = await fetch(apiUrl);
             const data = await response.json();
             
             console.log('📦 API Response:', data);
@@ -94,7 +95,8 @@ const ChannelsCheck = {
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 ثانية
                     
-                    response = await fetch('/api/verify-channels', {
+                    const apiUrl = `${CONFIG.API_BASE_URL}/verify-channels`;
+                    response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({user_id: userId}),

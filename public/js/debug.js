@@ -1,3 +1,193 @@
+// ======================================================================
+// 📊 PERSISTENT LOGS CAPTURE - يحفظ كل logs حتى بعد Reload
+// ======================================================================
+
+// استرجاع الـ logs القديمة من localStorage
+window.appStartupLogs = [];
+try {
+    const savedLogs = localStorage.getItem('pandaStartupLogs');
+    if (savedLogs) {
+        window.appStartupLogs = JSON.parse(savedLogs);
+    }
+} catch (e) {
+    console.error('Failed to load saved logs:', e);
+}
+
+window.originalConsoleLog = console.log;
+window.originalConsoleError = console.error;
+window.originalConsoleWarn = console.warn;
+
+// دالة حفظ الـ logs في localStorage
+function saveLogs() {
+    try {
+        // حفظ آخر 500 log فقط لتجنب امتلاء الذاكرة
+        const logsToSave = window.appStartupLogs.slice(-500);
+        localStorage.setItem('pandaStartupLogs', JSON.stringify(logsToSave));
+    } catch (e) {
+        // localStorage ممتلئ - نحذف النصف الأول
+        try {
+            window.appStartupLogs = window.appStartupLogs.slice(250);
+            localStorage.setItem('pandaStartupLogs', JSON.stringify(window.appStartupLogs));
+        } catch (e2) {
+            console.error('Failed to save logs:', e2);
+        }
+    }
+}
+
+// اعتراض console.log لحفظ كل الرسائل
+console.log = function(...args) {
+    const timestamp = new Date().toLocaleTimeString('ar-EG', {
+        hour: '2-digit',
+        minute: '2-digit', 
+        second: '2-digit',
+        fractionalSecondDigits: 3
+    });
+    
+    const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+    ).join(' ');
+    
+    window.appStartupLogs.push({
+        time: timestamp,
+        type: 'log',
+        message: message,
+        args: args
+    });
+    
+    saveLogs(); // حفظ في localStorage
+    window.originalConsoleLog.apply(console, args);
+};
+
+console.error = function(...args) {
+    const timestamp = new Date().toLocaleTimeString('ar-EG', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        fractionalSecondDigits: 3
+    });
+    
+    const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+    ).join(' ');
+    
+    window.appStartupLogs.push({
+        time: timestamp,
+        type: 'error',
+        message: message,
+        args: args
+    });
+    
+    saveLogs(); // حفظ في localStorage
+    window.originalConsoleError.apply(console, args);
+};
+
+console.warn = function(...args) {
+    const timestamp = new Date().toLocaleTimeString('ar-EG', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        fractionalSecondDigits: 3
+    });
+    
+    const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+    ).join(' ');
+    
+    window.appStartupLogs.push({
+        time: timestamp,
+        type: 'warn',
+        message: message,
+        args: args
+    });
+    
+    saveLogs(); // حفظ في localStorage
+    window.originalConsoleWarn.apply(console, args);
+};
+
+// دالة لعرض جميع الـ logs
+window.showAllLogs = function() {
+    console.clear();
+    window.originalConsoleLog('%c═══════════════════════════════════════════════════════', 'color: #00ff88; font-size: 14px; font-weight: bold');
+    window.originalConsoleLog('%c📊 ALL STARTUP LOGS (محفوظة في localStorage)', 'color: #00ff88; font-size: 16px; font-weight: bold');
+    window.originalConsoleLog('%c═══════════════════════════════════════════════════════', 'color: #00ff88; font-size: 14px; font-weight: bold');
+    window.originalConsoleLog('');
+    window.originalConsoleLog(`Total logs: ${window.appStartupLogs.length}`);
+    window.originalConsoleLog('');
+    
+    window.appStartupLogs.forEach((log, index) => {
+        const color = log.type === 'error' ? '#ff4444' : log.type === 'warn' ? '#ffaa00' : '#00aaff';
+        window.originalConsoleLog(
+            `%c[${index + 1}] [${log.time}] %c${log.type.toUpperCase()}`,
+            'color: #888',
+            `color: ${color}; font-weight: bold`
+        );
+        window.originalConsoleLog(log.message);
+        window.originalConsoleLog('');
+    });
+    
+    window.originalConsoleLog('%c═══════════════════════════════════════════════════════', 'color: #00ff88; font-size: 14px; font-weight: bold');
+};
+
+// دالة لنسخ جميع الـ logs
+window.copyAllLogs = function() {
+    const text = window.appStartupLogs.map((log, index) => 
+        `[${index + 1}] [${log.time}] [${log.type.toUpperCase()}]\n${log.message}\n`
+    ).join('\n');
+    
+    navigator.clipboard.writeText(text).then(() => {
+        window.originalConsoleLog('%c✅ تم نسخ جميع الـ logs إلى الحافظة!', 'color: #00ff88; font-size: 14px; font-weight: bold');
+        alert('✅ تم نسخ ' + window.appStartupLogs.length + ' log إلى الحافظة!\n\nالصقها في أي مكان الآن.');
+    }).catch(err => {
+        window.originalConsoleError('❌ فشل النسخ:', err);
+    });
+};
+
+// دالة للبحث في الـ logs
+window.searchLogs = function(keyword) {
+    console.clear();
+    const results = window.appStartupLogs.filter(log => 
+        log.message.toLowerCase().includes(keyword.toLowerCase())
+    );
+    
+    window.originalConsoleLog(`%c🔍 نتائج البحث عن: "${keyword}"`, 'color: #ffaa00; font-size: 14px; font-weight: bold');
+    window.originalConsoleLog(`Found ${results.length} matches:`);
+    window.originalConsoleLog('');
+    
+    results.forEach((log, index) => {
+        const color = log.type === 'error' ? '#ff4444' : log.type === 'warn' ? '#ffaa00' : '#00aaff';
+        window.originalConsoleLog(
+            `%c[${log.time}] %c${log.type.toUpperCase()}`,
+            'color: #888',
+            `color: ${color}; font-weight: bold`
+        );
+        window.originalConsoleLog(log.message);
+        window.originalConsoleLog('');
+    });
+};
+
+// دالة لمسح جميع الـ logs
+window.clearAllLogs = function() {
+    window.appStartupLogs = [];
+    localStorage.removeItem('pandaStartupLogs');
+    console.clear();
+    window.originalConsoleLog('%c✅ تم مسح جميع الـ logs!', 'color: #00ff88; font-size: 14px; font-weight: bold');
+};
+
+window.originalConsoleLog('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #ff00ff; font-weight: bold');
+window.originalConsoleLog('%c📊 PERSISTENT LOGS SYSTEM v2.6 ACTIVATED!', 'color: #ff00ff; font-size: 18px; font-weight: bold');
+window.originalConsoleLog('%c🔥 الـ logs بتتحفظ في localStorage - حتى لو عملت reload!', 'color: #ff00ff; font-size: 14px; font-weight: bold');
+window.originalConsoleLog('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #ff00ff; font-weight: bold');
+window.originalConsoleLog('%cالأوامر المتاحة:', 'color: #ffcc00; font-size: 13px');
+window.originalConsoleLog('');
+window.originalConsoleLog('%c  📊 showAllLogs()      %c- عرض جميع الـ logs المحفوظة', 'color: #00ff88; font-weight: bold', 'color: #aaa');
+window.originalConsoleLog('%c  📋 copyAllLogs()      %c- نسخ جميع الـ logs للحافظة', 'color: #00ff88; font-weight: bold', 'color: #aaa');
+window.originalConsoleLog('%c  🔍 searchLogs("كلمة") %c- البحث في الـ logs', 'color: #00ff88; font-weight: bold', 'color: #aaa');
+window.originalConsoleLog('%c  🗑️  clearAllLogs()     %c- مسح الـ logs المحفوظة', 'color: #00ff88; font-weight: bold', 'color: #aaa');
+window.originalConsoleLog('');
+window.originalConsoleLog('%c💾 Logs المحفوظة حالياً: ' + window.appStartupLogs.length, 'color: #00aaff; font-size: 12px');
+window.originalConsoleLog('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #ff00ff; font-weight: bold');
+window.originalConsoleLog('');
+
 // ═══════════════════════════════════════════════════════════════
 // 🐛 DEBUG & ERROR DISPLAY SYSTEM - DISABLED FOR PRODUCTION
 // ═══════════════════════════════════════════════════════════════
