@@ -2,6 +2,9 @@
 // 📢 REQUIRED CHANNELS CHECK MODULE
 // ═══════════════════════════════════════════════════════════════
 
+console.log('🚀🚀🚀 channels-check.js is LOADING NOW! 🚀🚀🚀');
+console.log('📂 channels-check.js: Starting module definition...');
+
 const ChannelsCheck = {
     channels: [],
     
@@ -330,5 +333,7 @@ const ChannelsCheck = {
 // ⚠️ لا تقم بالتشغيل التلقائي - سيتم الاستدعاء من app.js
 // التشغيل التلقائي يسبب تضارب مع app.js initialization
 
+console.log('✅✅✅ channels-check.js LOADED SUCCESSFULLY! ✅✅✅');
+console.log('📦 ChannelsCheck object defined:', ChannelsCheck);
 console.log('✅ ChannelsCheck module loaded successfully');
 console.log('📦 ChannelsCheck:', ChannelsCheck);

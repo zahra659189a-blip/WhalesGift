@@ -2,7 +2,7 @@
 // 🐼 PANDA GIVEAWAYS - MAIN APP
 // ═══════════════════════════════════════════════════════════════
 
-console.log('🐼 Panda Giveaways - Main App v2.2 Starting...');
+console.log('🐼 Panda Giveaways - Main App v2.3 Starting...');
 console.log('📦 Checking dependencies:');
 console.log('  - TelegramApp:', typeof TelegramApp !== 'undefined' ? '✅' : '❌');
 console.log('  - CONFIG:', typeof CONFIG !== 'undefined' ? '✅' : '❌');
@@ -15,13 +15,23 @@ console.log('%c💡 للحصول على logs التحقق من القنوات:',
 console.log('%c   اكتب في Console: showChannelsLogs()', 'color: #00ff88; font-size: 12px');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
+// تحذير واضح على الشاشة إذا كان ChannelsCheck مفقود
+if (typeof ChannelsCheck === 'undefined') {
+    console.error('%c❌❌❌ CRITICAL: ChannelsCheck module NOT LOADED! ❌❌❌', 'color: red; font-size: 20px; font-weight: bold; background: yellow; padding: 10px;');
+    console.error('This means channels-check.js did not load properly!');
+    console.error('Check:');
+    console.error('  1. Is channels-check.js file present?');
+    console.error('  2. Is it loaded BEFORE app.js in index.html?');
+    console.error('  3. Are there any JS errors in channels-check.js?');
+}
+
 let wheel = null;
 
 // ═══════════════════════════════════════════════════════════════
 // 📊 VISUAL DEBUGGING & LOADING MESSAGES
 // ═══════════════════════════════════════════════════════════════
 
-// 🏁 Updated v2.2 - إصلاح التحقق من القنوات الإجبارية
+// 🏁 Updated v2.3 - تحسين logging للتحقق من القنوات وإصلاح المشاكل
 
 // Clear cache for updated configuration
 localStorage.removeItem('wheel-config-cache');
@@ -167,20 +177,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     try {
         // تهيئة Telegram Web App
+        console.log('🚀 [APP] Starting Telegram WebApp initialization...');
         TelegramApp.init();
+        console.log('✅ [APP] Telegram WebApp initialized');
         
         // ═══════════════════════════════════════════════════════
         // 🔐 التحقق من فتح الصفحة من تليجرام أولاً
         // ═══════════════════════════════════════════════════════
         
         // انتظار قصير لضمان تحميل Telegram WebApp بشكل كامل
+        console.log('⏳ [APP] Waiting for Telegram WebApp to be fully ready...');
         await new Promise(resolve => setTimeout(resolve, 500));
         
+        console.log('🔍 [APP] Getting user ID from Telegram...');
         const userId = TelegramApp.getUserId();
         const isValidTelegram = TelegramApp.isValidTelegram();
+        console.log(`📊 [APP] User ID: ${userId}, Valid Telegram: ${isValidTelegram}`);
         
         // إذا لم يتم فتح الصفحة من تليجرام أصلاً أو لا توجد بيانات مستخدم صحيحة
         if (!isValidTelegram) {
+            console.log('❌ [APP] Invalid Telegram - showing block page');
             document.body.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; 
                     min-height: 100vh; background: #0d1117; padding: 20px; text-align: center;">
@@ -212,24 +228,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // تم التحقق من صحة جلسة تليجرام
+        console.log('✅ [APP] Telegram session validated');
         
         // عرض Loading مع رسالة تبين التقدم
         showLoadingWithMessage('🔄 جاري التهيئة...');
         showLoading(true);
         
         // ═══════════════════════════════════════════════════════
-        // � التحقق من حالة البوت أولاً
+        // 🔧 التحقق من حالة البوت أولاً
         // ═══════════════════════════════════════════════════════
+        console.log('🔧 [APP] Checking bot status...');
         const isAdmin = CONFIG.ADMIN_IDS && CONFIG.ADMIN_IDS.includes(userId);
+        console.log(`👤 [APP] Is Admin: ${isAdmin}`);
         
         if (!isAdmin) {
             try {
+                console.log('🔍 [APP] Non-admin user - checking bot status from API...');
                 showLoadingWithMessage('🔎 جاري التحقق من حالة البوت...');
                 const botStatusResp = await fetch(`${CONFIG.API_BASE_URL}/bot/status`);
                 const botStatusData = await botStatusResp.json();
+                console.log('📊 [APP] Bot status:', botStatusData);
                 
                 if (!botStatusData.bot_enabled) {
+                    console.log('🔴 [APP] Bot is DISABLED - showing disabled screen');
                     // البوت معطل - عرض رسالة
                     showLoading(false);
                     
@@ -260,7 +281,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     return;
                 }
+                console.log('✅ [APP] Bot is enabled - continuing...');
             } catch (statusError) {
+                console.warn('⚠️ [APP] Error checking bot status (continuing anyway):', statusError);
                 // في حالة الخطأ، نستمر عادياً
             }
         }
@@ -345,26 +368,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         // إرسال رسالة ترحيبية (سيظهر تليجرام "Allow bot to message you?" تلقائياً)
+        console.log('📨 [APP] Sending welcome message...');
         showLoadingWithMessage('📩 جاري إعداد الاتصال...');
         await sendWelcomeMessage();
+        console.log('✅ [APP] Welcome message sent');
         
         // حفظ referrer_id مؤقتاً إذا موجود (سيتم تسجيله بعد التحقق من القنوات)
+        console.log('🔖 [APP] Saving pending referral (if any)...');
         savePendingReferral();
+        
+        // ═══════════════════════════════════════════════════════
         
         // ═══════════════════════════════════════════════════════
         // 📢 التحقق من القنوات الإجبارية (يجب أن يكتمل قبل أي شيء)
         // ═══════════════════════════════════════════════════════
         
+        console.log('═'.repeat(60));
+        console.log('📢 [APP] STARTING CHANNELS VERIFICATION');
+        console.log('═'.repeat(60));
+        
         showLoadingWithMessage('📺 جاري التحقق من اشتراكك في القنوات...');
         console.log('🔍 Starting required channels verification...');
+        
+        if (typeof ChannelsLogger !== 'undefined') {
+            ChannelsLogger.log('='.repeat(50));
+            ChannelsLogger.log('🚀 APP.JS - Starting channels verification process');
+            ChannelsLogger.log('User ID: ' + userId);
+        }
         
         let channelsVerified = false;
         
         // تحميل القنوات أولاً
+        console.log('🔍 [APP] Checking for ChannelsCheck module...');
+        console.log(`📦 [APP] typeof ChannelsCheck = "${typeof ChannelsCheck}"`);
+        console.log(`📦 [APP] typeof ChannelsLogger = "${typeof ChannelsLogger}"`);
+        
         if (typeof ChannelsCheck !== 'undefined') {
-            console.log('✅ ChannelsCheck module found');
+            console.log('✅ ✅ ✅ [APP] ChannelsCheck module FOUND!');
+            console.log('📡 [APP] Calling ChannelsCheck.loadChannels()...');
             await ChannelsCheck.loadChannels();
-            console.log(`📊 Loaded ${ChannelsCheck.channels.length} channels`);
+            console.log(`📊 [APP] Loaded ${ChannelsCheck.channels.length} channels`);
+            console.log('📋 [APP] Channels:', ChannelsCheck.channels);
             
             if (ChannelsCheck.channels.length > 0) {
                 console.log('🔎 Verifying user subscription...');
