@@ -794,12 +794,12 @@ class DatabaseManager:
                     await context.bot.send_message(
                         chat_id=withdrawal_dict['user_id'],
                         text=f"""
-🎉 <b>تم تأكيد السحب!</b>
+<tg-emoji emoji-id='5388674524583572460'>🎉</tg-emoji> <b>تم تأكيد السحب!</b>
 
-💰 تم تحويل {withdrawal_dict['amount']:.4f} TON إلى محفظتك
-🔐 TX Hash: <code>{tx_hash}</code>
+<tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> تم تحويل {withdrawal_dict['amount']:.4f} TON إلى محفظتك
+<tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> TX Hash: <code>{tx_hash}</code>
 
-شكراً لاستخدامك Panda Giveaways! 🐼
+شكراً لاستخدامك Panda Giveaways! <tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji>
 """,
                         parse_mode=ParseMode.HTML
                     )
@@ -1813,24 +1813,24 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             verify_url = f"{MINI_APP_URL}/fp.html?user_id={user_id}"
                             
                             verification_text = f"""
-🔐 <b>التحقق من الجهاز</b>
+<tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> <b>التحقق من الجهاز</b>
 
 عزيزي <b>{full_name}</b>، مرحباً بك! 👋
 
 للحفاظ على نزاهة النظام ومنع التلاعب، يجب التحقق من جهازك أولاً.
 
-<b>⚡️ هذه الخطوة تتم مرة واحدة فقط!</b>
+<b><tg-emoji emoji-id='5345905193005371012'>⚡️</tg-emoji> هذه الخطوة تتم مرة واحدة فقط!</b>
 <b>لماذا التحقق مهم؟</b>
 • ضمان عدالة الإحالات
 • منع الحسابات المزيفة والتلاعب
 
-<b>✅ النظام لا يستخدم بياناتك الشخصية</b>
+<b><tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> النظام لا يستخدم بياناتك الشخصية</b>
 
 <b>اضغط على زر تحقق من جهازك لبدأ التحقق:</b>
 """
                             
                             keyboard = [[InlineKeyboardButton(
-                                "🔐 تحقق من جهازك",
+                                "<tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> تحقق من جهازك",
                                 web_app=WebAppInfo(url=verify_url)
                             )]]
                             
@@ -1882,7 +1882,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 • <b>{first_channel['channel_name']}</b>
 
-بعد الاشتراك، اضغط على زر "✅ تحققت من الاشتراك" أدناه.
+بعد الاشتراك، اضغط على زر "<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> تحققت من الاشتراك" أدناه.
 """
             
             keyboard = [
@@ -1968,17 +1968,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                         await context.bot.send_message(
                                             chat_id=final_referrer,
                                             text=f"""
-🎉 <b>تهانينا! إحالة جديدة ناجحة!</b>
+<tg-emoji emoji-id='5388674524583572460'>🎉</tg-emoji> <b>تهانينا! إحالة جديدة ناجحة!</b>
 
-✅ المستخدم <b>{full_name}</b> انضم عبر رابطك!
+<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> المستخدم <b>{full_name}</b> انضم عبر رابطك!
 
-🎁 <b>حصلت على لفة مجانية!</b>
-🎰 <b>لفاتك المتاحة:</b> {current_spins + 1}
+<tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji> <b>حصلت على لفة مجانية!</b>
+<tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
 
-👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
-⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
 
-<b>استمر في الدعوة واربح المزيد! 🚀</b>
+<b>استمر في الدعوة واربح المزيد! <tg-emoji emoji-id='5188481279963715781'>🚀</tg-emoji></b>
 """,
                                             parse_mode=ParseMode.HTML
                                         )
@@ -1991,12 +1991,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                         await context.bot.send_message(
                                             chat_id=final_referrer,
                                             text=f"""
-✅ <b>إحالة جديدة ناجحة!</b>
+<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> <b>إحالة جديدة ناجحة!</b>
 
 👤 المستخدم <b>{full_name}</b> انضم عبر رابطك!
 
-👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
-⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
 
 <b>استمر في الدعوة! 💪</b>
 """,
@@ -2025,24 +2025,24 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # رسالة الترحيب
     welcome_text = f"""
-🐼 <b>مرحباً بك في Panda Giveaways!</b> 🎁
+<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Panda Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! 🌟
 
-💰 <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
-🎰 <b>لفاتك المتاحة:</b> {db_user.available_spins}
-👥 <b>إحالاتك:</b> {db_user.total_referrals}
+<tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
+<tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
+<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إحالاتك:</b> {db_user.total_referrals}
 
-<b>🎯 كيف تربح؟</b>
+<b><tg-emoji emoji-id='5461009483314517035'>🎯</tg-emoji> كيف تربح؟</b>
 • قم بدعوة أصدقائك (كل {SPINS_PER_REFERRALS} إحالات = لفة مجانية)
 • أكمل المهام اليومية
 • إلعب عجلة الحظ واربح TON!
 • إسحب أرباحك مباشرة إلى محفظتك
 
-🔗 <b>رابط الدعوة الخاص بك:</b>
+<tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> <b>رابط الدعوة الخاص بك:</b>
 <code>{user_ref_link}</code>
 
-<b>🚀 ابدأ الآن واستمتع بالأرباح!</b>
+<b><tg-emoji emoji-id='5188481279963715781'>🚀</tg-emoji> ابدأ الآن واستمتع بالأرباح!</b>
 """
     
     # الأزرار
@@ -2050,7 +2050,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Panda Giveaway",
+        "<tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> افتح Panda Giveaway",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
@@ -2086,32 +2086,32 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالج أمر /help"""
     help_text = """
-🐼 <b>مساعدة Panda Giveaways</b>
+<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مساعدة Panda Giveaways</b>
 
-<b>📋 الأوامر المتاحة:</b>
+<b><tg-emoji emoji-id='5197269100878907942'>📋</tg-emoji> الأوامر المتاحة:</b>
 /start - بدء البوت
 /help - عرض المساعدة
 /stats - إحصائياتك الشخصية
 /referrals - عرض إحالاتك
 /balance - عرض رصيدك
 
-<b>🎰 كيف تعمل عجلة الحظ؟</b>
+<b><tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> كيف تعمل عجلة الحظ؟</b>
 • افتح Mini App من زر "افتح Panda Giveaway"
 • إستخدم لفاتك المتاحة
 • اربح TON فوراً!
 
-<b>👥 نظام الإحالات:</b>
+<b><tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> نظام الإحالات:</b>
 • كل {SPINS_PER_REFERRALS} إحالات صحيحة = لفة مجانية
 • شارك رابطك مع الأصدقاء
 • تأكد من اشتراكهم بالقنوات
 
-<b>💰 السحوبات:</b>
+<b><tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> السحوبات:</b>
 • الحد الأدنى: {MIN_WITHDRAWAL_AMOUNT} TON
 • ادخل من قسم السحب في Mini App
 • اربط محفظة TON أو رقم فودافون كاش
 • انتظر موافقة الأدمن
 
-<b>📞 للدعم:</b>
+<b><tg-emoji emoji-id='5472201536727686043'>📞</tg-emoji> للدعم:</b>
 تواصل مع @YourSupportBot
 """
     
@@ -2134,25 +2134,25 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     next_spin_in = SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS)
     
     stats_text = f"""
-📊 <b>إحصائياتك الشخصية</b>
+<tg-emoji emoji-id='5422360266618707867'>📊</tg-emoji> <b>إحصائياتك الشخصية</b>
 
 👤 <b>الاسم:</b> {user.full_name}
 🆔 <b>المعرف:</b> @{user.username}
 
-💰 <b>الرصيد:</b> {user.balance:.4f} TON
-🎰 <b>لفات متاحة:</b> {user.available_spins}
-🔢 <b>إجمالي اللفات:</b> {user.total_spins}
+<tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>الرصيد:</b> {user.balance:.4f} TON
+<tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> <b>لفات متاحة:</b> {user.available_spins}
+<tg-emoji emoji-id='5226513232549664618'>🔢</tg-emoji> <b>إجمالي اللفات:</b> {user.total_spins}
 
-👥 <b>الإحالات:</b> {user.total_referrals}
-⏳ <b>متبقي للفة القادمة:</b> {next_spin_in} إحالات
+<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>الإحالات:</b> {user.total_referrals}
+<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {next_spin_in} إحالات
 
-📅 <b>عضو منذ:</b> {user.created_at[:10]}
-⚡ <b>آخر نشاط:</b> {user.last_active[:10] if user.last_active else 'N/A'}
+<tg-emoji emoji-id='5373236586760651455'>📅</tg-emoji> <b>عضو منذ:</b> {user.created_at[:10]}
+<tg-emoji emoji-id='5345905193005371012'>⚡️</tg-emoji> <b>آخر نشاط:</b> {user.last_active[:10] if user.last_active else 'N/A'}
 """
     
     keyboard = [[
-        InlineKeyboardButton("🎰 افتح Mini App", web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")),
-        InlineKeyboardButton("🔗 رابط الدعوة", callback_data="get_ref_link")
+        InlineKeyboardButton("<tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> افتح Mini App", web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")),
+        InlineKeyboardButton("<tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> رابط الدعوة", callback_data="get_ref_link")
     ]]
     
     await update.message.reply_text(
@@ -2177,27 +2177,27 @@ async def referrals_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     valid_refs = sum(1 for r in referrals if r['is_valid'])
     
     ref_text = f"""
-👥 <b>قائمة المدعوين</b>
+<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>قائمة المدعوين</b>
 
-📊 <b>إجمالي الإحالات:</b> {total_refs}
-✅ <b>الإحالات الصحيحة:</b> {valid_refs}
-🎰 <b>لفاتك المتاحة:</b> {user.available_spins}
-⏳ <b>متبقي للفة القادمة:</b> {SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS) if valid_refs > 0 else SPINS_PER_REFERRALS}
+<tg-emoji emoji-id='5422360266618707867'>📊</tg-emoji> <b>إجمالي الإحالات:</b> {total_refs}
+<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> <b>الإحالات الصحيحة:</b> {valid_refs}
+<tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {user.available_spins}
+<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS) if valid_refs > 0 else SPINS_PER_REFERRALS}
 
 """
     
     if referrals:
         ref_text += "\n<b>آخر 10 مدعوين:</b>\n\n"
         for i, ref in enumerate(referrals[:10], 1):
-            status = "✅" if ref['is_valid'] else "⏳"
+            status = "<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji>" if ref['is_valid'] else "<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji>"
             name = ref['full_name']
             username = f"@{ref['username']}" if ref['username'] else ""
             ref_text += f"{i}. {status} <b>{name}</b> {username}\n"
     else:
-        ref_text += "\n<i>لم تقم بدعوة أحد بعد! شارك رابط الدعوة الآن 🚀</i>"
+        ref_text += "\n<i>لم تقم بدعوة أحد بعد! شارك رابط الدعوة الآن <tg-emoji emoji-id='5188481279963715781'>🚀</tg-emoji></i>"
     
     ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
-    ref_text += f"\n\n🔗 <b>رابط الدعوة الخاص بك:</b>\n<code>{ref_link}</code>"
+    ref_text += f"\n\n<tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> <b>رابط الدعوة الخاص بك:</b>\n<code>{ref_link}</code>"
     
     keyboard = [[
         InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Panda%20Giveaways%20واربح%20TON!")
@@ -2219,7 +2219,7 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     balance_text = f"""
-💰 <b>رصيدك</b>
+<tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>رصيدك</b>
 
 <b>الرصيد الحالي:</b> {user.balance:.4f} TON
 <b>الحد الأدنى للسحب:</b> {MIN_WITHDRAWAL_AMOUNT} TON
@@ -2227,14 +2227,14 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """
     
     if user.balance >= MIN_WITHDRAWAL_AMOUNT:
-        balance_text += "✅ يمكنك السحب الآن من Mini App!"
+        balance_text += "<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> يمكنك السحب الآن من Mini App!"
     else:
         needed = MIN_WITHDRAWAL_AMOUNT - user.balance
-        balance_text += f"⏳ تحتاج {needed:.4f} TON إضافية للسحب"
+        balance_text += f"<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> تحتاج {needed:.4f} TON إضافية للسحب"
     
     keyboard = [[
-        InlineKeyboardButton("💸 اسحب الآن", web_app=WebAppInfo(url=f"{MINI_APP_URL}/withdraw?user_id={user_id}")),
-        InlineKeyboardButton("🎰 العب واربح", web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}"))
+        InlineKeyboardButton("<tg-emoji emoji-id='5260270009048906733'>💸</tg-emoji> اسحب الآن", web_app=WebAppInfo(url=f"{MINI_APP_URL}/withdraw?user_id={user_id}")),
+        InlineKeyboardButton("<tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> العب واربح", web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}"))
     ]]
     
     await update.message.reply_text(
@@ -2875,7 +2875,7 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
 
 • <b>{first_channel['channel_name']}</b>
 
-بعد الاشتراك، اضغط على زر "✅ تحققت من الاشتراك" مرة أخرى.
+بعد الاشتراك، اضغط على زر "<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> تحققت من الاشتراك" مرة أخرى.
 """
             
             keyboard = [
@@ -3276,12 +3276,12 @@ async def approve_withdrawal_callback(update: Update, context: ContextTypes.DEFA
                     await context.bot.send_message(
                         chat_id=withdrawal['user_id'],
                         text=f"""
-🎉 <b>تم تأكيد السحب!</b>
+<tg-emoji emoji-id='5388674524583572460'>🎉</tg-emoji> <b>تم تأكيد السحب!</b>
 
-💰 تم تحويل {withdrawal['amount']:.4f} TON إلى محفظتك
-🔐 TX Hash: <code>{tx_hash}</code>
+<tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> تم تحويل {withdrawal['amount']:.4f} TON إلى محفظتك
+<tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> TX Hash: <code>{tx_hash}</code>
 
-شكراً لاستخدامك Panda Giveaways! 🐼
+شكراً لاستخدامك Panda Giveaways! <tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji>
 """,
                         parse_mode=ParseMode.HTML
                     )
