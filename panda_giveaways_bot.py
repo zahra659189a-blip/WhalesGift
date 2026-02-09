@@ -1810,23 +1810,21 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             # التوكن سيُجلب من السيرفر باستخدام Telegram authentication
                             
                             verification_text = f"""
-<tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> <b>التحقق من الجهاز</b>
+🔐 <b>التحقق من الجهاز</b>
 
-عزيزي <b>{full_name}</b>، مرحباً بك! <tg-emoji emoji-id='5220088545674856883'>👋</tg-emoji>
+عزيزي <b>{full_name}</b>، مرحباً بك! 👋
 
 للحفاظ على نزاهة النظام ومنع التلاعب، يجب التحقق من جهازك أولاً.
 
-<b><tg-emoji emoji-id='5345905193005371012'>⚡️</tg-emoji> هذه الخطوة تتم مرة واحدة فقط!</b>
+<b>⚡️ هذه الخطوة تتم مرة واحدة فقط!</b>
+
 <b>لماذا التحقق مهم؟</b>
 • ضمان عدالة الإحالات
 • منع الحسابات المزيفة والتلاعب
 
-<b><tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> النظام لا يستخدم بياناتك الشخصية</b>
+<b>✅ النظام لا يستخدم بياناتك الشخصية</b>
 
-<b>اضغط على الرابط أدناه للتحقق:</b>
-{MINI_APP_URL}/fp?user_id={user_id}
-
-بعد التحقق، ارجع واكتب /start مرة أخرى.
+اضغط على الزر أدناه للبدء 👇
 """
                             
                             # محاولة إرسال رسالة مع WebApp أولاً
@@ -1850,14 +1848,42 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                 logger.info(f"✅ Verification message sent with WebApp to user {user_id}")
                                 
                             except BadRequest as br:
-                                # إذا فشل WebApp، نرسل رسالة عادية مع رابط
-                                logger.warning(f"⚠️ WebApp failed for user {user_id}: {br}. Sending regular link.")
+                                # إذا فشل WebApp، نرسل رسالة بسيطة مع رابط URL
+                                logger.warning(f"⚠️ WebApp failed for user {user_id}: {br}. Sending simple link.")
                                 
-                                await update.message.reply_text(
-                                    verification_text,
-                                    parse_mode=ParseMode.HTML,
-                                    disable_web_page_preview=True
-                                )
+                                simple_text = f"""
+🔐 *التحقق من الجهاز*
+
+عزيزي *{full_name}*، مرحباً بك! 👋
+
+للحفاظ على نزاهة النظام، يجب التحقق من جهازك أولاً.
+
+⚡️ *هذه الخطوة تتم مرة واحدة فقط!*
+
+اضغط على الرابط للتحقق:
+{MINI_APP_URL}/fp?user_id={user_id}
+
+بعد التحقق، ارجع واكتب /start مرة أخرى.
+"""
+                                
+                                keyboard = [[InlineKeyboardButton(
+                                    "🔐 افتح صفحة التحقق",
+                                    url=f"{MINI_APP_URL}/fp?user_id={user_id}"
+                                )]]
+                                
+                                try:
+                                    await update.message.reply_text(
+                                        simple_text,
+                                        parse_mode=ParseMode.MARKDOWN,
+                                        reply_markup=InlineKeyboardMarkup(keyboard),
+                                        disable_web_page_preview=False
+                                    )
+                                except Exception as e2:
+                                    # آخر محاولة: رسالة نص بسيط بدون أي تنسيق
+                                    logger.error(f"❌ All formatting failed for user {user_id}: {e2}. Sending plain text.")
+                                    await update.message.reply_text(
+                                        f"🔐 التحقق من الجهاز\n\nعزيزي {full_name}، مرحباً بك!\n\nللمتابعة، افتح هذا الرابط للتحقق:\n{MINI_APP_URL}/fp?user_id={user_id}\n\nبعد التحقق، ارجع واكتب /start مرة أخرى."
+                                    )
                             
                             # تسجيل النشاط
                             db.log_activity(user_id, "verification_required", f"Referrer: {referrer_id}")
