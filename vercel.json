@@ -12,6 +12,10 @@
       "destination": "/fp.html"
     },
     {
+      "source": "/fp",
+      "destination": "/fp.html"
+    },
+    {
       "source": "/admin(.*)",
       "destination": "/admin.html"
     },
