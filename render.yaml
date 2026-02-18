@@ -2,6 +2,7 @@ services:
   # Backend API Service - Flask Web + Telegram Bot
   - type: web
     name: arabton-backend
+    runtime: python
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: bash start_render.sh
