@@ -1,6 +1,6 @@
 """
 ╔══════════════════════════════════════════════════════════════════╗
-║                  🐼 PANDA GIVEAWAYS BOT 🐼                       ║
+║                  🐼 ARAB TON GIFTS BOT 🐼                       ║
 ║           Professional Telegram Giveaway & Rewards Bot           ║
 ║                    Version 1.0.0 - Ultra Secure                  ║
 ╚══════════════════════════════════════════════════════════════════╝
@@ -33,6 +33,17 @@ from typing import Optional, Dict, List, Set
 from dataclasses import dataclass
 from enum import Enum
 import sqlite3
+
+# ═══════════════════════════════════════════════════════════════
+# 🔧 FIX HTTPCORE PYTHON 3.14 COMPATIBILITY
+# ═══════════════════════════════════════════════════════════════
+import sys
+if sys.version_info >= (3, 14):
+    # Patch typing.Union to avoid httpcore error
+    import typing
+    if not hasattr(typing.Union, '__module__'):
+        typing.Union.__module__ = 'typing'
+    print("✅ Applied Python 3.14 compatibility patch")
 
 # ═══════════════════════════════════════════════════════════════
 # 📦 IMPORTS
@@ -92,8 +103,8 @@ load_dotenv()
 
 # 🤖 معلومات البوت
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-BOT_USERNAME = os.getenv("BOT_USERNAME", "PandaGiveawaysBot")
-MINI_APP_URL = os.getenv("MINI_APP_URL", "https://panda-giveawaays.vercel.app")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "@Arab_ton_bot")
+MINI_APP_URL = os.getenv("MINI_APP_URL", "https://arabton.vercel.app")
 
 # 👥 الأدمن (يتم قراءتهم من .env)
 ADMIN_IDS_STR = os.getenv("ADMIN_IDS", "")
@@ -107,12 +118,14 @@ MANDATORY_CHANNELS = []
 
 # 🎁 إعدادات عجلة الحظ (النسب والجوائز - مطابقة لـ config.js)
 WHEEL_PRIZES = [
-    {"name": "0.05 TON", "amount": 0.05, "probability": 94},   # 94%
-    {"name": "0.1 TON", "amount": 0.1, "probability": 5},      # 5%
-    {"name": "0.15 TON", "amount": 0.15, "probability": 1},    # 1%
-    {"name": "0.5 TON", "amount": 0.5, "probability": 0},      # 0%
-    {"name": "1.0 TON", "amount": 1.0, "probability": 0},      # 0%
-    {"name": "0.25 TON", "amount": 0.25, "probability": 0}     # 0%
+    {"name": "0.25 TON", "amount": 0.25, "probability": 94},   
+    {"name": "0.5 TON", "amount": 0.5, "probability": 5},      
+    {"name": "1 TON", "amount": 1, "probability": 1},    
+    {"name": "1.5 TON", "amount": 1.5, "probability": 0},      
+    {"name": "2 TON", "amount": 2, "probability": 0},      
+    {"name": "3 TON", "amount": 3, "probability": 0},
+    {"name": "NFT", "amount": 0, "probability": 0},    
+    {"name": "8 TON", "amount": 8, "probability": 0},      
 ]
 
 # 💰 إعدادات الإحالات والمهام
@@ -135,17 +148,17 @@ SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # PostgreSQL
 # Use absolute path on Render to ensure consistency with Flask app
 if os.environ.get('RENDER'):
-    DATABASE_PATH = os.getenv("DATABASE_PATH", "/opt/render/project/src/panda_giveaways.db")
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "/opt/render/project/src/Arab_ton.db")
 else:
-    DATABASE_PATH = os.getenv("DATABASE_PATH", "panda_giveaways.db")
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "Arab_ton.db")
 
 print(f"📂 Bot using database at: {DATABASE_PATH}")
 
 # 🌐 API Configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "https://pandagiveawaays.onrender.com/api")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://panda-giveawaays.vercel.app")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://arabton.onrender.com/api")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://arabton.vercel.app")
 
-# � إعدادات البرودكاست
+# إعدادات البرودكاست
 BROADCAST_CONCURRENCY = 25  # عدد الرسائل المتزامنة
 BROADCAST_BATCH_SIZE = 100  # حجم الدفعة
 BROADCAST_BATCH_DELAY = 1.0  # تأخير بين الدفعات (ثانية)
@@ -168,7 +181,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
     handlers=[
-        logging.FileHandler('panda_bot.log', encoding='utf-8'),
+        logging.FileHandler('Arab_ton_bot.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -222,7 +235,7 @@ class DatabaseManager:
     
     def __init__(self, db_path: str = DATABASE_PATH):
         self.db_path = db_path
-        logger.info("🗄️ Initializing Panda Giveaways Database...")
+        logger.info("🗄️ Initializing Arab ton gifts Database...")
         self.init_database()
         logger.info("✅ Database initialized successfully")
     
@@ -782,7 +795,7 @@ class DatabaseManager:
             tx_hash = await ton_wallet.send_ton(
                 withdrawal_dict['wallet_address'],
                 withdrawal_dict['amount'],
-                f"Panda Giveaways Withdrawal #{withdrawal_id}"
+                f"Arab ton gifts Withdrawal #{withdrawal_id}"
             )
             
             if tx_hash:
@@ -799,7 +812,7 @@ class DatabaseManager:
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> تم تحويل {withdrawal_dict['amount']:.4f} TON إلى محفظتك
 <tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> TX Hash: <code>{tx_hash}</code>
 
-شكراً لاستخدامك Panda Giveaways! <tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji>
+شكراً لاستخدامك Arab ton gifts! <tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji>
 """,
                         parse_mode=ParseMode.HTML
                     )
@@ -1664,7 +1677,7 @@ async def inline_query_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     # إذا كان النص فارغاً، استخدم النص الافتراضي
     if not query:
         ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
-        query = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+        query = f"🎁 انضم لـ Arab ton gifts واربح TON مجاناً!\n\n{ref_link}"
     
     results = [
         InlineQueryResultArticle(
@@ -2071,7 +2084,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # رسالة الترحيب
     welcome_text = f"""
-<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Panda Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Arab ton gifts!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
 
@@ -2096,13 +2109,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "افتح Panda Giveaway 🎁",
+        "افتح Arab ton Gifts 🎁",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     # زر مشاركة رابط الدعوة (نسخ) - تغيير من startapp إلى start
     ref_link = generate_referral_link(user_id)
-    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Arab ton gifts واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
@@ -2111,7 +2124,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # زر إثباتات الدفع
     keyboard.append([InlineKeyboardButton(
         "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        url="https://t.me/ArbTon_Draws"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
@@ -2132,7 +2145,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالج أمر /help"""
     help_text = """
-<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مساعدة Panda Giveaways</b>
+<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مساعدة Arab ton gifts</b>
 
 <b><tg-emoji emoji-id='5197269100878907942'>📋</tg-emoji> الأوامر المتاحة:</b>
 /start - بدء البوت
@@ -2142,7 +2155,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /balance - عرض رصيدك
 
 <b><tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> كيف تعمل عجلة الحظ؟</b>
-• افتح Mini App من زر "افتح Panda Giveaway"
+• افتح Mini App من زر "افتح Arab ton Gifts"
 • إستخدم لفاتك المتاحة
 • اربح TON فوراً!
 
@@ -2158,7 +2171,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • انتظر موافقة الأدمن
 
 <b><tg-emoji emoji-id='5472201536727686043'>📞</tg-emoji> للدعم:</b>
-تواصل مع @OMAR_M_SHEHATA
+تواصل مع @FPIOG
 """
     
     await update.message.reply_text(help_text.format(
@@ -2246,7 +2259,7 @@ async def referrals_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ref_text += f"\n\n<tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> <b>رابط الدعوة الخاص بك:</b>\n<code>{ref_link}</code>"
     
     keyboard = [[
-        InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Panda%20Giveaways%20واربح%20TON!")
+        InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Arab%20ton%20Gifts%20واربح%20TON!")
     ]]
     
     await update.message.reply_text(
@@ -2316,7 +2329,7 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         verification_enabled = True
     
     admin_text = f"""
-<tg-emoji emoji-id='5776076747866904719'>⚙️</tg-emoji> <b>لوحة المالكين - Panda Giveaways</b>
+<tg-emoji emoji-id='5776076747866904719'>⚙️</tg-emoji> <b>لوحة المالكين - Arab ton gifts</b>
 
 <tg-emoji emoji-id='5422360266618707867'>📊</tg-emoji> <b>الإحصائيات العامة:</b>
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> إجمالي المستخدمين: {stats['total_users']}
@@ -2488,7 +2501,7 @@ async def admin_tasks_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     
     # جلب القنوات والمهام من API
     try:
-        response = requests.get(f"{MINI_APP_URL}/api/admin/channels")
+        response = requests.get(f"{API_BASE_URL}/admin/channels")
         channels_data = response.json()
         channels = channels_data.get('data', [])
     except:
@@ -2588,7 +2601,7 @@ async def create_backup_callback(update: Update, context: ContextTypes.DEFAULT_T
         
         # إنشاء اسم الملف مع التاريخ والوقت
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_filename = f"panda_backup_{timestamp}.db"
+        backup_filename = f"Arab_ton_backup_{timestamp}.db"
         backup_path = os.path.join(os.path.dirname(DATABASE_PATH), backup_filename)
         
         # نسخ قاعدة البيانات
@@ -2833,7 +2846,7 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
         db_user = db.create_or_update_user(user_id, username, full_name)
     
     welcome_text = f"""
-<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Panda Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Arab ton gifts!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
 
@@ -2852,12 +2865,12 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
     
     keyboard = []
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Panda Giveaway",
+        "🎰 افتح Arab ton Gifts",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
-    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Arab ton gifts واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
@@ -2865,7 +2878,7 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
     
     keyboard.append([InlineKeyboardButton(
         "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        url="https://t.me/Arab_ton_payments"
     )])
     
     if is_admin(user_id):
@@ -3084,7 +3097,7 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     
     # رسالة الترحيب
     welcome_text = f"""
-<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Panda Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Arab ton gifts!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
 
@@ -3106,13 +3119,13 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Panda Giveaway",
+        "🎰 افتح Arab ton Gifts",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     # زر مشاركة رابط الدعوة
     ref_link = generate_referral_link(user_id)
-    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Arab ton gifts واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
@@ -3121,7 +3134,7 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     # زر إثباتات الدفع
     keyboard.append([InlineKeyboardButton(
         "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        url="https://t.me/Arab_ton_payments"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
@@ -3306,7 +3319,7 @@ async def approve_withdrawal_callback(update: Update, context: ContextTypes.DEFA
             tx_hash = await ton_wallet.send_ton(
                 withdrawal['wallet_address'],
                 withdrawal['amount'],
-                f"Panda Giveaways Withdrawal #{withdrawal_id}"
+                f"Arab ton gifts Withdrawal #{withdrawal_id}"
             )
             
             if tx_hash:
@@ -3331,7 +3344,7 @@ async def approve_withdrawal_callback(update: Update, context: ContextTypes.DEFA
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> تم تحويل {withdrawal['amount']:.4f} TON إلى محفظتك
 <tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> TX Hash: <code>{tx_hash}</code>
 
-شكراً لاستخدامك Panda Giveaways! <tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji>
+شكراً لاستخدامك Arab ton gifts! <tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji>
 """,
                         parse_mode=ParseMode.HTML
                     )
@@ -4139,17 +4152,19 @@ async def cancel_add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # 🌐 FLASK SERVER FOR VERIFICATION
 # ═══════════════════════════════════════════════════════════════
 
-verification_app = Flask(__name__)
+# على Render، Flask server بيتشغل من app.py - مش محتاجين واحد تاني
+if not os.environ.get('RENDER'):
+    verification_app = Flask(__name__)
 
-@verification_app.route('/', methods=['GET'])
-def health_check():
-    """فحص صحة الخادم"""
-    return jsonify({
-        'status': 'ok',
-        'service': 'Panda Giveaways Verification Server',
-        'timestamp': datetime.now().isoformat(),
-        'endpoints': ['/verify-subscription', '/check-bot-admin', '/device-verified']
-    })
+    @verification_app.route('/', methods=['GET'])
+    def health_check():
+        """فحص صحة الخادم"""
+        return jsonify({
+            'status': 'ok',
+            'service': 'Arab ton gifts Verification Server',
+            'timestamp': datetime.now().isoformat(),
+            'endpoints': ['/verify-subscription', '/check-bot-admin', '/device-verified']
+        })
 
 @verification_app.route('/verify-subscription', methods=['POST'])
 def verify_subscription():
@@ -4500,7 +4515,7 @@ def send_welcome_message():
             import requests as req
             
             welcome_text = f"""
-🎉 <b>مرحباً بك في Panda Giveaways!</b>
+🎉 <b>مرحباً بك في Arab ton gifts</b>
 
 <b>{full_name}</b>، سعداء بانضمامك! 🎁
 
@@ -4922,27 +4937,31 @@ def main():
         logger.error("❌ Please set your BOT_TOKEN!")
         return
     
-    logger.info("🐼 Starting Panda Giveaways Bot...")
+    logger.info("🐼 Starting Arab ton gifts Bot...")
     logger.info(f"🤖 Bot Username: @{BOT_USERNAME}")
     logger.info(f"🌐 Mini App URL: {MINI_APP_URL}")
     logger.info(f"👥 Admins: {ADMIN_IDS}")
     
-    # تشغيل Flask server في thread منفصل مع فحص إضافي
-    flask_thread = threading.Thread(target=run_flask_server, daemon=True)
-    flask_thread.start()
-    
-    # انتظار قصير للتأكد من تشغيل الخادم
-    import time
-    time.sleep(2)
-    
-    # فحص بسيط لحالة الخادم
-    try:
-        import requests as req
-        test_response = req.get('http://localhost:8081/', timeout=5)
-        logger.info("✅ Flask verification server started successfully on port 8081")
-    except Exception as server_check_error:
-        logger.warning(f"⚠️ Flask server health check failed: {server_check_error}")
-        logger.info("🔄 Server will continue to attempt startup...")
+    # تشغيل Flask server في thread منفصل (فقط إذا لم نكن على Render)
+    # على Render، app.py هو اللي بيشغل Flask
+    if not os.environ.get('RENDER'):
+        flask_thread = threading.Thread(target=run_flask_server, daemon=True)
+        flask_thread.start()
+        
+        # انتظار قصير للتأكد من تشغيل الخادم
+        import time
+        time.sleep(2)
+        
+        # فحص بسيط لحالة الخادم
+        try:
+            import requests as req
+            test_response = req.get('http://localhost:8081/', timeout=5)
+            logger.info("✅ Flask verification server started successfully on port 8081")
+        except Exception as server_check_error:
+            logger.warning(f"⚠️ Flask server health check failed: {server_check_error}")
+            logger.info("🔄 Server will continue to attempt startup...")
+    else:
+        logger.info("✅ Running on Render - Flask server handled by app.py")
     
     # اختبار الاتصال بـ Telegram
     try:
