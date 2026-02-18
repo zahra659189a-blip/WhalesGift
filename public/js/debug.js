@@ -5,7 +5,7 @@
 // استرجاع الـ logs القديمة من localStorage
 window.appStartupLogs = [];
 try {
-    const savedLogs = localStorage.getItem('pandaStartupLogs');
+    const savedLogs = localStorage.getItem('arabtonStartupLogs');
     if (savedLogs) {
         window.appStartupLogs = JSON.parse(savedLogs);
     }
@@ -22,12 +22,12 @@ function saveLogs() {
     try {
         // حفظ آخر 500 log فقط لتجنب امتلاء الذاكرة
         const logsToSave = window.appStartupLogs.slice(-500);
-        localStorage.setItem('pandaStartupLogs', JSON.stringify(logsToSave));
+        localStorage.setItem('arabtonStartupLogs', JSON.stringify(logsToSave));
     } catch (e) {
         // localStorage ممتلئ - نحذف النصف الأول
         try {
             window.appStartupLogs = window.appStartupLogs.slice(250);
-            localStorage.setItem('pandaStartupLogs', JSON.stringify(window.appStartupLogs));
+            localStorage.setItem('arabtonStartupLogs', JSON.stringify(window.appStartupLogs));
         } catch (e2) {
             console.error('Failed to save logs:', e2);
         }
@@ -168,7 +168,7 @@ window.searchLogs = function(keyword) {
 // دالة لمسح جميع الـ logs
 window.clearAllLogs = function() {
     window.appStartupLogs = [];
-    localStorage.removeItem('pandaStartupLogs');
+    localStorage.removeItem('arabtonStartupLogs');
     console.clear();
     window.originalConsoleLog('%c✅ تم مسح جميع الـ logs!', 'color: #00ff88; font-size: 14px; font-weight: bold');
 };
@@ -184,10 +184,10 @@ window.originalConsoleLog('');
 
 // Enable/disable debug modes for production
 const DEBUG_CONFIG = {
-    SHOW_DEBUG_UI: false,         // ✅ إظهار UI الـ debug على الشاشة - مفعل للتشخيص
-    SHOW_SERVER_STATUS: false,    // ✅ إظهار مؤشر حالة السيرفر - مفعل للتشخيص
-    CONSOLE_LOGGING: false,       // ✅ الـ logging في الـ console (مفعل للتشخيص)
-    AUTO_SHOW_ERRORS: false       // ✅ إظهار تلقائي للأخطاء - مفعل للتشخيص
+    SHOW_DEBUG_UI: true,         // ✅ إظهار UI الـ debug على الشاشة - مفعل للتشخيص
+    SHOW_SERVER_STATUS: true,    // ✅ إظهار مؤشر حالة السيرفر - مفعل للتشخيص
+    CONSOLE_LOGGING: true,       // ✅ الـ logging في الـ console (مفعل للتشخيص)
+    AUTO_SHOW_ERRORS: true       // ✅ إظهار تلقائي للأخطاء - مفعل للتشخيص
 };
 
 class DebugError {
