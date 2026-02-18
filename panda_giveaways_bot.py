@@ -4141,17 +4141,19 @@ async def cancel_add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # 🌐 FLASK SERVER FOR VERIFICATION
 # ═══════════════════════════════════════════════════════════════
 
-verification_app = Flask(__name__)
+# على Render، Flask server بيتشغل من app.py - مش محتاجين واحد تاني
+if not os.environ.get('RENDER'):
+    verification_app = Flask(__name__)
 
-@verification_app.route('/', methods=['GET'])
-def health_check():
-    """فحص صحة الخادم"""
-    return jsonify({
-        'status': 'ok',
-        'service': 'Arab ton gifts Verification Server',
-        'timestamp': datetime.now().isoformat(),
-        'endpoints': ['/verify-subscription', '/check-bot-admin', '/device-verified']
-    })
+    @verification_app.route('/', methods=['GET'])
+    def health_check():
+        """فحص صحة الخادم"""
+        return jsonify({
+            'status': 'ok',
+            'service': 'Arab ton gifts Verification Server',
+            'timestamp': datetime.now().isoformat(),
+            'endpoints': ['/verify-subscription', '/check-bot-admin', '/device-verified']
+        })
 
 @verification_app.route('/verify-subscription', methods=['POST'])
 def verify_subscription():
