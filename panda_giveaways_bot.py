@@ -19,18 +19,7 @@
 Created by: Omar Panda
 """
 
-# ═══════════════════════════════════════════════════════════════
-# 🔧 FIX PYTHON 3.14 VENV ISSUE
-# ═══════════════════════════════════════════════════════════════
-import sys
 import os
-
-# على Render: احذف .venv من sys.path عشان نستخدم Python 3.11 الصحيح
-if os.environ.get('RENDER'):
-    # Remove .venv paths from sys.path
-    sys.path = [p for p in sys.path if '.venv' not in p]
-    print("✅ Cleaned .venv from sys.path - using Python 3.11")
-
 import json
 import logging
 import asyncio
@@ -44,6 +33,17 @@ from typing import Optional, Dict, List, Set
 from dataclasses import dataclass
 from enum import Enum
 import sqlite3
+
+# ═══════════════════════════════════════════════════════════════
+# 🔧 FIX HTTPCORE PYTHON 3.14 COMPATIBILITY
+# ═══════════════════════════════════════════════════════════════
+import sys
+if sys.version_info >= (3, 14):
+    # Patch typing.Union to avoid httpcore error
+    import typing
+    if not hasattr(typing.Union, '__module__'):
+        typing.Union.__module__ = 'typing'
+    print("✅ Applied Python 3.14 compatibility patch")
 
 # ═══════════════════════════════════════════════════════════════
 # 📦 IMPORTS
