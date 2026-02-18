@@ -14,6 +14,6 @@ services:
       - key: FRONTEND_URL
         value: https://arabton.vercel.app
     disk:
-      name: arabton-data
+      name: arabton-data-v2
       mountPath: /opt/render/project/src
       sizeGB: 1
