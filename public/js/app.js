@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
-// 🐼 PANDA GIVEAWAYS - MAIN APP
+// 🐼 ARAB TON GIFTS - MAIN APP
 // ═══════════════════════════════════════════════════════════════
 
-console.log('🐼 Panda Giveaways - Main App v2.7 Starting...');
+console.log('🐼 Arab Ton Gifts - Main App v2.7 Starting...');
 console.log('📦 Checking dependencies:');
 console.log('  - TelegramApp:', typeof TelegramApp !== 'undefined' ? '✅' : '❌');
 console.log('  - CONFIG:', typeof CONFIG !== 'undefined' ? '✅' : '❌');
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p style="color: #8b95a1; font-size: 16px; line-height: 1.6; max-width: 400px; margin-bottom: 30px;">
                         هذا التطبيق يعمل داخل تليجرام فقط. يرجى فتحه من خلال البوت.
                     </p>
-                    <a href="https://t.me/${window.CONFIG?.BOT_USERNAME || 'PandaGiveawaysBot'}" 
+                    <a href="https://t.me/${window.CONFIG?.BOT_USERNAME || 'Arab_ton_bot'}" 
                         style="display: inline-flex; align-items: center; gap: 10px; margin-top: 20px; padding: 16px 40px; 
                         background: linear-gradient(135deg, #ffa500, #ff8c00); color: #000; 
                         text-decoration: none; border-radius: 12px; font-weight: bold; 
@@ -320,10 +320,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // إنشاء رابط البوت مع الإحالة إن وجدت
                     let botUrl;
                     if (referrerId) {
-                        botUrl = `https://t.me/${window.CONFIG?.BOT_USERNAME || 'PandaGiveawaysBot'}?start=ref_${referrerId}`;
+                        botUrl = `https://t.me/${window.CONFIG?.BOT_USERNAME || 'Arab_ton_bot'}?start=ref_${referrerId}`;
                         // Using referral link
                     } else {
-                        botUrl = `https://t.me/${window.CONFIG?.BOT_USERNAME || 'PandaGiveawaysBot'}`;
+                        botUrl = `https://t.me/${window.CONFIG?.BOT_USERNAME || 'Arab_ton_bot'}`;
                     }
                     
                     // عرض رسالة مع زر فقط (بدون توجيه تلقائي)
@@ -1093,7 +1093,7 @@ function copyReferralLink() {
 function shareReferralLink() {
     const shareBtn = document.getElementById('share-link-btn');
     const refLink = document.getElementById('referral-link').value;
-    const text = '🐼 انضم معي في Panda Giveaways واربح TON مجاناً! 🎁\n\nاستخدم رابطي الخاص وابدأ الربح الآن:';
+    const text = '🐼 انضم معي في  Arab ton gifts واربح TON مجاناً! 🎁\n\nاستخدم رابطي الخاص وابدأ الربح الآن:';
     
     // Add loading state
     shareBtn.classList.add('loading');
@@ -1532,7 +1532,7 @@ async function sendWelcomeMessage() {
 window.registerPendingReferral = registerPendingReferral;
 window.loadUserData = loadUserData;
 
-console.log('🐼 Panda Giveaways App Loaded');
+console.log('🐼 Arab ton gifts App Loaded');
 
 // ═══════════════════════════════════════════════════════════════
 // 🚀 CONTINUE APP INITIALIZATION AFTER CHANNELS CHECK

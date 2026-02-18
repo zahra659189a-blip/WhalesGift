@@ -4,21 +4,23 @@
 
 const CONFIG = {
     // API Endpoints
-    API_BASE_URL: 'https://pandagiveawaays.onrender.com/api',
-    FRONTEND_URL: 'https://panda-giveawaays.vercel.app/api',
-    BOT_USERNAME: 'PandaGiveawaysBot',
+    API_BASE_URL: 'https://arabton.onrender.com/api',
+    FRONTEND_URL: 'https://arabton.vercel.app/api',
+    BOT_USERNAME: 'Arab_ton_bot',
     
     // Admin IDs (استثناء من التحقق)
-    ADMIN_IDS: [1797127532, 6603009212],
+    ADMIN_IDS: [1797127532,1856926531,1039319795,241576585],
     
     // Wheel Configuration - نفس النسب بالضبط من صفحة الأدمن
     WHEEL_PRIZES: [
-        { name: '0.05 TON', amount: 0.05, probability: 94, color: '#808080', emoji: '🎁', id: 1 },
-        { name: '0.1 TON', amount: 0.1, probability: 5, color: '#FFA500', emoji: '🎁', id: 2 },
-        { name: '0.15 TON', amount: 0.15, probability: 1, color: '#9370DB', emoji: '🎁', id: 3 },
-        { name: '0.5 TON', amount: 0.5, probability: 0, color: '#32CD32', emoji: '🏆', id: 4 },
-        { name: '1.0 TON', amount: 1.0, probability: 0, color: '#FF1493', emoji: '🎁', id: 5 },
-        { name: '0.25 TON', amount: 0.25, probability: 0, color: '#808080', emoji: '🎁', id: 6 }
+        { name: '0.25 TON', amount: 0.25, probability: 94, color: '#808080', emoji: '🎁', id: 1 },
+        { name: '0.5 TON', amount: 0.5, probability: 5, color: '#FFA500', emoji: '🎁', id: 2 },
+        { name: '1 TON', amount: 1, probability: 1, color: '#9370DB', emoji: '🎁', id: 3 },
+        { name: '1.5 TON', amount: 1.5, probability: 0, color: '#32CD32', emoji: '🏆', id: 4 },
+        { name: '2 TON', amount: 2, probability: 0, color: '#FF1493', emoji: '🎁', id: 5 },
+        { name: '3 TON', amount: 3, probability: 0, color: '#4169E1', emoji: '🎁', id: 6 },
+        { name: 'NFT', amount: 0, probability: 0, color: '#FFD700', emoji: '🖼️', id: 7 },
+        { name: '8 TON', amount: 8, probability: 0, color: '#FF4500', emoji: '💎', id: 8 }
     ],
     
     // Referral & Tasks (تذاكر بدلاً من عملات)
@@ -30,12 +32,13 @@ const CONFIG = {
     
     // Required Channels
     REQUIRED_CHANNELS: [
-        { id: '@PandaAdds', name: 'Panda Adds', url: 'https://t.me/PandaAdds' },
-        { id: '@CRYPTO_FLASSH', name: 'Crypto Flash', url: 'https://t.me/CRYPTO_FLASSH' }
+        { id: '@arbton', name: 'Arb Ton', url: 'https://t.me/arbton' },
+        { id: '@arbton2', name: 'ArbTon OTC', url: 'https://t.me/arbton2' },
+        { id: '@arbton_family', name: 'arbton شات', url: 'https://t.me/arbton_family' }
     ],
     
     // Admin IDs
-    ADMIN_IDS: [1797127532, 6603009212],
+    ADMIN_IDS: [1797127532,1856926531,1039319795,241576585],
     
     // Security
     MAX_SPINS_PER_DAY: 100,  // حد أقصى للفات اليومية
