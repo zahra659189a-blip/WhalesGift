@@ -8,7 +8,7 @@ import os
 from datetime import datetime
 
 def update_prizes():
-    db_path = 'panda_giveaways.db'
+    db_path = 'Arab_ton.db'
     
     if not os.path.exists(db_path):
         print("❌ قاعدة البيانات غير موجودة. سيتم إنشاؤها عند تشغيل البوت أول مرة.")

@@ -61,7 +61,7 @@ def check_bot_health():
     # 3. فحص قاعدة البيانات
     print("\n3. 🗄️ Database:")
     try:
-        db_path = 'panda_giveaways.db'
+        db_path = 'Arab_ton.db'
         if os.path.exists(db_path):
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()

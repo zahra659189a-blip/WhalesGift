@@ -9,7 +9,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.7
       - key: DATABASE_PATH
-        value: /opt/render/project/src/panda_giveaways.db
+        value: /opt/render/project/src/Arab_ton.db
       - key: FRONTEND_URL
         value: https://arabton.vercel.app
     disk:

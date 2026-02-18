@@ -440,9 +440,9 @@ else:
 
 # Use absolute path on Render to ensure both bot and Flask use same database
 if os.environ.get('RENDER'):
-    DATABASE_PATH = os.getenv('DATABASE_PATH', '/opt/render/project/src/panda_giveaways.db')
+    DATABASE_PATH = os.getenv('DATABASE_PATH', '/opt/render/project/src/Arab_ton.db')
 else:
-    DATABASE_PATH = os.getenv('DATABASE_PATH', 'panda_giveaways.db')
+    DATABASE_PATH = os.getenv('DATABASE_PATH', 'Arab_ton.db')
 
 print(f"📂 Using database at: {DATABASE_PATH}")
 

@@ -137,9 +137,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # PostgreSQL
 # Use absolute path on Render to ensure consistency with Flask app
 if os.environ.get('RENDER'):
-    DATABASE_PATH = os.getenv("DATABASE_PATH", "/opt/render/project/src/panda_giveaways.db")
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "/opt/render/project/src/Arab_ton.db")
 else:
-    DATABASE_PATH = os.getenv("DATABASE_PATH", "panda_giveaways.db")
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "Arab_ton.db")
 
 print(f"📂 Bot using database at: {DATABASE_PATH}")
 
@@ -170,7 +170,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
     handlers=[
-        logging.FileHandler('panda_bot.log', encoding='utf-8'),
+        logging.FileHandler('Arab_ton_bot.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -2098,7 +2098,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "افتح Panda Giveaway 🎁",
+        "افتح Arab ton Gifts 🎁",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
@@ -2113,7 +2113,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # زر إثباتات الدفع
     keyboard.append([InlineKeyboardButton(
         "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        url="https://t.me/ArbTon_Draws"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
@@ -2144,7 +2144,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /balance - عرض رصيدك
 
 <b><tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> كيف تعمل عجلة الحظ؟</b>
-• افتح Mini App من زر "افتح Panda Giveaway"
+• افتح Mini App من زر "افتح Arab ton Gifts"
 • إستخدم لفاتك المتاحة
 • اربح TON فوراً!
 
@@ -2248,7 +2248,7 @@ async def referrals_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ref_text += f"\n\n<tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> <b>رابط الدعوة الخاص بك:</b>\n<code>{ref_link}</code>"
     
     keyboard = [[
-        InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Panda%20Giveaways%20واربح%20TON!")
+        InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Arab%20ton%20Gifts%20واربح%20TON!")
     ]]
     
     await update.message.reply_text(
@@ -2590,7 +2590,7 @@ async def create_backup_callback(update: Update, context: ContextTypes.DEFAULT_T
         
         # إنشاء اسم الملف مع التاريخ والوقت
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_filename = f"panda_backup_{timestamp}.db"
+        backup_filename = f"Arab_ton_backup_{timestamp}.db"
         backup_path = os.path.join(os.path.dirname(DATABASE_PATH), backup_filename)
         
         # نسخ قاعدة البيانات
@@ -2854,7 +2854,7 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
     
     keyboard = []
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Panda Giveaway",
+        "🎰 افتح Arab ton Gifts",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
@@ -2867,7 +2867,7 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
     
     keyboard.append([InlineKeyboardButton(
         "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        url="https://t.me/Arab_ton_payments"
     )])
     
     if is_admin(user_id):
@@ -3108,7 +3108,7 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Panda Giveaway",
+        "🎰 افتح Arab ton Gifts",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
@@ -3123,7 +3123,7 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     # زر إثباتات الدفع
     keyboard.append([InlineKeyboardButton(
         "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        url="https://t.me/Arab_ton_payments"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
