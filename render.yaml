@@ -7,7 +7,7 @@ services:
     startCommand: bash start_render.sh
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11
+        value: 3.12.7
       - key: DATABASE_PATH
         value: /opt/render/project/src/panda_giveaways.db
       - key: FRONTEND_URL
