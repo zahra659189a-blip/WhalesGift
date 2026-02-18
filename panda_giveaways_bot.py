@@ -412,8 +412,8 @@ def start_telegram_bot():
     """تشغيل البوت في thread منفصل"""
     try:
         print("🤖 Starting Telegram Bot in background...")
-        # استخدام python3 بدلاً من sys.executable لتجنب .venv القديم
-        python_cmd = "python3.11" if os.environ.get('RENDER') else sys.executable
+        # استخدام python بدلاً من python3.11 لضمان الوصول للمكتبات
+        python_cmd = "python" if os.environ.get('RENDER') else sys.executable
         subprocess.Popen(
             [python_cmd, "panda_giveaways_bot.py"],
             stdout=sys.stdout,
