@@ -20,7 +20,7 @@ def run_server():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("🐼 Panda Giveaways - Starting All Services")
+    print("🐼 Arab ton gifts - Starting All Services")
     print("=" * 60)
     
     # تشغيل البوت في thread منفصل

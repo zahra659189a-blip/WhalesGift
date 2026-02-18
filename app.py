@@ -664,8 +664,9 @@ def init_database():
     if count == 0:
         now = datetime.now().isoformat()
         default_channels = [
-            ('@PandaAdds', 'Panda Adds', 'https://t.me/PandaAdds', 1797127532),
-            ('@CRYPTO_FLASSH', 'Crypto Flash', 'https://t.me/CRYPTO_FLASSH', 1797127532)
+            ('@arbton', 'Arb Ton', 'https://t.me/arbton', 1797127532),
+            ('@arbton2', 'ArbTon OTC', 'https://t.me/arbton2', 1797127532),
+            ('@arbton_family', 'arbton شات', 'https://t.me/arbton_family', 1797127532)
         ]
         for channel_id, name, url, admin_id in default_channels:
             cursor.execute("""
@@ -3312,7 +3313,7 @@ def update_settings():
 @app.route('/health')
 def health():
     """Health check لـ Render"""
-    return {'status': 'ok', 'service': 'Panda Giveaways Mini App'}, 200
+    return {'status': 'ok', 'service': 'Arab ton gifts Mini App'}, 200
 
 # ═══════════════════════════════════════════════════════════════
 # 🚀 MAIN ENTRY POINT
