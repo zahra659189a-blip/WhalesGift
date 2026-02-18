@@ -92,8 +92,8 @@ load_dotenv()
 
 # 🤖 معلومات البوت
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-BOT_USERNAME = os.getenv("BOT_USERNAME", "PandaGiveawaysBot")
-MINI_APP_URL = os.getenv("MINI_APP_URL", "https://panda-giveawaays.vercel.app")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "@Arab_ton_bot")
+MINI_APP_URL = os.getenv("MINI_APP_URL", "https://arabton.vercel.app")
 
 # 👥 الأدمن (يتم قراءتهم من .env)
 ADMIN_IDS_STR = os.getenv("ADMIN_IDS", "")
@@ -107,12 +107,14 @@ MANDATORY_CHANNELS = []
 
 # 🎁 إعدادات عجلة الحظ (النسب والجوائز - مطابقة لـ config.js)
 WHEEL_PRIZES = [
-    {"name": "0.05 TON", "amount": 0.05, "probability": 94},   # 94%
-    {"name": "0.1 TON", "amount": 0.1, "probability": 5},      # 5%
-    {"name": "0.15 TON", "amount": 0.15, "probability": 1},    # 1%
-    {"name": "0.5 TON", "amount": 0.5, "probability": 0},      # 0%
-    {"name": "1.0 TON", "amount": 1.0, "probability": 0},      # 0%
-    {"name": "0.25 TON", "amount": 0.25, "probability": 0}     # 0%
+    {"name": "0.25 TON", "amount": 0.25, "probability": 94},   
+    {"name": "0.5 TON", "amount": 0.5, "probability": 5},      
+    {"name": "1 TON", "amount": 1, "probability": 1},    
+    {"name": "1.5 TON", "amount": 1.5, "probability": 0},      
+    {"name": "2 TON", "amount": 2, "probability": 0},      
+    {"name": "3 TON", "amount": 3, "probability": 0},
+    {"name": "NFT", "amount": 0, "probability": 0},    
+    {"name": "8 TON", "amount": 8, "probability": 0},      
 ]
 
 # 💰 إعدادات الإحالات والمهام
@@ -142,10 +144,10 @@ else:
 print(f"📂 Bot using database at: {DATABASE_PATH}")
 
 # 🌐 API Configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "https://pandagiveawaays.onrender.com/api")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://panda-giveawaays.vercel.app")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://arabton.onrender.com/api")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://arabton.vercel.app")
 
-# � إعدادات البرودكاست
+# إعدادات البرودكاست
 BROADCAST_CONCURRENCY = 25  # عدد الرسائل المتزامنة
 BROADCAST_BATCH_SIZE = 100  # حجم الدفعة
 BROADCAST_BATCH_DELAY = 1.0  # تأخير بين الدفعات (ثانية)

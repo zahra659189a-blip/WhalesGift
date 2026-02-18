@@ -11,7 +11,7 @@ services:
       - key: DATABASE_PATH
         value: /opt/render/project/src/panda_giveaways.db
       - key: FRONTEND_URL
-        value: https://panda-giveawaays.vercel.app
+        value: https://arabton.vercel.app
     disk:
       name: panda-data
       mountPath: /opt/render/project/src
