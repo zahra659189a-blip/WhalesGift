@@ -384,7 +384,7 @@ CORS(app,
     resources={
         r"/api/*": {
             "origins": [
-                'https://arabton.vercel.app/',
+                'https://panda-giveawaays.vercel.app',
                 'http://localhost:3000',
                 'http://127.0.0.1:5000',
                 'http://localhost:5000'
@@ -440,9 +440,9 @@ else:
 
 # Use absolute path on Render to ensure both bot and Flask use same database
 if os.environ.get('RENDER'):
-    DATABASE_PATH = os.getenv('DATABASE_PATH', '/opt/render/project/src/Arab_ton.db')
+    DATABASE_PATH = os.getenv('DATABASE_PATH', '/opt/render/project/src/panda_giveaways.db')
 else:
-    DATABASE_PATH = os.getenv('DATABASE_PATH', 'Arab_ton.db')
+    DATABASE_PATH = os.getenv('DATABASE_PATH', 'panda_giveaways.db')
 
 print(f"📂 Using database at: {DATABASE_PATH}")
 
@@ -664,9 +664,8 @@ def init_database():
     if count == 0:
         now = datetime.now().isoformat()
         default_channels = [
-            ('@arbton', 'Arb Ton', 'https://t.me/arbton', 1797127532),
-            ('@arbton2', 'ArbTon OTC', 'https://t.me/arbton2', 1797127532),
-            ('@arbton_family', 'arbton شات', 'https://t.me/arbton_family', 1797127532)
+            ('@PandaAdds', 'Panda Adds', 'https://t.me/PandaAdds', 1797127532),
+            ('@CRYPTO_FLASSH', 'Crypto Flash', 'https://t.me/CRYPTO_FLASSH', 1797127532)
         ]
         for channel_id, name, url, admin_id in default_channels:
             cursor.execute("""
@@ -681,14 +680,12 @@ def init_database():
         now = datetime.now().isoformat()
         # الجوائز مطابقة لـ config.js: 0.05@94%, 0.1@5%, 0.15@1%, باقي 0%
         default_prizes = [
-            ('0.25 TON', 0.25, 94, '#4CAF50', '🎯', 0),
-            ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
-            ('1 TON', 1, 1, '#FF9800', '⭐', 2),
-            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 3),
-            ('2 TON', 2, 0, '#FFD700', '💰', 4),
-            ('3 TON', 3, 0, '#E91E63', '✨', 5),
-            ('NFT', 0, 0, '#00BCD4', '🎨', 6),
-            ('8 TON', 8, 0, '#F44336', '🚀', 7)
+            ('0.05 TON', 0.05, 94, '#4CAF50', '🎯', 0),
+            ('0.1 TON', 0.1, 5, '#2196F3', '💎', 1),
+            ('0.15 TON', 0.15, 1, '#FF9800', '⭐', 2),
+            ('0.5 TON', 0.5, 0, '#9C27B0', '🌟', 3),
+            ('1.0 TON', 1.0, 0, '#FFD700', '💰', 4),
+            ('0.25 TON', 0.25, 0, '#E91E63', '✨', 5)
         ]
         for name, value, prob, color, emoji, pos in default_prizes:
             cursor.execute("""
@@ -839,7 +836,7 @@ def get_bot_stats():
 def index():
     """إعادة توجيه للموقع في Vercel"""
     from flask import redirect
-    return redirect('https://arabton.vercel.app', code=302)
+    return redirect('https://panda-giveawaays.vercel.app', code=302)
 
 @app.route('/admin')
 def admin():
@@ -882,7 +879,7 @@ def admin():
     # ✅ المستخدم أدمن مصادق عليه
     # إرسال init_data للفرونت إند للاستخدام في API requests
     return redirect(
-        f'https://arabton.vercel.app/admin#{request.query_string.decode()}',
+        f'https://panda-giveawaays.vercel.app/admin#{request.query_string.decode()}',
         code=302
     )
 
@@ -975,7 +972,7 @@ def verify_admin_session(authenticated_user_id=None, is_admin=False, admin_usern
 def fingerprint_page():
     """إعادة توجيه لصفحة التحقق من الجهاز"""
     from flask import redirect
-    return redirect('https://arabton.vercel.app/fp.html', code=302)
+    return redirect('https://panda-giveawaays.vercel.app/fp.html', code=302)
 
 # ═══════════════════════════════════════════════════════════════
 # 🔌 API ENDPOINTS
@@ -2892,14 +2889,12 @@ def reset_prizes_to_default(authenticated_user_id, is_admin, admin_username=None
         # إضافة الجوائز الافتراضية (مطابقة لـ config.js)
         now = datetime.now().isoformat()
         default_prizes = [
-            ('0.25 TON', 0.25, 94, '#4CAF50', '🎯', 0),
-            ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
-            ('1 TON', 1, 1, '#FF9800', '⭐', 2),
-            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 3),
-            ('2 TON', 2, 0, '#FFD700', '💰', 4),
-            ('3 TON', 3, 0, '#E91E63', '✨', 5),
-            ('NFT', 0, 0, '#00BCD4', '🎨', 6),
-            ('8 TON', 8, 0, '#F44336', '🚀', 7)
+            ('0.05 TON', 0.05, 94, '#4CAF50', '🎯', 0),
+            ('0.1 TON', 0.1, 5, '#2196F3', '💎', 1),
+            ('0.15 TON', 0.15, 1, '#FF9800', '⭐', 2),
+            ('0.5 TON', 0.5, 0, '#9C27B0', '🌟', 3),
+            ('1.0 TON', 1.0, 0, '#FFD700', '💰', 4),
+            ('0.25 TON', 0.25, 0, '#E91E63', '✨', 5)
         ]
         
         for name, value, prob, color, emoji, pos in default_prizes:
@@ -3313,7 +3308,7 @@ def update_settings():
 @app.route('/health')
 def health():
     """Health check لـ Render"""
-    return {'status': 'ok', 'service': 'Arab ton gifts Mini App'}, 200
+    return {'status': 'ok', 'service': 'Panda Giveaways Mini App'}, 200
 
 # ═══════════════════════════════════════════════════════════════
 # 🚀 MAIN ENTRY POINT
