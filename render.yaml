@@ -2,19 +2,20 @@ services:
   # Backend API Service - Flask Web + Telegram Bot
   - type: web
     name: arabton-backend
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: bash start_render.sh
+    env: docker
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7
       - key: DATABASE_PATH
-        value: /opt/render/project/src/Arab_ton.db
+        value: /app/data/Arab_ton.db
       - key: FRONTEND_URL
         value: https://arabton.vercel.app
       - key: API_BASE_URL
         value: https://arabton.onrender.com/api
+      - key: PORT
+        value: 10000
     disk:
       name: arabton-data
-      mountPath: /opt/render/project/src
+      mountPath: /app/data
       sizeGB: 1
