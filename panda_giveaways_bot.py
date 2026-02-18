@@ -135,8 +135,11 @@ SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
 
 # 📊 إعدادات قاعدة البيانات
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # PostgreSQL
-# Use DATABASE_PATH from environment variable (works with both Docker and native)
-DATABASE_PATH = os.getenv("DATABASE_PATH", "Arab_ton.db")
+# Use absolute path on Render to ensure consistency with Flask app
+if os.environ.get('RENDER'):
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "/opt/render/project/src/Arab_ton.db")
+else:
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "Arab_ton.db")
 
 print(f"📂 Bot using database at: {DATABASE_PATH}")
 

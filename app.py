@@ -438,11 +438,11 @@ else:
 # 🗄️ DATABASE MANAGER
 # ═══════════════════════════════════════════════════════════════
 
-# Use DATABASE_PATH from environment variable (works with both Docker and native)
-DATABASE_PATH = os.getenv('DATABASE_PATH', 'Arab_ton.db')
-
-# Create directory if it doesn't exist (for Docker volumes)
-os.makedirs(os.path.dirname(DATABASE_PATH) if os.path.dirname(DATABASE_PATH) else '.', exist_ok=True)
+# Use absolute path on Render to ensure both bot and Flask use same database
+if os.environ.get('RENDER'):
+    DATABASE_PATH = os.getenv('DATABASE_PATH', '/opt/render/project/src/Arab_ton.db')
+else:
+    DATABASE_PATH = os.getenv('DATABASE_PATH', 'Arab_ton.db')
 
 print(f"📂 Using database at: {DATABASE_PATH}")
 
