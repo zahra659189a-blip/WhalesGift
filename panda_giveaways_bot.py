@@ -2388,7 +2388,7 @@ async def device_verified_callback(update: Update, context: ContextTypes.DEFAULT
 """
         
         keyboard = [
-            [InlineKeyboardButton("🎰 افتح البوت", url=f"https://t.me/{BOT_USERNAME}/app")]
+            [InlineKeyboardButton("🎰 افتح البوت", url=f"https://t.me/{BOT_USERNAME}?start=ref_1797127532")]
         ]
         
         await query.edit_message_text(
