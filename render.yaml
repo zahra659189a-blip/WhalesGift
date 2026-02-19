@@ -3,7 +3,7 @@ services:
   - type: web
     name: arabton-backend
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python fix_httpcore.py
     startCommand: bash start_render.sh
     envVars:
       - key: DATABASE_PATH
