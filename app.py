@@ -469,7 +469,8 @@ def start_telegram_bot():
                 
                 # Check if needs patching
                 if 'Python 3.14 compatibility' not in content:
-                    old = 'setattr(__locals[__name], "__module__", "httpcore")  # noqa'
+                    # Match the exact line with its indentation (4 spaces in httpcore)
+                    old = '    setattr(__locals[__name], "__module__", "httpcore")  # noqa'
                     new = '''    try:
         setattr(__locals[__name], "__module__", "httpcore")  # noqa
     except (AttributeError, TypeError):
