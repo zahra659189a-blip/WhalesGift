@@ -58,7 +58,7 @@ def calculate_egp_amount(ton_amount):
 
 # BOT TOKEN & ADMIN IDS
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
-ADMIN_IDS = [1797127532, 6603009212]
+ADMIN_IDS = [1797127532, 1856926531, 1039319795, 241576585]
 
 # 🔐 ADMIN LOGIN CREDENTIALS (من متغيرات البيئة)
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'OmarShehata@123')
@@ -298,12 +298,12 @@ def require_telegram_auth(f):
     return decorated_function
 
 def send_withdrawal_notification_to_admin(user_id, username, full_name, amount, withdrawal_type, wallet_address, phone_number, withdrawal_id, auto_process=False):
-    """إرسال إشعار للأدمن في البوت عند طلب سحب"""
+    """إرسال إشعار للأدمن في البوت عند طلب سحب - دفع يدوي فقط"""
     try:
-        # إذا كان السحب تلقائي، لا ترسل إشعار
+        # إذا كان السحب تلقائي، لا ترسل إشعار (لكن السحب التلقائي معطل الآن)
         if auto_process:
-            print(f"🤖 Auto-processing enabled - Skipping admin notification for withdrawal #{withdrawal_id}")
-            return
+            print(f"⚠️ Auto-processing is DISABLED - Manual payment required")
+            # نستمر في الإرسال حتى لو كان auto_process=True
         
         # إنشاء رسالة مختلفة حسب نوع السحب
         if withdrawal_type.upper() == 'VODAFONE' or withdrawal_type.upper() == 'VODAFONE_CASH':
@@ -326,8 +326,17 @@ def send_withdrawal_notification_to_admin(user_id, username, full_name, amount, 
 
 ⏰ <b>التاريخ:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 🔢 <b>رقم الطلب:</b> #{withdrawal_id}
+
+⚠️ <b>ملاحظة:</b> الدفع يدوي فقط لأسباب أمنية
             """
         else:
+            # إنشاء رابط دفع مباشر لـ TON مع كومنت
+            # Comment format: W{withdrawal_id}-{user_id}
+            payment_comment = f"W{withdrawal_id}-{user_id}"
+            
+            # رابط TON للدفع المباشر (يفتح في محفظة Tonkeeper)
+            ton_payment_link = f"ton://transfer/{wallet_address}?amount={int(amount * 1_000_000_000)}&text={payment_comment}"
+            
             message = f"""
 🆕 <b>طلب سحب جديد - TON Wallet</b>
 
@@ -339,17 +348,38 @@ def send_withdrawal_notification_to_admin(user_id, username, full_name, amount, 
 💳 <b>عنوان المحفظة:</b>
 <code>{wallet_address}</code>
 
+💬 <b>Comment (مهم!):</b> <code>{payment_comment}</code>
+
 ⏰ <b>التاريخ:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 🔢 <b>رقم الطلب:</b> #{withdrawal_id}
+
+⚠️ <b>تعليمات الدفع:</b>
+1. افتح محفظة TON الخاصة بك
+2. أرسل {amount} TON للعنوان أعلاه
+3. <b>مهم جداً:</b> اكتب Comment: <code>{payment_comment}</code>
+4. البوت سيكتشف المعاملة تلقائياً وينشرها في قناة السحوبات
+
+⚠️ <b>ملاحظة:</b> الدفع التلقائي معطل نهائياً لأسباب أمنية
             """
         
         # إنشاء أزرار inline keyboard
-        keyboard = {
-            "inline_keyboard": [[
-                {"text": "✅ قبول", "callback_data": f"approve_withdrawal_{withdrawal_id}"},
-                {"text": "❌ رفض", "callback_data": f"reject_withdrawal_{withdrawal_id}"}
-            ]]
-        }
+        if withdrawal_type.upper() in ['TON', 'TON_WALLET']:
+            keyboard = {
+                "inline_keyboard": [
+                    [{"text": "💎 فتح في Tonkeeper", "url": ton_payment_link}],
+                    [
+                        {"text": "✅ قبول (بعد الدفع)", "callback_data": f"approve_withdrawal_{withdrawal_id}"},
+                        {"text": "❌ رفض", "callback_data": f"reject_withdrawal_{withdrawal_id}"}
+                    ]
+                ]
+            }
+        else:
+            keyboard = {
+                "inline_keyboard": [[
+                    {"text": "✅ قبول", "callback_data": f"approve_withdrawal_{withdrawal_id}"},
+                    {"text": "❌ رفض", "callback_data": f"reject_withdrawal_{withdrawal_id}"}
+                ]]
+            }
         
         # إرسال الرسالة لكل أدمن باستخدام HTTP API
         for admin_id in ADMIN_IDS:
@@ -384,7 +414,7 @@ CORS(app,
     resources={
         r"/api/*": {
             "origins": [
-                'https://arabton.vercel.app/',
+                'https://arabton.vercel.app',
                 'http://localhost:3000',
                 'http://127.0.0.1:5000',
                 'http://localhost:5000'
@@ -412,10 +442,9 @@ def start_telegram_bot():
     """تشغيل البوت في thread منفصل"""
     try:
         print("🤖 Starting Telegram Bot in background...")
-        # استخدام python بدلاً من python3.11 لضمان الوصول للمكتبات
-        python_cmd = "python" if os.environ.get('RENDER') else sys.executable
+        # تشغيل البوت كـ subprocess
         subprocess.Popen(
-            [python_cmd, "panda_giveaways_bot.py"],
+            [sys.executable, "panda_giveaways_bot.py"],
             stdout=sys.stdout,
             stderr=sys.stderr
         )
@@ -441,9 +470,9 @@ else:
 
 # Use absolute path on Render to ensure both bot and Flask use same database
 if os.environ.get('RENDER'):
-    DATABASE_PATH = os.getenv('DATABASE_PATH', '/opt/render/project/src/Arab_ton.db')
+    DATABASE_PATH = os.getenv('DATABASE_PATH', '/opt/render/project/src/panda_giveaways.db')
 else:
-    DATABASE_PATH = os.getenv('DATABASE_PATH', 'Arab_ton.db')
+    DATABASE_PATH = os.getenv('DATABASE_PATH', 'panda_giveaways.db')
 
 print(f"📂 Using database at: {DATABASE_PATH}")
 
@@ -667,7 +696,7 @@ def init_database():
         default_channels = [
             ('@arbton', 'Arb Ton', 'https://t.me/arbton', 1797127532),
             ('@arbton2', 'ArbTon OTC', 'https://t.me/arbton2', 1797127532),
-            ('@arbton_family', 'arbton شات', 'https://t.me/arbton_family', 1797127532)
+            ('@arbton_family', 'Arb Ton شات', 'https://t.me/arbton_family', 1797127532)
         ]
         for channel_id, name, url, admin_id in default_channels:
             cursor.execute("""
@@ -680,16 +709,16 @@ def init_database():
     count = cursor.fetchone()[0]
     if count == 0:
         now = datetime.now().isoformat()
-        # الجوائز مطابقة لـ config.js: 0.05@94%, 0.1@5%, 0.15@1%, باقي 0%
+        # الجوائز مطابقة لـ config.js: 0.25@94%, 0.5@5%, 1@1%, باقي 0%
         default_prizes = [
             ('0.25 TON', 0.25, 94, '#4CAF50', '🎯', 0),
             ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
             ('1 TON', 1, 1, '#FF9800', '⭐', 2),
             ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 3),
-            ('2 TON', 2, 0, '#FFD700', '💰', 4),
-            ('3 TON', 3, 0, '#E91E63', '✨', 5),
-            ('NFT', 0, 0, '#00BCD4', '🎨', 6),
-            ('8 TON', 8, 0, '#F44336', '🚀', 7)
+            ('2 TON', 2, 0, '#E91E63', '✨', 4),
+            ('3 TON', 3, 0, '#FFD700', '💰', 5),
+            ('NFT', 0, 0, '#00FFFF', '🖼️', 6),
+            ('8 TON', 8, 0, '#FF0000', '🚀', 7)
         ]
         for name, value, prob, color, emoji, pos in default_prizes:
             cursor.execute("""
@@ -1156,12 +1185,14 @@ def perform_spin(authenticated_user_id=None, is_admin=False):
         
         # Define prizes with probabilities (مطابقة لـ config.js)
         prizes = [
-            {'name': '0.05 TON', 'amount': 0.05, 'probability': 94},
-            {'name': '0.1 TON', 'amount': 0.1, 'probability': 5},
-            {'name': '0.15 TON', 'amount': 0.15, 'probability': 1},
-            {'name': '0.5 TON', 'amount': 0.5, 'probability': 0},
-            {'name': '1.0 TON', 'amount': 1.0, 'probability': 0},
-            {'name': '0.25 TON', 'amount': 0.25, 'probability': 0}
+            {'name': '0.25 TON', 'amount': 0.25, 'probability': 94},
+            {'name': '0.5 TON', 'amount': 0.5, 'probability': 5},
+            {'name': '1 TON', 'amount': 1, 'probability': 1},
+            {'name': '1.5 TON', 'amount': 1.5, 'probability': 0},
+            {'name': '2 TON', 'amount': 2, 'probability': 0},
+            {'name': '3 TON', 'amount': 3, 'probability': 0},
+            {'name': 'NFT', 'amount': 0, 'probability': 0},
+            {'name': '8 TON', 'amount': 8, 'probability': 0}
         ]
         
         # Select prize based on probability
@@ -1575,34 +1606,10 @@ def request_withdrawal(authenticated_user_id=None, is_admin=False):
         
         conn.close()
         
-        # التحقق من تفعيل السحب التلقائي
-        conn_check = get_db_connection()
-        cursor_check = conn_check.cursor()
-        cursor_check.execute("SELECT setting_value FROM bot_settings WHERE setting_key = 'auto_withdrawal_enabled'")
-        auto_withdrawal_row = cursor_check.fetchone()
-        conn_check.close()
+        # ⛔ الدفع التلقائي معطل نهائياً لأسباب أمنية
+        # كل الدفعات يدوية مع التحقق من Transaction عبر TON API فقط
         
-        auto_withdrawal_enabled = auto_withdrawal_row and auto_withdrawal_row['setting_value'] == 'true' if auto_withdrawal_row else False
-        
-        # إذا كان السحب التلقائي مفعّل ونوع السحب TON
-        if auto_withdrawal_enabled and withdrawal_type.upper() == 'TON' and wallet_address:
-            print(f"🚀 Auto-withdrawal is enabled! Processing withdrawal #{withdrawal_id} automatically...")
-            try:
-                # استدعاء endpoint البوت لمعالجة السحب التلقائي
-                import requests
-                bot_api_url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
-                
-                # إرسال أمر خاص للبوت لمعالجة السحب تلقائياً
-                requests.post(bot_api_url, json={
-                    'chat_id': ADMIN_IDS[0],  # إرسال للأدمن الأول
-                    'text': f'🤖 AUTO_PROCESS_WITHDRAWAL_{withdrawal_id}'
-                }, timeout=5)
-                
-                print(f"✅ Auto-withdrawal request sent for withdrawal #{withdrawal_id}")
-            except Exception as auto_error:
-                print(f"⚠️ Auto-withdrawal trigger failed: {auto_error}")
-        
-        # إرسال إشعار للأدمن في البوت (إلا إذا كان السحب تلقائي)
+        # إرسال إشعار للأدمن في البوت (دائماً - دفع يدوي)
         try:
             send_withdrawal_notification_to_admin(
                 user_id=user_id,
@@ -1613,7 +1620,7 @@ def request_withdrawal(authenticated_user_id=None, is_admin=False):
                 wallet_address=wallet_address,
                 phone_number=phone_number,
                 withdrawal_id=withdrawal_id,
-                auto_process=auto_withdrawal_enabled and withdrawal_type.upper() == 'TON' and wallet_address
+                auto_process=False  # ⛔ دائماً False - الدفع يدوي فقط
             )
         except Exception as e:
             print(f"⚠️ Failed to send admin notification: {e}")
@@ -2897,10 +2904,10 @@ def reset_prizes_to_default(authenticated_user_id, is_admin, admin_username=None
             ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
             ('1 TON', 1, 1, '#FF9800', '⭐', 2),
             ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 3),
-            ('2 TON', 2, 0, '#FFD700', '💰', 4),
-            ('3 TON', 3, 0, '#E91E63', '✨', 5),
-            ('NFT', 0, 0, '#00BCD4', '🎨', 6),
-            ('8 TON', 8, 0, '#F44336', '🚀', 7)
+            ('2 TON', 2, 0, '#E91E63', '✨', 4),
+            ('3 TON', 3, 0, '#FFD700', '💰', 5),
+            ('NFT', 0, 0, '#00FFFF', '🖼️', 6),
+            ('8 TON', 8, 0, '#FF0000', '🚀', 7)
         ]
         
         for name, value, prob, color, emoji, pos in default_prizes:
@@ -3314,7 +3321,7 @@ def update_settings():
 @app.route('/health')
 def health():
     """Health check لـ Render"""
-    return {'status': 'ok', 'service': 'Arab ton gifts Mini App'}, 200
+    return {'status': 'ok', 'service': 'Arab Ton Gifts Mini App'}, 200
 
 # ═══════════════════════════════════════════════════════════════
 # 🚀 MAIN ENTRY POINT
