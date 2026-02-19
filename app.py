@@ -444,16 +444,6 @@ def start_telegram_bot():
         print("🤖 Starting Telegram Bot in background...")
         sys.stdout.flush()
         
-        # Fix httpcore for Python 3.14 compatibility
-        print("🔧 Patching httpcore for Python 3.14...")
-        sys.stdout.flush()
-        try:
-            import fix_httpcore
-            fix_httpcore.fix_httpcore()
-        except Exception as fix_error:
-            print(f"⚠️ httpcore patch failed (may already be fixed): {fix_error}")
-        sys.stdout.flush()
-        
         # تعطيل Flask في البوت (app.py بيشغل Flask على بورت 10000)
         os.environ['DISABLE_BOT_FLASK'] = 'true'
         

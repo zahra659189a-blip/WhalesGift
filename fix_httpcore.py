@@ -5,13 +5,27 @@ Patches the __init__.py file to avoid the typing.Union error
 """
 import os
 import sys
+import sysconfig
 
 def fix_httpcore():
     """Fix httpcore __init__.py for Python 3.14 compatibility"""
     try:
-        # Find httpcore location
-        import httpcore
-        httpcore_init = httpcore.__file__
+        # Get site-packages directory
+        site_packages = sysconfig.get_path('purelib')
+        httpcore_init = os.path.join(site_packages, 'httpcore', '__init__.py')
+        
+        if not os.path.exists(httpcore_init):
+            print(f"⚠️ httpcore not found at {httpcore_init}")
+            # Try alternative locations
+            import site
+            for path in site.getsitepackages():
+                alt_path = os.path.join(path, 'httpcore', '__init__.py')
+                if os.path.exists(alt_path):
+                    httpcore_init = alt_path
+                    break
+            else:
+                print("⚠️ httpcore not installed - skipping patch")
+                return True
         
         print(f"📦 Found httpcore at: {httpcore_init}")
         
@@ -19,14 +33,19 @@ def fix_httpcore():
         with open(httpcore_init, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # The problematic pattern in httpcore
-        old_pattern = 'setattr(__locals[__name], "__module__", "httpcore")'
+        # Check if already patched
+        if 'Python 3.14 compatibility' in content:
+            print("✅ httpcore already patched!")
+            return True
         
-        # Safe replacement that checks if attribute exists
+        # The problematic line (line 140)
+        old_pattern = 'setattr(__locals[__name], "__module__", "httpcore")  # noqa'
+        
+        # Safe replacement with try/except
         new_pattern = '''try:
-            setattr(__locals[__name], "__module__", "httpcore")
-        except (AttributeError, TypeError):
-            pass  # Skip if attribute doesn't exist or can't be set'''
+        setattr(__locals[__name], "__module__", "httpcore")  # noqa
+    except (AttributeError, TypeError):
+        pass  # Python 3.14 compatibility'''
         
         if old_pattern in content:
             # Replace the problematic line
@@ -37,21 +56,37 @@ def fix_httpcore():
                 f.write(content)
             
             print("✅ httpcore patched successfully for Python 3.14!")
-            return True
-        elif 'except (AttributeError, TypeError):' in content:
-            print("✅ httpcore already patched!")
+            print(f"   Modified: {httpcore_init}")
             return True
         else:
-            print("⚠️ Pattern not found - httpcore version may be compatible")
-            return True  # Return True anyway to not block execution
+            # Try alternative pattern without # noqa
+            alt_pattern = 'setattr(__locals[__name], "__module__", "httpcore")'
+            if alt_pattern in content:
+                new_alt = '''try:
+        setattr(__locals[__name], "__module__", "httpcore")
+    except (AttributeError, TypeError):
+        pass  # Python 3.14 compatibility'''
+                content = content.replace(alt_pattern, new_alt)
+                with open(httpcore_init, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                print("✅ httpcore patched (alternative pattern)!")
+                return True
             
-    except ImportError:
-        print("⚠️ httpcore not installed yet")
-        return True  # Not an error during build
+            print("⚠️ Pattern not found - httpcore may already be compatible")
+            print(f"   Checked: {httpcore_init}")
+            return True
+            
     except Exception as e:
-        print(f"⚠️ Error patching httpcore: {e}")
-        return True  # Don't fail the build
+        print(f"❌ Error patching httpcore: {e}")
+        import traceback
+        traceback.print_exc()
+        return False  # Fail the build if patch fails
 
 if __name__ == "__main__":
+    print("🔧 Patching httpcore for Python 3.14 compatibility...")
     success = fix_httpcore()
+    if success:
+        print("✅ Patch completed successfully!")
+    else:
+        print("❌ Patch failed!")
     sys.exit(0 if success else 1)
