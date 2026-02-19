@@ -2881,10 +2881,11 @@ def manage_tasks(authenticated_user_id, is_admin, admin_username=None, admin_use
 def manage_prizes(authenticated_user_id, is_admin, admin_username=None, admin_user_id=None):
     """إدارة جوائز العجلة"""
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
         if request.method == 'GET':
             # Get all active prizes
-            conn = get_db_connection()
-            cursor = conn.cursor()
             cursor.execute("""
                 SELECT * FROM wheel_prizes 
                 WHERE is_active = 1 
@@ -2892,6 +2893,7 @@ def manage_prizes(authenticated_user_id, is_admin, admin_username=None, admin_us
             """)
             prizes = [dict(row) for row in cursor.fetchall()]
             conn.close()
+            print(f"✅ GET prizes: {len(prizes)} prizes loaded")
             return jsonify({'success': True, 'data': prizes})
         
         elif request.method == 'POST':
@@ -2907,21 +2909,29 @@ def manage_prizes(authenticated_user_id, is_admin, admin_username=None, admin_us
             emoji = data.get('emoji', '🎁')  # 🎁 افتراضي
             
             if not all([name, value is not None, probability is not None]):
+                conn.close()
                 return jsonify({'success': False, 'error': 'Missing parameters'}), 400
             
-            conn = get_db_connection()
-            cursor = conn.cursor()
             now = datetime.now().isoformat()
             
-            cursor.execute("""
-                INSERT INTO wheel_prizes (name, value, probability, color, emoji, position, is_active, added_at)
-                VALUES (?, ?, ?, ?, ?, ?, 1, ?)
-            """, (name, value, probability, color, emoji, position, now))
-            
-            conn.commit()
-            conn.close()
-            
-            return jsonify({'success': True, 'message': 'Prize added successfully'})
+            try:
+                cursor.execute("""
+                    INSERT INTO wheel_prizes (name, value, probability, color, emoji, position, is_active, added_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+                """, (name, value, probability, color, emoji, position, now))
+                
+                conn.commit()
+                new_id = cursor.lastrowid
+                conn.close()
+                
+                print(f"✅ Prize added: ID {new_id}, Name: {name}, Value: {value}, Prob: {probability}%")
+                return jsonify({'success': True, 'message': 'Prize added successfully', 'id': new_id})
+                
+            except Exception as e:
+                conn.rollback()
+                conn.close()
+                print(f"❌ Error adding prize: {e}")
+                return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
         
         elif request.method == 'PUT':
             # Update prize
@@ -2937,43 +2947,75 @@ def manage_prizes(authenticated_user_id, is_admin, admin_username=None, admin_us
             emoji = data.get('emoji', '🎁')
             
             if not prize_id:
+                conn.close()
                 return jsonify({'success': False, 'error': 'Prize ID required'}), 400
             
-            conn = get_db_connection()
-            cursor = conn.cursor()
             now = datetime.now().isoformat()
             
-            cursor.execute("""
-                UPDATE wheel_prizes 
-                SET name = ?, value = ?, probability = ?, color = ?, emoji = ?, position = ?, updated_at = ?
-                WHERE id = ?
-            """, (name, value, probability, color, emoji, position, now, prize_id))
-            
-            conn.commit()
-            conn.close()
-            
-            return jsonify({'success': True, 'message': 'Prize updated successfully'})
+            try:
+                cursor.execute("""
+                    UPDATE wheel_prizes 
+                    SET name = ?, value = ?, probability = ?, color = ?, emoji = ?, position = ?, updated_at = ?
+                    WHERE id = ? AND is_active = 1
+                """, (name, value, probability, color, emoji, position, now, prize_id))
+                
+                rows_affected = cursor.rowcount
+                conn.commit()
+                conn.close()
+                
+                if rows_affected > 0:
+                    print(f"✅ Prize updated: ID {prize_id}, Name: {name}, Value: {value}, Prob: {probability}%")
+                    return jsonify({'success': True, 'message': 'Prize updated successfully'})
+                else:
+                    print(f"⚠️ No prize found with ID {prize_id}")
+                    return jsonify({'success': False, 'error': 'Prize not found'}), 404
+                
+            except Exception as e:
+                conn.rollback()
+                conn.close()
+                print(f"❌ Error updating prize: {e}")
+                return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
         
         elif request.method == 'DELETE':
-            # Delete prize
+            # Delete prize (soft delete)
             prize_id = request.args.get('id')
             if not prize_id:
+                conn.close()
                 return jsonify({'success': False, 'error': 'Prize ID required'}), 400
             
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE wheel_prizes 
-                SET is_active = 0 
-                WHERE id = ?
-            """, (prize_id,))
-            conn.commit()
-            conn.close()
-            
-            return jsonify({'success': True, 'message': 'Prize removed'})
+            try:
+                # First check if prize exists
+                cursor.execute("SELECT name FROM wheel_prizes WHERE id = ? AND is_active = 1", (prize_id,))
+                prize = cursor.fetchone()
+                
+                if not prize:
+                    conn.close()
+                    print(f"⚠️ Prize not found for deletion: ID {prize_id}")
+                    return jsonify({'success': False, 'error': 'Prize not found'}), 404
+                
+                # Soft delete
+                cursor.execute("""
+                    UPDATE wheel_prizes 
+                    SET is_active = 0, updated_at = ?
+                    WHERE id = ?
+                """, (datetime.now().isoformat(), prize_id))
+                
+                conn.commit()
+                conn.close()
+                
+                print(f"✅ Prize deleted (soft): ID {prize_id}, Name: {dict(prize)['name']}")
+                return jsonify({'success': True, 'message': 'Prize removed successfully'})
+                
+            except Exception as e:
+                conn.rollback()
+                conn.close()
+                print(f"❌ Error deleting prize: {e}")
+                return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
             
     except Exception as e:
-        print(f"Error in manage_prizes: {e}")
+        print(f"❌ Error in manage_prizes: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/admin/reset-prizes', methods=['POST'])
