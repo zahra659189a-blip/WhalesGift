@@ -5418,22 +5418,29 @@ def main():
     except Exception as webhook_error:
         logger.warning(f"⚠️ Error removing webhook: {webhook_error}")
     
-    # تشغيل Flask server في thread منفصل مع فحص إضافي
-    flask_thread = threading.Thread(target=run_flask_server, daemon=True)
-    flask_thread.start()
+    # تشغيل Flask server فقط إذا البوت standalone (مش من app.py)
+    # app.py بيشغل Flask على بورت 10000، البوت بس يحتاج polling
+    flask_disabled = os.getenv('DISABLE_BOT_FLASK', 'false').lower() == 'true'
     
-    # انتظار قصير للتأكد من تشغيل الخادم
-    import time
-    time.sleep(2)
-    
-    # فحص بسيط لحالة الخادم
-    try:
-        import requests as req
-        test_response = req.get('http://localhost:8081/', timeout=5)
-        logger.info("✅ Flask verification server started successfully on port 8081")
-    except Exception as server_check_error:
-        logger.warning(f"⚠️ Flask server health check failed: {server_check_error}")
-        logger.info("🔄 Server will continue to attempt startup...")
+    if not flask_disabled:
+        logger.info("🌐 Starting Flask verification server (standalone mode)...")
+        flask_thread = threading.Thread(target=run_flask_server, daemon=True)
+        flask_thread.start()
+        
+        # انتظار قصير للتأكد من تشغيل الخادم
+        import time
+        time.sleep(2)
+        
+        # فحص بسيط لحالة الخادم
+        try:
+            import requests as req
+            test_response = req.get('http://localhost:8081/', timeout=5)
+            logger.info("✅ Flask verification server started successfully on port 8081")
+        except Exception as server_check_error:
+            logger.warning(f"⚠️ Flask server health check failed: {server_check_error}")
+            logger.info("🔄 Server will continue to attempt startup...")
+    else:
+        logger.info("⚙️ Flask server disabled (running from app.py)")
     
     # اختبار الاتصال بـ Telegram
     try:

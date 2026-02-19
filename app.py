@@ -439,44 +439,39 @@ CORS(app,
 # ═══════════════════════════════════════════════════════════════
 
 def start_telegram_bot():
-    """تشغيل البوت في thread منفصل"""
+    """تشغيل البوت مباشرةً في thread منفصل"""
     try:
         print("🤖 Starting Telegram Bot in background...")
-        # تشغيل البوت كـ subprocess مع تمرير متغيرات البيئة
-        env = os.environ.copy()
-        env['PYTHONUNBUFFERED'] = '1'  # تأكد من عدم buffer للـ logging
+        sys.stdout.flush()
         
-        process = subprocess.Popen(
-            [sys.executable, "panda_giveaways_bot.py"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            env=env,
-            bufsize=1,
-            universal_newlines=True
-        )
+        # تعطيل Flask في البوت (app.py بيشغل Flask على بورت 10000)
+        os.environ['DISABLE_BOT_FLASK'] = 'true'
         
-        print("✅ Bot process started")
+        # استيراد وتشغيل البوت مباشرةً
+        import panda_giveaways_bot
+        print("✅ Bot module imported successfully")
+        sys.stdout.flush()
         
-        # طباعة output البوت للـ console
-        for line in process.stdout:
-            print(f"[BOT] {line.rstrip()}")
-            
+        print("🚀 Launching bot main()...")
+        sys.stdout.flush()
+        
+        # تشغيل البوت
+        panda_giveaways_bot.main()
+        
     except Exception as e:
         print(f"❌ Failed to start bot: {e}")
+        sys.stdout.flush()
         import traceback
         traceback.print_exc()
 
-# تشغيل البوت في thread منفصل عند بدء التشغيل
-if not os.environ.get('RENDER'):
-    # محلياً فقط، شغل البوت في الخلفية
-    bot_thread = threading.Thread(target=start_telegram_bot, daemon=True)
-    bot_thread.start()
-    print("🎉 Bot thread started locally")
-else:
-    # على Render، شغل البوت في الخلفية كمان
-    bot_thread = threading.Thread(target=start_telegram_bot, daemon=True)
-    bot_thread.start()
+# تشغيل البوت في thread منفصل عند بدء التشغيل (NON-daemon للتأكد من استمراره)
+bot_thread = threading.Thread(target=start_telegram_bot, daemon=False, name="TelegramBot")
+bot_thread.start()
+if os.environ.get('RENDER'):
     print("🚀 Bot thread started on Render")
+else:
+    print("🎉 Bot thread started locally")
+sys.stdout.flush()
 
 # ═══════════════════════════════════════════════════════════════
 # 🗄️ DATABASE MANAGER
