@@ -917,9 +917,8 @@ function initUI() {
         withdrawBtnVodafone.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log(' Vodafone Cash - Coming Soon');
-            showToast('🔜 السحب عبر فودافون كاش سيكون متاحاً قريباً', 'warning');
-            // submitWithdrawal('vodafone'); // معطل مؤقتاً
+            console.log('💰 Vodafone Withdraw button clicked');
+            submitWithdrawal('vodafone');
         }, true);
     }
 }
@@ -1325,12 +1324,6 @@ async function submitWithdrawal(method) {
         withdrawalData.wallet_address = wallet;
         
     } else if (method === 'vodafone') {
-        // السحب عبر فودافون كاش معطل مؤقتاً
-        showToast('🔜 السحب عبر فودافون كاش سيكون متاحاً قريباً', 'warning');
-        return;
-        
-        // الكود التالي معطل حتى يتم تفعيل الخدمة
-        /* 
         const phoneInput = document.getElementById('vodafone-number-input');
         const phone = sanitizeInput(phoneInput.value);
         
@@ -1341,7 +1334,6 @@ async function submitWithdrawal(method) {
         }
         
         withdrawalData.phone_number = phone;
-        */
     }
     
     // تعطيل الزر
