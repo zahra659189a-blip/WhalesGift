@@ -1,5 +1,5 @@
 # Arab Ton Gifts Bot Dependencies
-# ⚠️ IMPORTANT: Must use Python 3.11.8 (NOT 3.14!)
+# ⚠️ IMPORTANT: Must use Python 3.11.7 (NOT 3.14!)
 # Python 3.14 has compatibility issues with python-telegram-bot
 
 # Core - إصدارات مستقرة ومتوافقة مع Python 3.11
