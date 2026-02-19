@@ -442,15 +442,29 @@ def start_telegram_bot():
     """تشغيل البوت في thread منفصل"""
     try:
         print("🤖 Starting Telegram Bot in background...")
-        # تشغيل البوت كـ subprocess
-        subprocess.Popen(
+        # تشغيل البوت كـ subprocess مع تمرير متغيرات البيئة
+        env = os.environ.copy()
+        env['PYTHONUNBUFFERED'] = '1'  # تأكد من عدم buffer للـ logging
+        
+        process = subprocess.Popen(
             [sys.executable, "panda_giveaways_bot.py"],
-            stdout=sys.stdout,
-            stderr=sys.stderr
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            env=env,
+            bufsize=1,
+            universal_newlines=True
         )
+        
         print("✅ Bot process started")
+        
+        # طباعة output البوت للـ console
+        for line in process.stdout:
+            print(f"[BOT] {line.rstrip()}")
+            
     except Exception as e:
         print(f"❌ Failed to start bot: {e}")
+        import traceback
+        traceback.print_exc()
 
 # تشغيل البوت في thread منفصل عند بدء التشغيل
 if not os.environ.get('RENDER'):

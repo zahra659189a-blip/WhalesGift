@@ -230,7 +230,7 @@ class DatabaseManager:
     
     def __init__(self, db_path: str = DATABASE_PATH):
         self.db_path = db_path
-        logger.info("🗄️ Initializing Panda Giveaways Database...")
+        logger.info("🗄️ Initializing Arab Ton Gifts Database...")
         self.init_database()
         logger.info("✅ Database initialized successfully")
     
@@ -5397,10 +5397,26 @@ def main():
         logger.error("❌ Please set your BOT_TOKEN!")
         return
     
-    logger.info("🐼 Starting Panda Giveaways Bot...")
+    logger.info("🎁 Starting Arab Ton Gifts Bot...")
     logger.info(f"🤖 Bot Username: @{BOT_USERNAME}")
     logger.info(f"🌐 Mini App URL: {MINI_APP_URL}")
     logger.info(f"👥 Admins: {ADMIN_IDS}")
+    
+    # إزالة أي webhook موجود (الـ polling لا يعمل مع الـ webhook)
+    try:
+        import requests as req
+        logger.info("🔄 Removing any existing webhooks...")
+        webhook_response = req.post(
+            f'https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook',
+            json={'drop_pending_updates': True},
+            timeout=10
+        )
+        if webhook_response.ok:
+            logger.info("✅ Webhook removed successfully")
+        else:
+            logger.warning(f"⚠️ Could not remove webhook: {webhook_response.text}")
+    except Exception as webhook_error:
+        logger.warning(f"⚠️ Error removing webhook: {webhook_error}")
     
     # تشغيل Flask server في thread منفصل مع فحص إضافي
     flask_thread = threading.Thread(target=run_flask_server, daemon=True)
@@ -5434,8 +5450,17 @@ def main():
     logger.info("🚀 Bot initialization completed")
     
     # إنشاء التطبيق
-    application = Application.builder().token(BOT_TOKEN).build()
+    try:
+        logger.info("🔧 Building Telegram Application...")
+        application = Application.builder().token(BOT_TOKEN).build()
+        logger.info("✅ Application built successfully")
+    except Exception as build_error:
+        logger.error(f"❌ Failed to build application: {build_error}")
+        import traceback
+        traceback.print_exc()
+        return
     
+    logger.info("📝 Registering command handlers...")
     # إضافة المعالجات
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
@@ -5444,7 +5469,9 @@ def main():
     application.add_handler(CommandHandler("balance", balance_command))
     application.add_handler(CommandHandler("add_tx_hash", add_tx_hash_command))
     application.add_handler(CommandHandler("check_transactions", check_transactions_command))  # ✅ فحص المعاملات يدوياً
+    logger.info("✅ Command handlers registered")
     
+    logger.info("📱 Registering web app handler...")
     # معالج استقبال بيانات التحقق من Mini App (يجب أن يكون في البداية!)
     application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
     logger.info("✅ Web App Data handler registered")
@@ -5541,16 +5568,31 @@ def main():
     # تشغيل البوت
     logger.info("✅ All handlers registered successfully!")
     logger.info("📱 Bot is ready to receive messages and web app data...")
-    logger.info("🔄 Starting polling...")
+    logger.info("🔄 Starting polling... (This may take a few seconds)")
     
     try:
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
+        logger.info("🚀 Launching bot polling...")
+        application.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True,
+            close_loop=False
+        )
+        logger.info("✅ Polling started successfully")
     except KeyboardInterrupt:
         logger.info("🛑 Bot stopped by user")
     except Exception as e:
-        logger.error(f"❌ Bot crashed: {e}")
+        logger.error(f"❌ Bot crashed during polling: {e}")
         import traceback
         traceback.print_exc()
+        raise
 
 if __name__ == "__main__":
-    main()
+    try:
+        logger.info("=" * 60)
+        logger.info("🚀 MAIN ENTRY POINT - Starting Bot")
+        logger.info("=" * 60)
+        main()
+    except Exception as main_error:
+        logger.error(f"❌ CRITICAL ERROR in main(): {main_error}")
+        import traceback
+        traceback.print_exc()
