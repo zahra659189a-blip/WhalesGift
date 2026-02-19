@@ -470,7 +470,7 @@ def start_telegram_bot():
                 # Check if needs patching
                 if 'Python 3.14 compatibility' not in content:
                     old = 'setattr(__locals[__name], "__module__", "httpcore")  # noqa'
-                    new = '''try:
+                    new = '''    try:
         setattr(__locals[__name], "__module__", "httpcore")  # noqa
     except (AttributeError, TypeError):
         pass  # Python 3.14 compatibility'''
