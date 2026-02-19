@@ -20,6 +20,7 @@ Created by: Omar Panda
 """
 
 import os
+import sys
 import json
 import logging
 import asyncio
@@ -5441,11 +5442,22 @@ def main():
             logger.info("🔄 Server will continue to attempt startup...")
     else:
         logger.info("⚙️ Flask server disabled (running from app.py)")
+        print("⚙️ Flask server disabled (running from app.py)")
+        sys.stdout.flush()
     
     # اختبار الاتصال بـ Telegram
+    logger.info("🔍 Testing Telegram Bot API connection...")
+    print("🔍 Testing Telegram Bot API connection...")
+    sys.stdout.flush()
     try:
         import requests as req
+        logger.info("✅ Requests module imported")
+        print("✅ Requests module imported")
+        sys.stdout.flush()
         bot_test = req.get(f'https://api.telegram.org/bot{BOT_TOKEN}/getMe', timeout=10)
+        logger.info(f"✅ API call completed with status: {bot_test.status_code}")
+        print(f"✅ API call completed with status: {bot_test.status_code}")
+        sys.stdout.flush()
         if bot_test.ok:
             bot_info = bot_test.json()
             logger.info(f"✅ Telegram Bot API connection successful: @{bot_info['result']['username']}")
@@ -5455,12 +5467,18 @@ def main():
         logger.error(f"❌ Could not test Telegram connection: {telegram_error}")
     
     logger.info("🚀 Bot initialization completed")
+    print("🚀 Bot initialization completed")
+    sys.stdout.flush()
     
     # إنشاء التطبيق
     try:
         logger.info("🔧 Building Telegram Application...")
+        print("🔧 Building Telegram Application...")
+        sys.stdout.flush()
         application = Application.builder().token(BOT_TOKEN).build()
         logger.info("✅ Application built successfully")
+        print("✅ Application built successfully")
+        sys.stdout.flush()
     except Exception as build_error:
         logger.error(f"❌ Failed to build application: {build_error}")
         import traceback
@@ -5576,15 +5594,23 @@ def main():
     logger.info("✅ All handlers registered successfully!")
     logger.info("📱 Bot is ready to receive messages and web app data...")
     logger.info("🔄 Starting polling... (This may take a few seconds)")
+    print("✅ All handlers registered successfully!")
+    print("📱 Bot is ready to receive messages and web app data...")
+    print("🔄 Starting polling... (This may take a few seconds)")
+    sys.stdout.flush()
     
     try:
         logger.info("🚀 Launching bot polling...")
+        print("🚀 Launching bot polling...")
+        sys.stdout.flush()
         # python-telegram-bot 21.x compatible
         application.run_polling(
             allowed_updates=Update.ALL_TYPES,
             drop_pending_updates=True
         )
         logger.info("✅ Polling started successfully")
+        print("✅ Polling started successfully")
+        sys.stdout.flush()
     except KeyboardInterrupt:
         logger.info("🛑 Bot stopped by user")
     except Exception as e:
