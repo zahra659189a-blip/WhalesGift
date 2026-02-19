@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 تحديث نسب جوائز العجلة في قاعدة البيانات
-Update wheel prize probabilities to match config.js: 0.05@94%, 0.1@5%, 0.15@1%, others@0%
+Update wheel prize probabilities: 0.25@84%, 0.5@5%, 1@1%, Better Luck@10%, others@0%
 """
 import sqlite3
 import os
@@ -33,12 +33,14 @@ def update_prizes():
     
     # النسب الجديدة (مطابقة لـ config.js)
     new_probabilities = {
-        0.05: 94,    # 0.05 TON
-        0.1: 5,      # 0.1 TON
-        0.15: 1,     # 0.15 TON
-        0.5: 0,      # 0.5 TON
-        1.0: 0,      # 1.0 TON
-        0.25: 0      # 0.25 TON
+        0.25: 84,    # 0.25 TON (تم خصم 10%)
+        0.5: 5,      # 0.5 TON
+        1.0: 1,      # 1.0 TON
+        0: 10,       # Better Luck (حظ أوفر)
+        1.5: 0,      # 1.5 TON
+        2.0: 0,      # 2.0 TON
+        3.0: 0,      # 3.0 TON
+        8.0: 0       # 8.0 TON
     }
     
     # تحديث النسب

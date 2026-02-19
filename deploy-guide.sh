@@ -1,7 +1,7 @@
 #!/bin/bash
 # Quick Deploy Script
 
-echo "🐼 Panda Giveaways - Quick Deploy Guide"
+echo "Arab Ton Gifts - Quick Deploy Guide"
 echo "======================================"
 echo ""
 

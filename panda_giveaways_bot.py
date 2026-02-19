@@ -108,9 +108,10 @@ MANDATORY_CHANNELS = []
 
 # 🎁 إعدادات عجلة الحظ (النسب والجوائز - مطابقة لـ config.js)
 WHEEL_PRIZES = [
-    {"name": "0.25 TON", "amount": 0.25, "probability": 94},   # 94%
+    {"name": "0.25 TON", "amount": 0.25, "probability": 84},   # 84% (تم خصم 10%)
     {"name": "0.5 TON", "amount": 0.5, "probability": 5},      # 5%
     {"name": "1 TON", "amount": 1, "probability": 1},          # 1%
+    {"name": "حظ أوفر", "amount": 0, "probability": 10},   # 10% (حظ أوفر)
     {"name": "1.5 TON", "amount": 1.5, "probability": 0},      # 0%
     {"name": "2 TON", "amount": 2, "probability": 0},          # 0%
     {"name": "3 TON", "amount": 3, "probability": 0},          # 0%
@@ -130,7 +131,7 @@ MIN_WITHDRAWAL_AMOUNT = 0.1  # 0.1 TON لكل طرق السحب
 TON_WALLET_ADDRESS = os.getenv("TON_WALLET_ADDRESS", "UQAcDae1BvWVAD0TkhnGgDme4b7NH9Fz8JXce-78TW6ekmvN")  # محفظة الاستقبال فقط
 
 # 💸 محفظة الأدمن للسحوبات (المحفظة التي ترسل منها المبالغ للعملاء)
-ADMIN_WITHDRAWAL_WALLET = os.getenv("ADMIN_WITHDRAWAL_WALLET", "UQAcDae1BvWVAD0TkhnGgDme4b7NH9Fz8JXce-78TW6ekmvN")  # نفس المحفظة افتراضياً
+ADMIN_WITHDRAWAL_WALLET = os.getenv("ADMIN_WITHDRAWAL_WALLET", "UQDoMzp7XNu6LJbG7JCfCeDZb_ObDWB5AOSOvPueN8IsyqAj")  # محفظة الأدمن الجديدة
 
 TON_API_KEY = os.getenv("TON_API_KEY", "")  # للتحقق من المعاملات
 
@@ -791,7 +792,7 @@ class DatabaseManager:
             tx_hash = await ton_wallet.send_ton(
                 withdrawal_dict['wallet_address'],
                 withdrawal_dict['amount'],
-                f"Panda Giveaways Withdrawal #{withdrawal_id}"
+                f"Arab Ton Gifts Withdrawal #{withdrawal_id}"
             )
             
             if tx_hash:
@@ -808,7 +809,7 @@ class DatabaseManager:
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> تم تحويل {withdrawal_dict['amount']:.4f} TON إلى محفظتك
 <tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> TX Hash: <code>{tx_hash}</code>
 
-شكراً لاستخدامك Panda Giveaways! <tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji>
+شكراً لاستخدامك Arab Ton Gifts! <tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji>
 """,
                         parse_mode=ParseMode.HTML
                     )
@@ -1676,7 +1677,7 @@ async def inline_query_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     # إذا كان النص فارغاً، استخدم النص الافتراضي
     if not query:
         ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
-        query = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+        query = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
     
     results = [
         InlineQueryResultArticle(
@@ -1756,35 +1757,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             db.create_or_update_user(user_id, username, full_name, None)
     
     # ══════════════════════════════════════════════════════════
-    # 🔴 التحقق من الحظر ثانياً
-    # ══════════════════════════════════════════════════════════
-    db_user = db.get_user(user_id)  # إعادة جلب بيانات المستخدم
-    if db_user and db_user.is_banned:
-        ban_reason = db_user.ban_reason if db_user.ban_reason else 'تم حظرك من البوت'
-        
-        ban_message = f"""
-<tg-emoji emoji-id='5463358164705489689'>⛔</tg-emoji> <b>تم حظرك من البوت</b>
-
-عزيزي <b>{full_name}</b>،
-
-حسابك محظور من استخدام البوت.
-
-<b>السبب:</b> {ban_reason}
-<b><tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> حالة الحساب:</b> محظور
-
-إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.
-"""
-        
-        await update.message.reply_text(
-            ban_message,
-            parse_mode=ParseMode.HTML
-        )
-        
-        logger.info(f"🔴 Banned user {user_id} tried to use /start")
-        return  # إيقاف التنفيذ - لا نفتح قائمة التحقق
-    
-    # ══════════════════════════════════════════════════════════
-    # 🔐 الخطوة 1: التحقق من الجهاز (الأساس - لا يتم شيء قبله)
+    #  الخطوة 1: التحقق من الجهاز (الأساس - لا يتم شيء قبله)
     # ══════════════════════════════════════════════════════════
     
     # الأدمن لا يحتاج للتحقق
@@ -1844,10 +1817,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                 # إنشاء رابط التحقق بدون .html (آمن)
                                 verify_url = f"{MINI_APP_URL}/fp?user_id={user_id}"
                                 
-                                keyboard = [[InlineKeyboardButton(
-                                    "🔐 تحقق من جهازك",
-                                    web_app=WebAppInfo(url=verify_url)
-                                )]]
+                                keyboard = [[
+                                    InlineKeyboardButton(
+                                        "🔐 تحقق من جهازك",
+                                        web_app=WebAppInfo(url=verify_url)
+                                    )
+                                ],[
+                                    InlineKeyboardButton(
+                                        "✅ أكملت التحقق - متابعة",
+                                        callback_data=f"device_verified_{user_id}"
+                                    )
+                                ]]
                                 
                                 reply_markup = InlineKeyboardMarkup(keyboard)
                                 
@@ -1878,10 +1858,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 بعد التحقق، ارجع واكتب /start مرة أخرى.
 """
                                 
-                                keyboard = [[InlineKeyboardButton(
-                                    "🔐 افتح صفحة التحقق",
-                                    url=f"{MINI_APP_URL}/fp?user_id={user_id}"
-                                )]]
+                                keyboard = [[
+                                    InlineKeyboardButton(
+                                        "🔐 افتح صفحة التحقق",
+                                        url=f"{MINI_APP_URL}/fp?user_id={user_id}"
+                                    )
+                                ],[
+                                    InlineKeyboardButton(
+                                        "✅ أكملت التحقق - متابعة",
+                                        callback_data=f"device_verified_{user_id}"
+                                    )
+                                ]]
                                 
                                 try:
                                     await update.message.reply_text(
@@ -1909,7 +1896,35 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # في حالة الخطأ، السماح بالمتابعة
     
     # ══════════════════════════════════════════════════════════
-    # 🎯 الخطوة 2: التحقق من الاشتراك في القنوات الإجبارية
+    # 🔴 الخطوة 2: التحقق من الحظر (بعد التحقق الناجح من الجهاز)
+    # ══════════════════════════════════════════════════════════
+    db_user = db.get_user(user_id)  # إعادة جلب بيانات المستخدم
+    if db_user and db_user.is_banned:
+        ban_reason = db_user.ban_reason if db_user.ban_reason else 'تم حظرك من البوت'
+        
+        ban_message = f"""
+<tg-emoji emoji-id='5463358164705489689'>⛔</tg-emoji> <b>تم حظرك من البوت</b>
+
+عزيزي <b>{full_name}</b>،
+
+حسابك محظور من استخدام البوت.
+
+<b>السبب:</b> {ban_reason}
+<b><tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> حالة الحساب:</b> محظور
+
+إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.
+"""
+        
+        await update.message.reply_text(
+            ban_message,
+            parse_mode=ParseMode.HTML
+        )
+        
+        logger.info(f"🔴 Banned user {user_id} tried to use /start after device verification")
+        return  # إيقاف التنفيذ
+    
+    # ══════════════════════════════════════════════════════════
+    # 🎯 الخطوة 3: التحقق من الاشتراك في القنوات الإجبارية
     # ══════════════════════════════════════════════════════════
     # جلب القنوات الإجبارية (الأدمن لا يحتاج للاشتراك)
     required_channels = db.get_active_mandatory_channels()
@@ -2026,17 +2041,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                         await context.bot.send_message(
                                             chat_id=final_referrer,
                                             text=f"""
-🎉 <b>تهانينا! إحالة جديدة ناجحة!</b>
+<tg-emoji emoji-id='5388674524583572460'>🎉</tg-emoji> <b>تهانينا! إحالة جديدة ناجحة!</b>
 
-✅ المستخدم <b>{full_name}</b> انضم عبر رابطك!
+<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> المستخدم <b>{full_name}</b> انضم عبر رابطك!
 
-🎁 <b>حصلت على لفة مجانية!</b>
-🎰 <b>لفاتك المتاحة:</b> {current_spins + 1}
+<tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji> <b>حصلت على لفة مجانية!</b>
+<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
 
-👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
-⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
 
-<b>استمر في الدعوة واربح المزيد! 🚀</b>
+<b>استمر في الدعوة واربح المزيد! <tg-emoji emoji-id='5188481279963715781'>🚀</tg-emoji></b>
 """,
                                             parse_mode=ParseMode.HTML
                                         )
@@ -2051,7 +2066,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                             text=f"""
 ✅ <b>إحالة جديدة ناجحة!</b>
 
-👥 المستخدم <b>{full_name}</b> انضم عبر رابطك!
+👤 المستخدم <b>{full_name}</b> انضم عبر رابطك!
 
 👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
 ⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
@@ -2083,12 +2098,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # رسالة الترحيب
     welcome_text = f"""
-<tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji> <b>مرحباً بك في Panda Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+<tg-emoji emoji-id='5202046839678866384'>💎</tg-emoji> <b>مرحباً بك في Arab Ton Gifts!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
 
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
-<tg-emoji emoji-id='5202158689217187713'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
+<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إحالاتك:</b> {db_user.total_referrals}
 
 <b><tg-emoji emoji-id='5461009483314517035'>🎯</tg-emoji> كيف تربح؟</b>
@@ -2108,13 +2123,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "افتح Panda Giveaway 🎁",
+        "افتح Arab Ton Gifts 🎁",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     # زر مشاركة رابط الدعوة (نسخ) - تغيير من startapp إلى start
     ref_link = generate_referral_link(user_id)
-    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
@@ -2122,8 +2137,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # زر إثباتات الدفع
     keyboard.append([InlineKeyboardButton(
-        "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        "📊 قناة السحوبات والإثباتات",
+        url="https://t.me/ArbTon_Draws"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
@@ -2141,10 +2156,257 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
+async def device_verified_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالج callback للزر 'أكملت التحقق' - التحقق من الجهاز واكمال الخطوات"""
+    query = update.callback_query
+    
+    user = query.from_user
+    user_id = user.id
+    username = user.username or f"user_{user_id}"
+    full_name = user.full_name or username
+    
+    try:
+        import requests as req
+        
+        # التحقق من حالة التحقق من الجهاز
+        verify_status_url = f"{API_BASE_URL}/verification/status/{user_id}"
+        verify_resp = req.get(verify_status_url, timeout=5)
+        
+        if not verify_resp.ok:
+            await query.answer("⚠️ خطأ في التحقق من الجهاز، حاول مرة أخرى", show_alert=True)
+            return
+        
+        verify_data = verify_resp.json()
+        is_verified = verify_data.get('verified', False)
+        
+        if not is_verified:
+            await query.answer("⚠️ يجب التحقق من جهازك أولاً! اضغط على زر 'افتح صفحة التحقق'", show_alert=True)
+            return
+        
+        # المستخدم متحقق - احصل على بياناته
+        db_user = db.get_user(user_id)
+        if not db_user:
+            db_user = db.create_or_update_user(user_id, username, full_name, None)
+        
+        # حفظ referrer_id إذا كان موجوداً في قاعدة البيانات
+        if db_user.referrer_id and not context.user_data.get('pending_referrer_id'):
+            context.user_data['pending_referrer_id'] = db_user.referrer_id
+            logger.info(f"🔗 Retrieved referrer_id from database: {db_user.referrer_id}")
+        
+        # التحقق من الحظر
+        if db_user.is_banned:
+            ban_reason = db_user.ban_reason if db_user.ban_reason else 'تم حظرك من البوت'
+            
+            ban_message = f"""
+⛔ <b>تم حظرك من البوت</b>
+
+عزيزي <b>{full_name}</b>،
+
+حسابك محظور من استخدام البوت.
+
+<b>السبب:</b> {ban_reason}
+
+إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.
+"""
+            
+            await query.edit_message_text(
+                ban_message,
+                parse_mode=ParseMode.HTML
+            )
+            return
+        
+        # التحقق من الاشتراك في القنوات الإجبارية
+        required_channels = db.get_active_mandatory_channels()
+        
+        if required_channels:
+            not_subscribed = []
+            for channel in required_channels:
+                channel_id = channel['channel_id']
+                if not channel_id.startswith('@') and not channel_id.startswith('-'):
+                    channel_id = f"@{channel_id}"
+                try:
+                    member = await context.bot.get_chat_member(chat_id=channel_id, user_id=user_id)
+                    if member.status not in [ChatMember.MEMBER, ChatMember.ADMINISTRATOR, ChatMember.OWNER]:
+                        not_subscribed.append(channel)
+                except Exception as e:
+                    logger.error(f"Error checking channel {channel_id}: {e}")
+                    not_subscribed.append(channel)
+            
+            if not_subscribed:
+                # عرض أول قناة غير مشترك فيها
+                first_channel = not_subscribed[0]
+                
+                await query.answer("يجب الاشتراك في القناة أولاً!", show_alert=True)
+                
+                subscription_text = f"""
+🤍 <b>خطوة أخيرة - اشتراك إجباري</b>
+
+عزيزي <b>{full_name}</b>، لإكمال التسجيل واحتساب الإحالة:
+
+• <b>{first_channel['channel_name']}</b>
+
+بعد الاشتراك، اضغط على زر "✅ تحققت من الاشتراك" أدناه.
+"""
+                
+                keyboard = [
+                    [InlineKeyboardButton(
+                        f"{first_channel['channel_name']}",
+                        url=first_channel['channel_url']
+                    )],
+                    [InlineKeyboardButton(
+                        "✅ تحققت من الاشتراك",
+                        callback_data="check_subscription"
+                    )]
+                ]
+                
+                await query.edit_message_text(
+                    subscription_text,
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+                
+                db.log_activity(user_id, "subscription_required", f"Channel: {first_channel['channel_name']}")
+                return
+        
+        # المستخدم مشترك - احتساب الإحالة إذا وجدت
+        referrer_id = context.user_data.get('pending_referrer_id')
+        
+        if referrer_id:
+            logger.info(f"🎯 Processing referral after device verification: {referrer_id} -> {user_id}")
+            
+            referrer_user = db.get_user(referrer_id)
+            if referrer_user and not referrer_user.is_banned and not db_user.is_banned:
+                conn = db.get_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM referrals WHERE referred_id = ?", (user_id,))
+                existing_ref = cursor.fetchone()
+                
+                if not existing_ref:
+                    now = datetime.now().isoformat()
+                    try:
+                        cursor.execute("""
+                            INSERT INTO referrals (referrer_id, referred_id, created_at, channels_checked, device_verified, is_valid)
+                            VALUES (?, ?, ?, 1, 1, 1)
+                        """, (referrer_id, user_id, now))
+                        
+                        cursor.execute("""
+                            UPDATE users 
+                            SET total_referrals = total_referrals + 1,
+                                valid_referrals = valid_referrals + 1
+                            WHERE user_id = ?
+                        """, (referrer_id,))
+                        
+                        cursor.execute("SELECT valid_referrals, available_spins FROM users WHERE user_id = ?", (referrer_id,))
+                        ref_data = cursor.fetchone()
+                        if ref_data:
+                            valid_refs = ref_data['valid_referrals']
+                            current_spins = ref_data['available_spins']
+                            
+                            if valid_refs % SPINS_PER_REFERRALS == 0:
+                                cursor.execute("""
+                                    UPDATE users 
+                                    SET available_spins = available_spins + 1 
+                                    WHERE user_id = ?
+                                """, (referrer_id,))
+                                
+                                remaining_for_next = SPINS_PER_REFERRALS
+                                try:
+                                    await context.bot.send_message(
+                                        chat_id=referrer_id,
+                                        text=f"""
+🎉 <b>تهانينا! إحالة جديدة ناجحة!</b>
+
+✅ المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
+
+🎁 <b>حصلت على لفة مجانية!</b>
+🎰 <b>لفاتك المتاحة:</b> {current_spins + 1}
+
+👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+
+<b>استمر في الدعوة واربح المزيد! 🚀</b>
+""",
+                                        parse_mode=ParseMode.HTML
+                                    )
+                                except Exception as e:
+                                    logger.error(f"Failed to send referral notification: {e}")
+                            else:
+                                remaining_for_next = SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS)
+                                try:
+                                    await context.bot.send_message(
+                                        chat_id=referrer_id,
+                                        text=f"""
+✅ <b>إحالة جديدة ناجحة!</b>
+
+👤 المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
+
+👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+
+<b>استمر في الدعوة! 💪</b>
+""",
+                                        parse_mode=ParseMode.HTML
+                                    )
+                                except Exception as e:
+                                    logger.error(f"Failed to send referral notification: {e}")
+                        
+                        conn.commit()
+                        logger.info(f"✅ Referral counted successfully: {referrer_id} -> {user_id}")
+                    except sqlite3.IntegrityError:
+                        logger.warning(f"⚠️ Referral already exists: {referrer_id} -> {user_id}")
+                    finally:
+                        conn.close()
+                else:
+                    logger.info(f"ℹ️ Referral already counted for user {user_id}")
+                    conn.close()
+        
+        if 'pending_referrer_id' in context.user_data:
+            del context.user_data['pending_referrer_id']
+        
+        # عرض رسالة الترحيب
+        db_user = db.get_user(user_id)
+        user_ref_link = generate_referral_link(user_id)
+        
+        welcome_text = f"""
+🎉 <b>تم التسجيل بنجاح!</b>
+
+عزيزي <b>{full_name}</b>، أهلاً بك في Arab Ton Gifts! 🌟
+
+✅ تم التحقق من جهازك
+✅ تم التحقق من اشتراكك في القنوات
+{f'✅ تم احتساب إحالتك' if referrer_id else ''}
+
+💰 <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
+🎰 <b>لفاتك المتاحة:</b> {db_user.available_spins}
+
+🎯 <b>الآن يمكنك:</b>
+• استخدام جميع مميزات البوت
+• الحصول على لفات مجانية
+• دعوة أصدقائك والربح معاً
+
+👇 <b>افتح البوت لتبدأ:</b>
+"""
+        
+        keyboard = [
+            [InlineKeyboardButton("🎰 افتح البوت", url=f"https://t.me/{BOT_USERNAME}?start=ref_1797127532")]
+        ]
+        
+        await query.edit_message_text(
+            welcome_text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        
+        await query.answer("✅ تم التحقق بنجاح!", show_alert=False)
+        
+    except Exception as e:
+        logger.error(f"Error in device_verified_callback: {e}")
+        await query.answer("❌ حدث خطأ، حاول مرة أخرى", show_alert=True)
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالج أمر /help"""
     help_text = """
-<tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji> <b>مساعدة Panda Giveaways</b>
+🎁 <b>مساعدة Arab Ton Gifts</b>
 
 <b><tg-emoji emoji-id='5197269100878907942'>📋</tg-emoji> الأوامر المتاحة:</b>
 /start - بدء البوت
@@ -2153,8 +2415,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /referrals - عرض إحالاتك
 /balance - عرض رصيدك
 
-<b><tg-emoji emoji-id='5202158689217187713'>🎰</tg-emoji> كيف تعمل عجلة الحظ؟</b>
-• افتح Mini App من زر "افتح Panda Giveaway"
+<b><tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> كيف تعمل عجلة الحظ؟</b>
+• افتح Mini App من زر "افتح Arab Ton Gifts"
 • إستخدم لفاتك المتاحة
 • اربح TON فوراً!
 
@@ -2198,7 +2460,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 <tg-emoji emoji-id='5812093549042210992'>🆔</tg-emoji> <b>المعرف:</b> @{user.username}
 
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>الرصيد:</b> {user.balance:.4f} TON
-<tg-emoji emoji-id='5202158689217187713'>🎰</tg-emoji> <b>لفات متاحة:</b> {user.available_spins}
+<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفات متاحة:</b> {user.available_spins}
 <tg-emoji emoji-id='5226513232549664618'>🔢</tg-emoji> <b>إجمالي اللفات:</b> {user.total_spins}
 
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>الإحالات:</b> {user.total_referrals}
@@ -2239,7 +2501,7 @@ async def referrals_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <tg-emoji emoji-id='5422360266618707867'>📊</tg-emoji> <b>إجمالي الإحالات:</b> {total_refs}
 <tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> <b>الإحالات الصحيحة:</b> {valid_refs}
-<tg-emoji emoji-id='5202158689217187713'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {user.available_spins}
+<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {user.available_spins}
 <tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS) if valid_refs > 0 else SPINS_PER_REFERRALS}
 
 """
@@ -2258,7 +2520,7 @@ async def referrals_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ref_text += f"\n\n<tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> <b>رابط الدعوة الخاص بك:</b>\n<code>{ref_link}</code>"
     
     keyboard = [[
-        InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Panda%20Giveaways%20واربح%20TON!")
+        InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Arab%20Ton%20Gifts%20واربح%20TON!")
     ]]
     
     await update.message.reply_text(
@@ -2328,13 +2590,13 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         verification_enabled = True
     
     admin_text = f"""
-<tg-emoji emoji-id='5776076747866904719'>⚙️</tg-emoji> <b>لوحة المالكين - Panda Giveaways</b>
+⚙️ <b>لوحة المالكين - Arab Ton Gifts</b>
 
 <tg-emoji emoji-id='5422360266618707867'>📊</tg-emoji> <b>الإحصائيات العامة:</b>
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> إجمالي المستخدمين: {stats['total_users']}
 <tg-emoji emoji-id='5345905193005371012'>⚡</tg-emoji> المستخدمون النشطون (7 أيام): {stats['active_users']}
 <tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> إجمالي الإحالات: {stats['total_referrals']}
-<tg-emoji emoji-id='5202158689217187713'>🎰</tg-emoji> إجمالي اللفات: {stats['total_spins']}
+<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> إجمالي اللفات: {stats['total_spins']}
 
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>الإحصائيات المالية:</b>
 <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji> الأرباح الموزعة: {stats['total_distributed']:.2f} TON
@@ -2556,7 +2818,7 @@ async def admin_detailed_stats_callback(update: Update, context: ContextTypes.DE
 • الإجمالي: {stats['total_referrals']}
 • متوسط الإحالات/مستخدم: {(stats['total_referrals']/stats['total_users']) if stats['total_users'] > 0 else 0:.2f}
 
-<tg-emoji emoji-id='5202158689217187713'>🎰</tg-emoji> <b>اللفات:</b>
+<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>اللفات:</b>
 • الإجمالي: {stats['total_spins']}
 • متوسط اللفات/مستخدم: {(stats['total_spins']/stats['total_users']) if stats['total_users'] > 0 else 0:.2f}
 
@@ -2595,7 +2857,7 @@ async def create_backup_callback(update: Update, context: ContextTypes.DEFAULT_T
         
         # إنشاء اسم الملف مع التاريخ والوقت
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_filename = f"panda_backup_{timestamp}.db"
+        backup_filename = f"arabton_backup_{timestamp}.db"
         backup_path = os.path.join(os.path.dirname(DATABASE_PATH), backup_filename)
         
         # نسخ قاعدة البيانات
@@ -2840,12 +3102,12 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
         db_user = db.create_or_update_user(user_id, username, full_name)
     
     welcome_text = f"""
-<tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji> <b>مرحباً بك في Panda Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+<tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji> <b>مرحباً بك في Arab Ton Gifts!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
 
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
-<tg-emoji emoji-id='5202158689217187713'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
+<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إحالاتك:</b> {db_user.total_referrals}
 
 <b><tg-emoji emoji-id='5461009483314517035'>🎯</tg-emoji> كيف تربح؟</b>
@@ -2859,20 +3121,20 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
     
     keyboard = []
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Panda Giveaway",
+        "🎰 افتح Arab Ton Gifts",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
-    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
     )])
     
     keyboard.append([InlineKeyboardButton(
-        "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        "� قناة السحوبات والإثباتات",
+        url="https://t.me/ArbTon_Draws"
     )])
     
     if is_admin(user_id):
@@ -3027,17 +3289,17 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
                                     await context.bot.send_message(
                                         chat_id=referrer_id,
                                         text=f"""
-🎉 <b>تهانينا! إحالة جديدة ناجحة!</b>
+<tg-emoji emoji-id='5388674524583572460'>🎉</tg-emoji> <b>تهانينا! إحالة جديدة ناجحة!</b>
 
-✅ المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
+<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
 
-🎁 <b>حصلت على لفة مجانية!</b>
-🎰 <b>لفاتك المتاحة:</b> {current_spins + 1}
+<tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji> <b>حصلت على لفة مجانية!</b>
+<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
 
-👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
-⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
 
-<b>استمر في الدعوة واربح المزيد! 🚀</b>
+<b>استمر في الدعوة واربح المزيد! <tg-emoji emoji-id='5188481279963715781'>🚀</tg-emoji></b>
 """,
                                         parse_mode=ParseMode.HTML
                                     )
@@ -3091,21 +3353,21 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     
     # رسالة الترحيب
     welcome_text = f"""
-<tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji> <b>مرحباً بك في Panda Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+🎁 <b>مرحباً بك في Arab Ton Gifts!</b> 🎁
 
-<b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
+<b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! 🌟
 
-<tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
-<tg-emoji emoji-id='5202158689217187713'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
-<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إحالاتك:</b> {db_user.total_referrals}
+💰 <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
+🎰 <b>لفاتك المتاحة:</b> {db_user.available_spins}
+👥 <b>إحالاتك:</b> {db_user.total_referrals}
 
-<b><tg-emoji emoji-id='5461009483314517035'>🎯</tg-emoji> كيف تربح؟</b>
+<b>🎯 كيف تربح؟</b>
 • قم بدعوة أصدقائك (كل {SPINS_PER_REFERRALS} إحالات = لفة مجانية)
 • أكمل المهام اليومية
 • إلعب عجلة الحظ واربح TON!
 • إسحب أرباحك مباشرة إلى محفظتك
 
-<b><tg-emoji emoji-id='5188481279963715781'>🚀</tg-emoji> ابدأ الآن واستمتع بالأرباح!</b>
+<b>🚀 ابدأ الآن واستمتع بالأرباح!</b>
 """
     
     # الأزرار
@@ -3113,22 +3375,22 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Panda Giveaway",
+        "🎰 افتح Arab Ton Gifts",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     # زر مشاركة رابط الدعوة
     ref_link = generate_referral_link(user_id)
-    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
     )])
     
-    # زر إثباتات الدفع
+    # زر قناة السحوبات والإثباتات  
     keyboard.append([InlineKeyboardButton(
-        "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        "📊 قناة السحوبات والإثباتات",
+        url="https://t.me/ArbTon_Draws"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
@@ -3225,6 +3487,12 @@ async def send_payment_proof_to_channel(context: ContextTypes.DEFAULT_TYPE,
         return False
     
     try:
+        # التأكد من صيغة القناة (@username أو -100xxxxxxxx)
+        channel_id = PAYMENT_PROOF_CHANNEL
+        if not channel_id.startswith('@') and not channel_id.startswith('-'):
+            channel_id = f"@{channel_id}"
+            logger.info(f"📝 Fixed channel format: {PAYMENT_PROOF_CHANNEL} → {channel_id}")
+        
         # رابط المستخدم
         user_link = f"@{username}" if username else f"<a href='tg://user?id={user_id}'>{full_name}</a>"
         
@@ -3259,20 +3527,20 @@ async def send_payment_proof_to_channel(context: ContextTypes.DEFAULT_TYPE,
         
         # إرسال الرسالة للقناة
         await context.bot.send_message(
-            chat_id=PAYMENT_PROOF_CHANNEL,
+            chat_id=channel_id,
             text=proof_message,
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=False
         )
         
-        logger.info(f"✅ Payment proof sent to channel {PAYMENT_PROOF_CHANNEL} for withdrawal #{withdrawal_id}")
+        logger.info(f"✅ Payment proof sent to channel {channel_id} for withdrawal #{withdrawal_id}")
         return True
         
     except Forbidden as e:
-        logger.error(f"❌ Bot is not admin or can't post in channel {PAYMENT_PROOF_CHANNEL}: {e}")
+        logger.error(f"❌ Bot is not admin or can't post in channel {channel_id}: {e}")
         return False
     except BadRequest as e:
-        logger.error(f"❌ Bad request when posting to channel {PAYMENT_PROOF_CHANNEL}: {e}")
+        logger.error(f"❌ Bad request when posting to channel {channel_id}: {e}")
         logger.error(f"   Hint: Make sure PAYMENT_PROOF_CHANNEL is set to @channelname (not URL) and bot is admin")
         return False
 
@@ -3403,7 +3671,7 @@ async def check_pending_withdrawals_transactions(context: ContextTypes.DEFAULT_T
 💰 المبلغ: {value_ton:.4f} TON
 🔐 TX Hash: <code>{tx_hash[:16]}...</code>
 
-شكراً لاستخدامك Panda Giveaways! 💎
+شكراً لاستخدامك Arab Ton Gifts! 💎
 """,
                                     parse_mode=ParseMode.HTML
                                 )
@@ -3664,7 +3932,7 @@ async def approve_withdrawal_callback(update: Update, context: ContextTypes.DEFA
 
 <tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> <a href="https://tonscan.org/tx/{tx_hash}">عرض على TON Explorer</a>
 
-شكراً لاستخدامك Panda Giveaways! <tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji>
+شكراً لاستخدامك Arab Ton Gifts! <tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji>
 """,
                         parse_mode=ParseMode.HTML,
                         disable_web_page_preview=False
@@ -3837,7 +4105,7 @@ async def manual_approve_callback(update: Update, context: ContextTypes.DEFAULT_
 💰 المبلغ: {withdrawal['amount']:.4f} TON
 📅 سيتم التحويل خلال 24 ساعة
 
-شكراً لصبرك! 💎
+شكراً لصبرك! 
 """,
             parse_mode=ParseMode.HTML
         )
@@ -4622,7 +4890,7 @@ def health_check():
     """فحص صحة الخادم"""
     return jsonify({
         'status': 'ok',
-        'service': 'Panda Giveaways Verification Server',
+        'service': 'Arab Ton Gifts Verification Server',
         'timestamp': datetime.now().isoformat(),
         'endpoints': ['/verify-subscription', '/check-bot-admin', '/device-verified']
     })
@@ -4802,6 +5070,31 @@ def handle_device_verified():
         
         logger.info(f"🔔 Device verified notification for user {user_id}")
         
+        # تحديث حالة device_verified في قاعدة البيانات
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            
+            # تحديث حالة device_verified في جدول referrals إن وجد
+            cursor.execute("""
+                UPDATE referrals 
+                SET device_verified = 1
+                WHERE referred_id = ?
+            """, (user_id,))
+            
+            # تحديث حالة is_device_verified في جدول users
+            cursor.execute("""
+                UPDATE users 
+                SET is_device_verified = 1
+                WHERE user_id = ?
+            """, (user_id,))
+            
+            conn.commit()
+            conn.close()
+            logger.info(f"✅ Device verification status updated in database for user {user_id}")
+        except Exception as db_error:
+            logger.error(f"❌ Failed to update device verification status: {db_error}")
+        
         # إرسال رسالة تأكيد للمستخدم عبر البوت
         try:
             import requests as req
@@ -4893,46 +5186,53 @@ def handle_user_banned():
             # تحديد نص الرسالة حسب سبب الحظر
             if reason == 'duplicate_device':
                 ban_text = f"""
-⛔ <b>تم حظرك من البوت</b>
+⛔ <b>فشل التحقق من الجهاز</b>
 
 عزيزي <b>{full_name}</b>،
 
-تم اكتشاف استخدام هذا الجهاز لحساب آخر مسبقاً.
+للأسف، تم اكتشاف أن هذا الجهاز مستخدم بالفعل لحساب آخر.
 
-<b>السبب:</b> جهاز مسجل مسبقاً لمستخدم آخر
-<b>📌 ملاحظة:</b> كل جهاز يمكن استخدامه لحساب واحد فقط
+<b>💡 السبب:</b> كل جهاز يُسمح باستخدامه لحساب واحد فقط
+
+<b>📌 لماذا هذا القيد؟</b>
+• منع التلاعب والحسابات الوهمية
+• ضمان عدالة الفرص للجميع
 
 <b>🔒 حالة الحساب:</b> محظور
 
-إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.
+<b>⚠️ ملاحظة:</b> إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.
 """
             elif reason == 'ip_limit_exceeded':
                 ban_text = f"""
-⛔ <b>تم حظرك من البوت</b>
+⛔ <b>فشل التحقق من الجهاز</b>
 
 عزيزي <b>{full_name}</b>،
 
-تم تجاوز الحد الأقصى للحسابات من نفس الشبكة.
+للأسف، تم تجاوز الحد الأقصى للحسابات من نفس الشبكة.
 
-<b>السبب:</b> تجاوز الحد الأقصى (3 حسابات لكل شبكة)
-<b>📌 ملاحظة:</b> هذا الإجراء لضمان نزاهة النظام
+<b>💡 السبب:</b> الحد الأقصى هو 3 حسابات من نفس الشبكة
+
+<b>📌 لماذا هذا القيد؟</b>
+• منع إنشاء حسابات وهمية
+• ضمان نزاهة النظام
 
 <b>🔒 حالة الحساب:</b> محظور
 
-إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.
+<b>⚠️ ملاحظة:</b> إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.
 """
             else:
                 ban_text = f"""
-⛔ <b>تم حظرك من البوت</b>
+⛔ <b>فشل التحقق من الجهاز</b>
 
 عزيزي <b>{full_name}</b>،
 
-تم حظر حسابك من البوت.
+للأسف، لم يتم قبول حسابك في البوت.
 
-<b>السبب:</b> {ban_reason}
+<b>💡 السبب:</b> {ban_reason}
+
 <b>🔒 حالة الحساب:</b> محظور
 
-إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.
+<b>⚠️ ملاحظة:</b> إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.
 """
             
             # إرسال الرسالة عبر Bot API
@@ -4940,7 +5240,15 @@ def handle_user_banned():
             payload = {
                 "chat_id": user_id,
                 "text": ban_text,
-                "parse_mode": "HTML"
+                "parse_mode": "HTML",
+                "reply_markup": {
+                    "inline_keyboard": [[
+                        {
+                            "text": "🔙 الرجوع للبوت",
+                            "url": f"https://t.me/{BOT_USERNAME}"
+                        }
+                    ]]
+                }
             }
             resp = req.post(url, json=payload, timeout=10)
             
@@ -4976,7 +5284,7 @@ def send_welcome_message():
             import requests as req
             
             welcome_text = f"""
-🎉 <b>مرحباً بك في Panda Giveaways!</b>
+🎉 <b>مرحباً بك في Arab Ton Gifts!</b>
 
 <b>{full_name}</b>، سعداء بانضمامك! 🎁
 
@@ -5532,6 +5840,7 @@ def main():
     )
     application.add_handler(restore_backup_conv_handler)
     application.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="^check_subscription$"))
+    application.add_handler(CallbackQueryHandler(device_verified_callback, pattern="^device_verified_"))
     application.add_handler(CallbackQueryHandler(approve_withdrawal_callback, pattern="^approve_withdrawal_"))
     application.add_handler(CallbackQueryHandler(manual_approve_callback, pattern="^manual_approve_"))  # ✅ موافقة يدوية
     application.add_handler(CallbackQueryHandler(reject_withdrawal_callback, pattern="^reject_withdrawal_"))

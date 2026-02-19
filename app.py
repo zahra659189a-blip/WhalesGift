@@ -785,16 +785,17 @@ def init_database():
     count = cursor.fetchone()[0]
     if count == 0:
         now = datetime.now().isoformat()
-        # الجوائز مطابقة لـ config.js: 0.25@94%, 0.5@5%, 1@1%, باقي 0%
+        # الجوائز مطابقة لـ config.js: 0.25@84%, 0.5@5%, 1@1%, Better Luck@10%, باقي 0%
         default_prizes = [
-            ('0.25 TON', 0.25, 94, '#4CAF50', '🎯', 0),
+            ('0.25 TON', 0.25, 84, '#4CAF50', '🎯', 0),
             ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
             ('1 TON', 1, 1, '#FF9800', '⭐', 2),
-            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 3),
-            ('2 TON', 2, 0, '#E91E63', '✨', 4),
-            ('3 TON', 3, 0, '#FFD700', '💰', 5),
-            ('NFT', 0, 0, '#00FFFF', '🖼️', 6),
-            ('8 TON', 8, 0, '#FF0000', '🚀', 7)
+            ('Better Luck', 0, 10, '#696969', '🍀', 3),
+            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 4),
+            ('2 TON', 2, 0, '#E91E63', '✨', 5),
+            ('3 TON', 3, 0, '#FFD700', '💰', 6),
+            ('NFT', 0, 0, '#00FFFF', '🖼️', 7),
+            ('8 TON', 8, 0, '#FF0000', '🚀', 8)
         ]
         for name, value, prob, color, emoji, pos in default_prizes:
             cursor.execute("""
@@ -1261,9 +1262,10 @@ def perform_spin(authenticated_user_id=None, is_admin=False):
         
         # Define prizes with probabilities (مطابقة لـ config.js)
         prizes = [
-            {'name': '0.25 TON', 'amount': 0.25, 'probability': 94},
+            {'name': '0.25 TON', 'amount': 0.25, 'probability': 84},
             {'name': '0.5 TON', 'amount': 0.5, 'probability': 5},
             {'name': '1 TON', 'amount': 1, 'probability': 1},
+            {'name': 'Better Luck', 'amount': 0, 'probability': 10},
             {'name': '1.5 TON', 'amount': 1.5, 'probability': 0},
             {'name': '2 TON', 'amount': 2, 'probability': 0},
             {'name': '3 TON', 'amount': 3, 'probability': 0},
@@ -2055,7 +2057,7 @@ def verify_all_channels():
                 'not_subscribed': []
             })
         
-        # التحقق من كل قناة
+        # التحقق من كل قناة باستخدام Telegram API مباشرة
         not_subscribed = []
         
         for channel in channels:
@@ -2063,30 +2065,43 @@ def verify_all_channels():
             channel_name = channel[1]
             
             try:
-                import requests as req
-                bot_url = 'http://localhost:8081/verify-subscription'
-                verify_response = req.post(bot_url, json={
-                    'user_id': user_id,
-                    'channel_username': channel_id
-                }, timeout=15)  # زيادة timeout
+                # استخدام Telegram API مباشرة
+                telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
+                verify_response = requests.post(telegram_url, json={
+                    'chat_id': channel_id,
+                    'user_id': user_id
+                }, timeout=10)
                 
-                verify_data = verify_response.json()
-                
-                if not verify_data.get('is_subscribed', False):
+                if verify_response.ok:
+                    verify_data = verify_response.json()
+                    if verify_data.get('ok'):
+                        member_status = verify_data.get('result', {}).get('status', 'left')
+                        # المستخدم مشترك إذا كان: creator, administrator, member
+                        is_subscribed = member_status in ['creator', 'administrator', 'member']
+                        
+                        if not is_subscribed:
+                            print(f"❌ User {user_id} not subscribed to {channel_id}: {member_status}")
+                            not_subscribed.append({
+                                'channel_id': channel_id,
+                                'channel_name': channel_name
+                            })
+                        else:
+                            print(f"✅ User {user_id} subscribed to {channel_id}: {member_status}")
+                    else:
+                        print(f"❌ Telegram API error for {channel_id}: {verify_data}")
+                        not_subscribed.append({
+                            'channel_id': channel_id,
+                            'channel_name': channel_name
+                        })
+                else:
+                    print(f"❌ Failed to verify {channel_id}: HTTP {verify_response.status_code}")
                     not_subscribed.append({
                         'channel_id': channel_id,
                         'channel_name': channel_name
                     })
                     
-            except (req.exceptions.RequestException, req.exceptions.Timeout, ConnectionError) as e:
-                print(f"⚠️ Bot unavailable for channel verification {channel_id}: {e}")
-                # في حالة عدم توفر البوت، نفترض عدم الاشتراك لأمان أكبر
-                not_subscribed.append({
-                    'channel_id': channel_id,
-                    'channel_name': channel_name
-                })
             except Exception as e:
-                print(f"Error verifying channel {channel_id}: {e}")
+                print(f"❌ Exception verifying channel {channel_id}: {e}")
                 not_subscribed.append({
                     'channel_id': channel_id,
                     'channel_name': channel_name
@@ -2866,10 +2881,11 @@ def manage_tasks(authenticated_user_id, is_admin, admin_username=None, admin_use
 def manage_prizes(authenticated_user_id, is_admin, admin_username=None, admin_user_id=None):
     """إدارة جوائز العجلة"""
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
         if request.method == 'GET':
             # Get all active prizes
-            conn = get_db_connection()
-            cursor = conn.cursor()
             cursor.execute("""
                 SELECT * FROM wheel_prizes 
                 WHERE is_active = 1 
@@ -2877,6 +2893,7 @@ def manage_prizes(authenticated_user_id, is_admin, admin_username=None, admin_us
             """)
             prizes = [dict(row) for row in cursor.fetchall()]
             conn.close()
+            print(f"✅ GET prizes: {len(prizes)} prizes loaded")
             return jsonify({'success': True, 'data': prizes})
         
         elif request.method == 'POST':
@@ -2892,21 +2909,29 @@ def manage_prizes(authenticated_user_id, is_admin, admin_username=None, admin_us
             emoji = data.get('emoji', '🎁')  # 🎁 افتراضي
             
             if not all([name, value is not None, probability is not None]):
+                conn.close()
                 return jsonify({'success': False, 'error': 'Missing parameters'}), 400
             
-            conn = get_db_connection()
-            cursor = conn.cursor()
             now = datetime.now().isoformat()
             
-            cursor.execute("""
-                INSERT INTO wheel_prizes (name, value, probability, color, emoji, position, is_active, added_at)
-                VALUES (?, ?, ?, ?, ?, ?, 1, ?)
-            """, (name, value, probability, color, emoji, position, now))
-            
-            conn.commit()
-            conn.close()
-            
-            return jsonify({'success': True, 'message': 'Prize added successfully'})
+            try:
+                cursor.execute("""
+                    INSERT INTO wheel_prizes (name, value, probability, color, emoji, position, is_active, added_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+                """, (name, value, probability, color, emoji, position, now))
+                
+                conn.commit()
+                new_id = cursor.lastrowid
+                conn.close()
+                
+                print(f"✅ Prize added: ID {new_id}, Name: {name}, Value: {value}, Prob: {probability}%")
+                return jsonify({'success': True, 'message': 'Prize added successfully', 'id': new_id})
+                
+            except Exception as e:
+                conn.rollback()
+                conn.close()
+                print(f"❌ Error adding prize: {e}")
+                return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
         
         elif request.method == 'PUT':
             # Update prize
@@ -2922,43 +2947,75 @@ def manage_prizes(authenticated_user_id, is_admin, admin_username=None, admin_us
             emoji = data.get('emoji', '🎁')
             
             if not prize_id:
+                conn.close()
                 return jsonify({'success': False, 'error': 'Prize ID required'}), 400
             
-            conn = get_db_connection()
-            cursor = conn.cursor()
             now = datetime.now().isoformat()
             
-            cursor.execute("""
-                UPDATE wheel_prizes 
-                SET name = ?, value = ?, probability = ?, color = ?, emoji = ?, position = ?, updated_at = ?
-                WHERE id = ?
-            """, (name, value, probability, color, emoji, position, now, prize_id))
-            
-            conn.commit()
-            conn.close()
-            
-            return jsonify({'success': True, 'message': 'Prize updated successfully'})
+            try:
+                cursor.execute("""
+                    UPDATE wheel_prizes 
+                    SET name = ?, value = ?, probability = ?, color = ?, emoji = ?, position = ?, updated_at = ?
+                    WHERE id = ? AND is_active = 1
+                """, (name, value, probability, color, emoji, position, now, prize_id))
+                
+                rows_affected = cursor.rowcount
+                conn.commit()
+                conn.close()
+                
+                if rows_affected > 0:
+                    print(f"✅ Prize updated: ID {prize_id}, Name: {name}, Value: {value}, Prob: {probability}%")
+                    return jsonify({'success': True, 'message': 'Prize updated successfully'})
+                else:
+                    print(f"⚠️ No prize found with ID {prize_id}")
+                    return jsonify({'success': False, 'error': 'Prize not found'}), 404
+                
+            except Exception as e:
+                conn.rollback()
+                conn.close()
+                print(f"❌ Error updating prize: {e}")
+                return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
         
         elif request.method == 'DELETE':
-            # Delete prize
+            # Delete prize (soft delete)
             prize_id = request.args.get('id')
             if not prize_id:
+                conn.close()
                 return jsonify({'success': False, 'error': 'Prize ID required'}), 400
             
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE wheel_prizes 
-                SET is_active = 0 
-                WHERE id = ?
-            """, (prize_id,))
-            conn.commit()
-            conn.close()
-            
-            return jsonify({'success': True, 'message': 'Prize removed'})
+            try:
+                # First check if prize exists
+                cursor.execute("SELECT name FROM wheel_prizes WHERE id = ? AND is_active = 1", (prize_id,))
+                prize = cursor.fetchone()
+                
+                if not prize:
+                    conn.close()
+                    print(f"⚠️ Prize not found for deletion: ID {prize_id}")
+                    return jsonify({'success': False, 'error': 'Prize not found'}), 404
+                
+                # Soft delete
+                cursor.execute("""
+                    UPDATE wheel_prizes 
+                    SET is_active = 0, updated_at = ?
+                    WHERE id = ?
+                """, (datetime.now().isoformat(), prize_id))
+                
+                conn.commit()
+                conn.close()
+                
+                print(f"✅ Prize deleted (soft): ID {prize_id}, Name: {dict(prize)['name']}")
+                return jsonify({'success': True, 'message': 'Prize removed successfully'})
+                
+            except Exception as e:
+                conn.rollback()
+                conn.close()
+                print(f"❌ Error deleting prize: {e}")
+                return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
             
     except Exception as e:
-        print(f"Error in manage_prizes: {e}")
+        print(f"❌ Error in manage_prizes: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/admin/reset-prizes', methods=['POST'])
@@ -2976,14 +3033,15 @@ def reset_prizes_to_default(authenticated_user_id, is_admin, admin_username=None
         # إضافة الجوائز الافتراضية (مطابقة لـ config.js)
         now = datetime.now().isoformat()
         default_prizes = [
-            ('0.25 TON', 0.25, 94, '#4CAF50', '🎯', 0),
+            ('0.25 TON', 0.25, 84, '#4CAF50', '🎯', 0),
             ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
             ('1 TON', 1, 1, '#FF9800', '⭐', 2),
-            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 3),
-            ('2 TON', 2, 0, '#E91E63', '✨', 4),
-            ('3 TON', 3, 0, '#FFD700', '💰', 5),
-            ('NFT', 0, 0, '#00FFFF', '🖼️', 6),
-            ('8 TON', 8, 0, '#FF0000', '🚀', 7)
+            ('Better Luck', 0, 10, '#696969', '🍀', 3),
+            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 4),
+            ('2 TON', 2, 0, '#E91E63', '✨', 5),
+            ('3 TON', 3, 0, '#FFD700', '💰', 6),
+            ('NFT', 0, 0, '#00FFFF', '🖼️', 7),
+            ('8 TON', 8, 0, '#FF0000', '🚀', 8)
         ]
         
         for name, value, prob, color, emoji, pos in default_prizes:
