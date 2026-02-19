@@ -12,6 +12,8 @@ services:
         value: https://arabton.vercel.app
       - key: PAYMENT_PROOF_CHANNEL
         value: "@ArbTon_Draws"
+      - key: DISABLE_BOT_FLASK
+        value: "false"
     disk:
       name: arabton-data
       mountPath: /opt/render/project/src

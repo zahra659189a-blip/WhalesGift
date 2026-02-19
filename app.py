@@ -2055,7 +2055,7 @@ def verify_all_channels():
                 'not_subscribed': []
             })
         
-        # التحقق من كل قناة
+        # التحقق من كل قناة باستخدام Telegram API مباشرة
         not_subscribed = []
         
         for channel in channels:
@@ -2063,30 +2063,43 @@ def verify_all_channels():
             channel_name = channel[1]
             
             try:
-                import requests as req
-                bot_url = 'http://localhost:8081/verify-subscription'
-                verify_response = req.post(bot_url, json={
-                    'user_id': user_id,
-                    'channel_username': channel_id
-                }, timeout=15)  # زيادة timeout
+                # استخدام Telegram API مباشرة
+                telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
+                verify_response = requests.post(telegram_url, json={
+                    'chat_id': channel_id,
+                    'user_id': user_id
+                }, timeout=10)
                 
-                verify_data = verify_response.json()
-                
-                if not verify_data.get('is_subscribed', False):
+                if verify_response.ok:
+                    verify_data = verify_response.json()
+                    if verify_data.get('ok'):
+                        member_status = verify_data.get('result', {}).get('status', 'left')
+                        # المستخدم مشترك إذا كان: creator, administrator, member
+                        is_subscribed = member_status in ['creator', 'administrator', 'member']
+                        
+                        if not is_subscribed:
+                            print(f"❌ User {user_id} not subscribed to {channel_id}: {member_status}")
+                            not_subscribed.append({
+                                'channel_id': channel_id,
+                                'channel_name': channel_name
+                            })
+                        else:
+                            print(f"✅ User {user_id} subscribed to {channel_id}: {member_status}")
+                    else:
+                        print(f"❌ Telegram API error for {channel_id}: {verify_data}")
+                        not_subscribed.append({
+                            'channel_id': channel_id,
+                            'channel_name': channel_name
+                        })
+                else:
+                    print(f"❌ Failed to verify {channel_id}: HTTP {verify_response.status_code}")
                     not_subscribed.append({
                         'channel_id': channel_id,
                         'channel_name': channel_name
                     })
                     
-            except (req.exceptions.RequestException, req.exceptions.Timeout, ConnectionError) as e:
-                print(f"⚠️ Bot unavailable for channel verification {channel_id}: {e}")
-                # في حالة عدم توفر البوت، نفترض عدم الاشتراك لأمان أكبر
-                not_subscribed.append({
-                    'channel_id': channel_id,
-                    'channel_name': channel_name
-                })
             except Exception as e:
-                print(f"Error verifying channel {channel_id}: {e}")
+                print(f"❌ Exception verifying channel {channel_id}: {e}")
                 not_subscribed.append({
                     'channel_id': channel_id,
                     'channel_name': channel_name
