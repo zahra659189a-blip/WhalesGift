@@ -5604,9 +5604,11 @@ def main():
         print("🚀 Launching bot polling...")
         sys.stdout.flush()
         # python-telegram-bot 21.x compatible
+        # Disable stop_signals when running in a thread
         application.run_polling(
             allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True
+            drop_pending_updates=True,
+            stop_signals=None  # Disable signals in thread
         )
         logger.info("✅ Polling started successfully")
         print("✅ Polling started successfully")
