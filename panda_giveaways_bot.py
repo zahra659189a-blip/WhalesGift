@@ -1730,7 +1730,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # استخراج referrer_id إن وجد (فقط من روابط start العادية، ليس startapp)
     referrer_id = None
     is_from_mini_app = False
-    is_verify_steps = False
     
     if context.args:
         arg = context.args[0]
@@ -1744,18 +1743,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     context.user_data['pending_referrer_id'] = referrer_id
             except:
                 pass
-        elif arg == 'verify_steps':
-            # المستخدم يأتي من التحقق من الجهاز ويريد إكمال الخطوات
-            is_verify_steps = True
     
     # إنشاء أو تحديث المستخدم
     db_user = db.get_user(user_id)
     if not db_user:
         # حفظ referrer_id في قاعدة البيانات فوراً (قبل التحقق)
-        # ملاحظة: إذا كان المستخدم يأتي من verify_steps، احصل على referrer_id من قاعدة البيانات
-        if is_verify_steps and not referrer_id:
-            # محاولة الحصول على referrer_id من السجلات إذا وجدت
-            pass
         db_user = db.create_or_update_user(user_id, username, full_name, referrer_id)
     else:
         # إذا كان المستخدم موجود ولم يكن لديه referrer، نحفظه الآن
@@ -1766,200 +1758,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # ══════════════════════════════════════════════════════════
     #  الخطوة 1: التحقق من الجهاز (الأساس - لا يتم شيء قبله)
-    # ══════════════════════════════════════════════════════════
-    
-    # معالجة خاصة: إذا جاء المستخدم من verify_steps، انتقل مباشرة لفحص القنوات
-    if is_verify_steps:
-        logger.info(f"📋 User {user_id} completing verification steps")
-        
-        # الحصول على referrer_id من قاعدة البيانات
-        if db_user and db_user.referrer_id and not context.user_data.get('pending_referrer_id'):
-            context.user_data['pending_referrer_id'] = db_user.referrer_id
-            logger.info(f"🔗 Retrieved referrer_id from database: {db_user.referrer_id}")
-        
-        # التحقق من الاشتراك في القنوات الإجبارية
-        required_channels = db.get_active_mandatory_channels()
-        
-        if required_channels:
-            not_subscribed = []
-            for channel in required_channels:
-                channel_id = channel['channel_id']
-                if not channel_id.startswith('@') and not channel_id.startswith('-'):
-                    channel_id = f"@{channel_id}"
-                try:
-                    member = await context.bot.get_chat_member(chat_id=channel_id, user_id=user_id)
-                    if member.status not in [ChatMember.MEMBER, ChatMember.ADMINISTRATOR, ChatMember.OWNER]:
-                        not_subscribed.append(channel)
-                except Exception as e:
-                    logger.error(f"Error checking channel {channel_id}: {e}")
-                    not_subscribed.append(channel)
-            
-            if not_subscribed:
-                # عرض أول قناة غير مشترك فيها
-                first_channel = not_subscribed[0]
-                
-                subscription_text = f"""
-<tg-emoji emoji-id='5370599459661045441'>🤍</tg-emoji> <b>خطوة أخيرة! اشترك في القناة</b>
-
-عزيزي <b>{full_name}</b>، لإكمال التسجيل واحتساب الإحالة، يجب الاشتراك في القناة التالية:
-
-• <b>{first_channel['channel_name']}</b>
-
-بعد الاشتراك، اضغط على زر "<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> تحققت من الاشتراك" أدناه.
-"""
-                
-                keyboard = [
-                    [InlineKeyboardButton(
-                        f"{first_channel['channel_name']}",
-                        url=first_channel['channel_url']
-                    )],
-                    [InlineKeyboardButton(
-                        "✅ تحققت من الاشتراك",
-                        callback_data="check_subscription"
-                    )]
-                ]
-                
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                
-                await update.message.reply_text(
-                    subscription_text,
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=reply_markup
-                )
-                
-                db.log_activity(user_id, "subscription_required", f"Channel: {first_channel['channel_name']}")
-                return
-        
-        # إذا وصل هنا، المستخدم مشترك في كل القنوات - احتساب الإحالة
-        referrer_id = context.user_data.get('pending_referrer_id')
-        
-        if referrer_id:
-            logger.info(f"🎯 Processing referral after complete verification: {referrer_id} -> {user_id}")
-            
-            referrer_user = db.get_user(referrer_id)
-            if referrer_user and not referrer_user.is_banned and db_user and not db_user.is_banned:
-                conn = db.get_connection()
-                cursor = conn.cursor()
-                cursor.execute("SELECT * FROM referrals WHERE referred_id = ?", (user_id,))
-                existing_ref = cursor.fetchone()
-                
-                if not existing_ref:
-                    now = datetime.now().isoformat()
-                    try:
-                        cursor.execute("""
-                            INSERT INTO referrals (referrer_id, referred_id, created_at, channels_checked, device_verified, is_valid)
-                            VALUES (?, ?, ?, 1, 1, 1)
-                        """, (referrer_id, user_id, now))
-                        
-                        cursor.execute("""
-                            UPDATE users 
-                            SET total_referrals = total_referrals + 1,
-                                valid_referrals = valid_referrals + 1
-                            WHERE user_id = ?
-                        """, (referrer_id,))
-                        
-                        cursor.execute("SELECT valid_referrals, available_spins FROM users WHERE user_id = ?", (referrer_id,))
-                        ref_data = cursor.fetchone()
-                        if ref_data:
-                            valid_refs = ref_data['valid_referrals']
-                            current_spins = ref_data['available_spins']
-                            
-                            if valid_refs % SPINS_PER_REFERRALS == 0:
-                                cursor.execute("""
-                                    UPDATE users 
-                                    SET available_spins = available_spins + 1 
-                                    WHERE user_id = ?
-                                """, (referrer_id,))
-                                
-                                remaining_for_next = SPINS_PER_REFERRALS
-                                try:
-                                    await context.bot.send_message(
-                                        chat_id=referrer_id,
-                                        text=f"""
-<tg-emoji emoji-id='5388674524583572460'>🎉</tg-emoji> <b>تهانينا! إحالة جديدة ناجحة!</b>
-
-<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
-
-<tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji> <b>حصلت على لفة مجانية!</b>
-<tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
-
-<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
-<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
-
-<b>استمر في الدعوة واربح المزيد! <tg-emoji emoji-id='5188481279963715781'>🚀</tg-emoji></b>
-""",
-                                        parse_mode=ParseMode.HTML
-                                    )
-                                except Exception as e:
-                                    logger.error(f"Failed to send referral notification: {e}")
-                            else:
-                                remaining_for_next = SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS)
-                                try:
-                                    await context.bot.send_message(
-                                        chat_id=referrer_id,
-                                        text=f"""
-✅ <b>إحالة جديدة ناجحة!</b>
-
-👤 المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
-
-👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
-⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
-
-<b>استمر في الدعوة! 💪</b>
-""",
-                                        parse_mode=ParseMode.HTML
-                                    )
-                                except Exception as e:
-                                    logger.error(f"Failed to send referral notification: {e}")
-                        
-                        conn.commit()
-                        logger.info(f"✅ Referral counted successfully: {referrer_id} -> {user_id}")
-                    except sqlite3.IntegrityError:
-                        logger.warning(f"⚠️ Referral already exists: {referrer_id} -> {user_id}")
-                    finally:
-                        conn.close()
-                else:
-                    logger.info(f"ℹ️ Referral already counted for user {user_id}")
-                    conn.close()
-        
-        if 'pending_referrer_id' in context.user_data:
-            del context.user_data['pending_referrer_id']
-        
-        # عرض رسالة إكمال التسجيل
-        welcome_text = f"""
-🎉 <b>تم إكمال التسجيل بنجاح!</b>
-
-عزيزي <b>{full_name}</b>، أهلاً بك في Arab Ton Gifts! 🌟
-
-✅ تم التحقق من جهازك
-✅ تم التحقق من اشتراكك في القنوات
-{f'✅ تم احتساب إحالتك' if referrer_id else ''}
-
-💰 <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
-🎰 <b>لفاتك المتاحة:</b> {db_user.available_spins}
-
-🎯 <b>الآن يمكنك:</b>
-• استخدام جميع مميزات البوت
-• الحصول على لفات مجانية
-• دعوة أصدقائك والربح معاً
-
-👇 <b>افتح البوت لتبدأ:</b>
-"""
-        
-        keyboard = [
-            [InlineKeyboardButton("🎰 افتح البوت", url=f"https://t.me/{BOT_USERNAME}/app")]
-        ]
-        
-        await update.message.reply_text(
-            welcome_text,
-            parse_mode=ParseMode.HTML,
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        
-        return
-    
-    # ══════════════════════════════════════════════════════════
-    # التحقق من الجهاز للمستخدمين الجدد
     # ══════════════════════════════════════════════════════════
     
     # الأدمن لا يحتاج للتحقق
@@ -5047,23 +4845,22 @@ def handle_device_verified():
                 referrer_id = data.get('referrer_id')
             
             success_text = f"""
-✅ <b>تم التحقق من جهازك بنجاح!</b>
+✅ تم التحقق من جهازك بنجاح!
 
-عزيزي <b>{full_name}</b> 🎉
+عزيزي {full_name} تم التحقق من جهازك بنجاح! 🎉
 
-تم التحقق من جهازك بنجاح!
-
-🎯 <b>الخطوات التالية:</b>
-• التحقق من الاشتراك في القنوات الإجبارية
-• إكمال التسجيل واحتساب الإحالة
-• البدء في جمع اللفات والأرباح
-
-👇 <b>اضغط على الزر للمتابعة:</b>
+🎯 يمكنك الآن استخدام البوت بحرية!
 """
             
-            # إنشاء رابط البوت مع معامل خاص للتحقق من الخطوات المتبقية
-            bot_link = f"https://t.me/{BOT_USERNAME}?start=verify_steps"
-            button_text = "✅ تحقق من باقى الخطوات"
+            # إنشاء رابط البوت (مع الإحالة إذا وجدت)
+            if referrer_id:
+                bot_link = f"https://t.me/{BOT_USERNAME}?start=ref_{referrer_id}"
+                button_text = "🚀 متابعة للبوت"
+            else:
+                # إذا فشل كل شيء، استخدم الرابط المرسل من المستخدم كـ fallback
+                fallback_link = data.get('fallback_link', f"https://t.me/{BOT_USERNAME}")
+                bot_link = fallback_link
+                button_text = "🚀 فتح البوت"
             
             # إرسال الرسالة مع زر عبر Bot API
             url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
