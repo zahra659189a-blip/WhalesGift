@@ -504,6 +504,13 @@ def start_telegram_bot():
             print(f"⚠️ Patch error: {patch_error}")
             sys.stdout.flush()
         
+        # Create new event loop for this thread (Python 3.14 requirement)
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        print("✅ Created new event loop for bot thread")
+        sys.stdout.flush()
+        
         # تعطيل Flask في البوت (app.py بيشغل Flask على بورت 10000)
         os.environ['DISABLE_BOT_FLASK'] = 'true'
         
