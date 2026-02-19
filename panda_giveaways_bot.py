@@ -108,9 +108,10 @@ MANDATORY_CHANNELS = []
 
 # 🎁 إعدادات عجلة الحظ (النسب والجوائز - مطابقة لـ config.js)
 WHEEL_PRIZES = [
-    {"name": "0.25 TON", "amount": 0.25, "probability": 94},   # 94%
+    {"name": "0.25 TON", "amount": 0.25, "probability": 84},   # 84% (تم خصم 10%)
     {"name": "0.5 TON", "amount": 0.5, "probability": 5},      # 5%
     {"name": "1 TON", "amount": 1, "probability": 1},          # 1%
+    {"name": "حظ أوفر", "amount": 0, "probability": 10},   # 10% (حظ أوفر)
     {"name": "1.5 TON", "amount": 1.5, "probability": 0},      # 0%
     {"name": "2 TON", "amount": 2, "probability": 0},          # 0%
     {"name": "3 TON", "amount": 3, "probability": 0},          # 0%

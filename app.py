@@ -785,16 +785,17 @@ def init_database():
     count = cursor.fetchone()[0]
     if count == 0:
         now = datetime.now().isoformat()
-        # الجوائز مطابقة لـ config.js: 0.25@94%, 0.5@5%, 1@1%, باقي 0%
+        # الجوائز مطابقة لـ config.js: 0.25@84%, 0.5@5%, 1@1%, Better Luck@10%, باقي 0%
         default_prizes = [
-            ('0.25 TON', 0.25, 94, '#4CAF50', '🎯', 0),
+            ('0.25 TON', 0.25, 84, '#4CAF50', '🎯', 0),
             ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
             ('1 TON', 1, 1, '#FF9800', '⭐', 2),
-            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 3),
-            ('2 TON', 2, 0, '#E91E63', '✨', 4),
-            ('3 TON', 3, 0, '#FFD700', '💰', 5),
-            ('NFT', 0, 0, '#00FFFF', '🖼️', 6),
-            ('8 TON', 8, 0, '#FF0000', '🚀', 7)
+            ('Better Luck', 0, 10, '#696969', '🍀', 3),
+            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 4),
+            ('2 TON', 2, 0, '#E91E63', '✨', 5),
+            ('3 TON', 3, 0, '#FFD700', '💰', 6),
+            ('NFT', 0, 0, '#00FFFF', '🖼️', 7),
+            ('8 TON', 8, 0, '#FF0000', '🚀', 8)
         ]
         for name, value, prob, color, emoji, pos in default_prizes:
             cursor.execute("""
@@ -1261,9 +1262,10 @@ def perform_spin(authenticated_user_id=None, is_admin=False):
         
         # Define prizes with probabilities (مطابقة لـ config.js)
         prizes = [
-            {'name': '0.25 TON', 'amount': 0.25, 'probability': 94},
+            {'name': '0.25 TON', 'amount': 0.25, 'probability': 84},
             {'name': '0.5 TON', 'amount': 0.5, 'probability': 5},
             {'name': '1 TON', 'amount': 1, 'probability': 1},
+            {'name': 'Better Luck', 'amount': 0, 'probability': 10},
             {'name': '1.5 TON', 'amount': 1.5, 'probability': 0},
             {'name': '2 TON', 'amount': 2, 'probability': 0},
             {'name': '3 TON', 'amount': 3, 'probability': 0},
@@ -2989,14 +2991,15 @@ def reset_prizes_to_default(authenticated_user_id, is_admin, admin_username=None
         # إضافة الجوائز الافتراضية (مطابقة لـ config.js)
         now = datetime.now().isoformat()
         default_prizes = [
-            ('0.25 TON', 0.25, 94, '#4CAF50', '🎯', 0),
+            ('0.25 TON', 0.25, 84, '#4CAF50', '🎯', 0),
             ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
             ('1 TON', 1, 1, '#FF9800', '⭐', 2),
-            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 3),
-            ('2 TON', 2, 0, '#E91E63', '✨', 4),
-            ('3 TON', 3, 0, '#FFD700', '💰', 5),
-            ('NFT', 0, 0, '#00FFFF', '🖼️', 6),
-            ('8 TON', 8, 0, '#FF0000', '🚀', 7)
+            ('Better Luck', 0, 10, '#696969', '🍀', 3),
+            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 4),
+            ('2 TON', 2, 0, '#E91E63', '✨', 5),
+            ('3 TON', 3, 0, '#FFD700', '💰', 6),
+            ('NFT', 0, 0, '#00FFFF', '🖼️', 7),
+            ('8 TON', 8, 0, '#FF0000', '🚀', 8)
         ]
         
         for name, value, prob, color, emoji, pos in default_prizes:
