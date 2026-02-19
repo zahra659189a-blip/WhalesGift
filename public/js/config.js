@@ -13,14 +13,15 @@ const CONFIG = {
     
     // Wheel Configuration - نفس النسب بالضبط من صفحة الأدمن
     WHEEL_PRIZES: [
-        { name: '0.25 TON', amount: 0.25, probability: 94, color: '#808080', emoji: '🎁', id: 1 },
+        { name: '0.25 TON', amount: 0.25, probability: 84, color: '#808080', emoji: '🎁', id: 1 },
         { name: '0.5 TON', amount: 0.5, probability: 5, color: '#FFA500', emoji: '🎁', id: 2 },
         { name: '1 TON', amount: 1, probability: 1, color: '#9370DB', emoji: '🎁', id: 3 },
-        { name: '1.5 TON', amount: 1.5, probability: 0, color: '#32CD32', emoji: '🏆', id: 4 },
-        { name: '2 TON', amount: 2, probability: 0, color: '#FF1493', emoji: '🎁', id: 5 },
-        { name: '3 TON', amount: 3, probability: 0, color: '#FFD700', emoji: '💰', id: 6 },
-        { name: 'NFT', amount: 0, probability: 0, color: '#00FFFF', emoji: '🖼️', id: 7 },
-        { name: '8 TON', amount: 8, probability: 0, color: '#FF0000', emoji: '🚀', id: 8 }
+        { name: 'حظ أوفر', amount: 0, probability: 10, color: '#696969', emoji: '🍀', id: 4 },
+        { name: '1.5 TON', amount: 1.5, probability: 0, color: '#32CD32', emoji: '🏆', id: 5 },
+        { name: '2 TON', amount: 2, probability: 0, color: '#FF1493', emoji: '🎁', id: 6 },
+        { name: '3 TON', amount: 3, probability: 0, color: '#FFD700', emoji: '💰', id: 7 },
+        { name: 'NFT', amount: 0, probability: 0, color: '#00FFFF', emoji: '🖼️', id: 8 },
+        { name: '8 TON', amount: 8, probability: 0, color: '#FF0000', emoji: '🚀', id: 9 }
     ],
     
     // Referral & Tasks (تذاكر بدلاً من عملات)
