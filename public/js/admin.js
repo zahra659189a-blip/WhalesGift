@@ -384,30 +384,48 @@ function filterUsersByStatus(status) {
 
 async function loadPrizes() {
     try {
-        DebugError.add('Loading prizes from API...', 'info');
+        DebugError.add('🔄 Loading prizes from API...', 'info');
+        showLoading();
         
         const result = await API.request('/admin/prizes', 'GET');
-        DebugError.add(`Prizes API Response:`, 'info', result);
+        
+        hideLoading();
+        DebugError.add(`📥 Prizes API Response:`, 'info', result);
         
         if (result.success && result.data) {
             adminData.prizes = result.data;
-            DebugError.add(`Successfully loaded ${adminData.prizes.length} prizes`, 'info', adminData.prizes);
-            showToast(`تم تحميل ${adminData.prizes.length} جائزة بنجاح`, 'success');
+            DebugError.add(`✅ Successfully loaded ${adminData.prizes.length} prizes`, 'info', adminData.prizes);
+            
+            // Render the list
+            renderPrizesList();
+            updatePrizesInfo();
+            
+            // Show success message only on explicit reload (not initial load)
+            if (window._prizesLoadedOnce) {
+                showToast(`✅ تم تحميل ${adminData.prizes.length} جائزة`, 'success');
+            }
+            window._prizesLoadedOnce = true;
         } else {
-            DebugError.add(`Failed to load prizes: ${result.error || 'Unknown error'}`, 'error', result);
-            showToast('فشل تحميل الجوائز', 'error');
+            DebugError.add(`❌ Failed to load prizes: ${result.error || 'Unknown error'}`, 'error', result);
+            showToast('❌ فشل تحميل الجوائز', 'error');
+            
             // استخدام جوائز افتراضية
             adminData.prizes = CONFIG.WHEEL_PRIZES.map((prize, index) => ({
                 id: index + 1,
                 name: prize.name,
                 value: prize.amount,
                 probability: prize.probability,
-                color: prize.color || `#${Math.floor(Math.random()*16777215).toString(16)}`
+                color: prize.color || `#${Math.floor(Math.random()*16777215).toString(16)}`,
+                position: index
             }));
-            DebugError.add('Using default prizes from CONFIG', 'warn', adminData.prizes);
+            DebugError.add('⚠️ Using default prizes from CONFIG', 'warn', adminData.prizes);
+            
+            renderPrizesList();
+            updatePrizesInfo();
         }
     } catch (error) {
-        DebugError.add(`Error loading prizes: ${error.message}`, 'error', {
+        hideLoading();
+        DebugError.add(`❌ Error loading prizes: ${error.message}`, 'error', {
             error: error.stack,
             url: CONFIG.API_BASE_URL
         });
@@ -419,13 +437,14 @@ async function loadPrizes() {
             name: prize.name,
             value: prize.amount,
             probability: prize.probability,
-            color: prize.color || `#${Math.floor(Math.random()*16777215).toString(16)}`
+            color: prize.color || `#${Math.floor(Math.random()*16777215).toString(16)}`,
+            position: index
         }));
-        DebugError.add('Fallback to default prizes', 'warn');
+        DebugError.add('⚠️ Fallback to default prizes', 'warn');
+        
+        renderPrizesList();
+        updatePrizesInfo();
     }
-    
-    renderPrizesList();
-    updatePrizesInfo();
 }
 
 function renderPrizesList() {
@@ -499,16 +518,24 @@ function openEditPrizeModal(prizeId) {
 }
 
 async function addPrize() {
-    const name = document.getElementById('prize-name').value;
+    const name = document.getElementById('prize-name').value.trim();
     const value = parseFloat(document.getElementById('prize-value').value);
     const probability = parseFloat(document.getElementById('prize-probability').value);
     
     if (!name || isNaN(value) || isNaN(probability)) {
-        showToast('❌ يرجى ملء جميع الحقول', 'error');
+        showToast('❌ يرجى ملء جميع الحقول بشكل صحيح', 'error');
+        return;
+    }
+    
+    if (probability < 0 || probability > 100) {
+        showToast('❌ النسبة يجب أن تكون بين 0 و 100', 'error');
         return;
     }
     
     try {
+        showLoading();
+        DebugError.add('🔄 Adding new prize...', 'info', { name, value, probability });
+        
         const result = await API.request('/admin/prizes', 'POST', {
             name,
             value,
@@ -516,21 +543,32 @@ async function addPrize() {
             position: adminData.prizes.length
         });
         
+        hideLoading();
+        DebugError.add('📥 Add prize response:', 'info', result);
+        
         if (result.success) {
-            await loadPrizes();
-            closeModal('add-prize-modal');
+            DebugError.add('✅ Prize added successfully', 'info');
             showToast('✅ تم إضافة الجائزة بنجاح', 'success');
             
             // Clear form
             document.getElementById('prize-name').value = '';
             document.getElementById('prize-value').value = '';
             document.getElementById('prize-probability').value = '';
+            
+            // Close modal first
+            closeModal('add-prize-modal');
+            
+            // Reload prizes
+            await loadPrizes();
         } else {
-            showToast('❌ فشل إضافة الجائزة: ' + result.error, 'error');
+            DebugError.add('❌ Failed to add prize', 'error', result);
+            showToast('❌ فشل إضافة الجائزة: ' + (result.error || 'خطأ غير معروف'), 'error');
         }
     } catch (error) {
-        console.error('Error adding prize:', error);
-        showToast('❌ خطأ في إضافة الجائزة', 'error');
+        hideLoading();
+        console.error('❌ Error adding prize:', error);
+        DebugError.add('❌ Exception in addPrize', 'error', error);
+        showToast('❌ خطأ في إضافة الجائزة: ' + error.message, 'error');
     }
 }
 
@@ -538,51 +576,93 @@ async function updatePrize() {
     const id = parseInt(document.getElementById('edit-prize-id').value);
     const prize = adminData.prizes.find(p => p.id === id);
     
-    if (!prize) return;
+    if (!prize) {
+        showToast('❌ الجائزة غير موجودة', 'error');
+        return;
+    }
     
-    const name = document.getElementById('edit-prize-name').value;
+    const name = document.getElementById('edit-prize-name').value.trim();
     const value = parseFloat(document.getElementById('edit-prize-value').value);
     const probability = parseFloat(document.getElementById('edit-prize-probability').value);
+    
+    if (!name || isNaN(value) || isNaN(probability)) {
+        showToast('❌ يرجى ملء جميع الحقول بشكل صحيح', 'error');
+        return;
+    }
+    
+    if (probability < 0 || probability > 100) {
+        showToast('❌ النسبة يجب أن تكون بين 0 و 100', 'error');
+        return;
+    }
     
     const updatedData = {
         id,
         name,
         value,
         probability,
-        position: prize.position
+        position: prize.position || 0
     };
     
     try {
+        showLoading();
+        DebugError.add('🔄 Updating prize...', 'info', updatedData);
+        
         const result = await API.request('/admin/prizes', 'PUT', updatedData);
         
+        hideLoading();
+        DebugError.add('📥 Update prize response:', 'info', result);
+        
         if (result.success) {
-            await loadPrizes();
-            closeModal('edit-prize-modal');
+            DebugError.add('✅ Prize updated successfully', 'info');
             showToast('✅ تم تحديث الجائزة بنجاح', 'success');
+            
+            // Close modal first
+            closeModal('edit-prize-modal');
+            
+            // Reload prizes
+            await loadPrizes();
         } else {
-            showToast('❌ فشل تحديث الجائزة: ' + result.error, 'error');
+            DebugError.add('❌ Failed to update prize', 'error', result);
+            showToast('❌ فشل تحديث الجائزة: ' + (result.error || 'خطأ غير معروف'), 'error');
         }
     } catch (error) {
-        console.error('Error updating prize:', error);
-        showToast('❌ خطأ في تحديث الجائزة', 'error');
+        hideLoading();
+        console.error('❌ Error updating prize:', error);
+        DebugError.add('❌ Exception in updatePrize', 'error', error);
+        showToast('❌ خطأ في تحديث الجائزة: ' + error.message, 'error');
     }
 }
 
 async function deletePrize(prizeId) {
-    if (!confirm('هل أنت متأكد من حذف هذه الجائزة؟')) return;
+    const prize = adminData.prizes.find(p => p.id === prizeId);
+    const prizeName = prize ? prize.name : `ID ${prizeId}`;
+    
+    if (!confirm(`هل أنت متأكد من حذف جائزة ${prizeName}؟`)) return;
     
     try {
+        showLoading();
+        DebugError.add('🔄 Deleting prize...', 'info', { prizeId, prizeName });
+        
         const result = await API.request(`/admin/prizes?id=${prizeId}`, 'DELETE');
         
+        hideLoading();
+        DebugError.add('📥 Delete prize response:', 'info', result);
+        
         if (result.success) {
+            DebugError.add('✅ Prize deleted successfully', 'info');
+            showToast(`✅ تم حذف ${prizeName} بنجاح`, 'success');
+            
+            // Reload prizes
             await loadPrizes();
-            showToast('✅ تم حذف الجائزة بنجاح', 'success');
         } else {
-            showToast('❌ فشل حذف الجائزة: ' + result.error, 'error');
+            DebugError.add('❌ Failed to delete prize', 'error', result);
+            showToast('❌ فشل حذف الجائزة: ' + (result.error || 'خطأ غير معروف'), 'error');
         }
     } catch (error) {
-        console.error('Error deleting prize:', error);
-        showToast('❌ خطأ في حذف الجائزة', 'error');
+        hideLoading();
+        console.error('❌ Error deleting prize:', error);
+        DebugError.add('❌ Exception in deletePrize', 'error', error);
+        showToast('❌ خطأ في حذف الجائزة: ' + error.message, 'error');
     }
 }
 
