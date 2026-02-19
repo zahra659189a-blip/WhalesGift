@@ -469,21 +469,33 @@ def start_telegram_bot():
                 
                 # Check if needs patching
                 if 'Python 3.14 compatibility' not in content:
-                    # Match the exact line with its indentation (4 spaces in httpcore)
-                    old = '    setattr(__locals[__name], "__module__", "httpcore")  # noqa'
-                    new = '''    try:
-        setattr(__locals[__name], "__module__", "httpcore")  # noqa
-    except (AttributeError, TypeError):
-        pass  # Python 3.14 compatibility'''
-                    
-                    if old in content:
-                        content = content.replace(old, new)
-                        with open(httpcore_init, 'w', encoding='utf-8') as f:
-                            f.write(content)
-                        print(f"✅ Patched httpcore at: {httpcore_init}")
-                        sys.stdout.flush()
+                    # Find the exact line with context
+                    lines = content.split('\n')
+                    for i, line in enumerate(lines):
+                        if 'setattr(__locals[__name], "__module__", "httpcore")' in line and i > 135:
+                            # Calculate the original indentation
+                            indent = len(line) - len(line.lstrip())
+                            indent_str = ' ' * indent
+                            
+                            # Create properly indented replacement
+                            new_lines = [
+                                indent_str + 'try:',
+                                indent_str + '    setattr(__locals[__name], "__module__", "httpcore")  # noqa',
+                                indent_str + 'except (AttributeError, TypeError):',
+                                indent_str + '    pass  # Python 3.14 compatibility'
+                            ]
+                            
+                            # Replace the line
+                            lines[i] = '\n'.join(new_lines)
+                            content = '\n'.join(lines)
+                            
+                            with open(httpcore_init, 'w', encoding='utf-8') as f:
+                                f.write(content)
+                            print(f"✅ Patched httpcore at: {httpcore_init}")
+                            sys.stdout.flush()
+                            break
                     else:
-                        print("⚠️ httpcore pattern not found")
+                        print("⚠️ httpcore setattr line not found")
                         sys.stdout.flush()
                 else:
                     print("✅ httpcore already patched")
