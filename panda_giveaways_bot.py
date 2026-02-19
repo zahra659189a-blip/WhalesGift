@@ -3487,6 +3487,12 @@ async def send_payment_proof_to_channel(context: ContextTypes.DEFAULT_TYPE,
         return False
     
     try:
+        # التأكد من صيغة القناة (@username أو -100xxxxxxxx)
+        channel_id = PAYMENT_PROOF_CHANNEL
+        if not channel_id.startswith('@') and not channel_id.startswith('-'):
+            channel_id = f"@{channel_id}"
+            logger.info(f"📝 Fixed channel format: {PAYMENT_PROOF_CHANNEL} → {channel_id}")
+        
         # رابط المستخدم
         user_link = f"@{username}" if username else f"<a href='tg://user?id={user_id}'>{full_name}</a>"
         
@@ -3521,20 +3527,20 @@ async def send_payment_proof_to_channel(context: ContextTypes.DEFAULT_TYPE,
         
         # إرسال الرسالة للقناة
         await context.bot.send_message(
-            chat_id=PAYMENT_PROOF_CHANNEL,
+            chat_id=channel_id,
             text=proof_message,
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=False
         )
         
-        logger.info(f"✅ Payment proof sent to channel {PAYMENT_PROOF_CHANNEL} for withdrawal #{withdrawal_id}")
+        logger.info(f"✅ Payment proof sent to channel {channel_id} for withdrawal #{withdrawal_id}")
         return True
         
     except Forbidden as e:
-        logger.error(f"❌ Bot is not admin or can't post in channel {PAYMENT_PROOF_CHANNEL}: {e}")
+        logger.error(f"❌ Bot is not admin or can't post in channel {channel_id}: {e}")
         return False
     except BadRequest as e:
-        logger.error(f"❌ Bad request when posting to channel {PAYMENT_PROOF_CHANNEL}: {e}")
+        logger.error(f"❌ Bad request when posting to channel {channel_id}: {e}")
         logger.error(f"   Hint: Make sure PAYMENT_PROOF_CHANNEL is set to @channelname (not URL) and bot is admin")
         return False
 
