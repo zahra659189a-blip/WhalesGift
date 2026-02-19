@@ -1,23 +1,21 @@
 # Arab Ton Gifts Bot Dependencies
-# ⚠️ IMPORTANT: Must use Python 3.11.0 (NOT 3.14!)
-# Python 3.14 has compatibility issues with python-telegram-bot
 
-# Core - إصدارات مستقرة ومتوافقة مع Python 3.11
-python-telegram-bot==20.8
-python-dotenv==1.0.1
+# Core
+python-telegram-bot==20.3
+python-dotenv==1.0.0
 
 # Database
 psycopg2-binary==2.9.9  # PostgreSQL
 
 # TON SDK
 tonsdk==1.0.13
-requests==2.32.3
+requests==2.31.0
 
 # Web Server (للـ Mini App API)
-flask==3.0.3
-flask-cors==4.0.1
-gunicorn==22.0.0
+flask==3.0.0
+flask-cors==4.0.0
+gunicorn==21.2.0
 
 # Security
-cryptography==42.0.8
+cryptography==41.0.7
 PyJWT==2.8.0
