@@ -87,7 +87,7 @@ ICONS = {
     'loading4': '◟',        # Loading animation frame 4
     
     # Brand
-    'panda': '🐼',          # Panda
+    'panda': '💎',          # Panda
     'ton': '◈',             # TON coin symbol
 }
 
