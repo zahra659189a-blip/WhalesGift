@@ -1817,10 +1817,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                 # إنشاء رابط التحقق بدون .html (آمن)
                                 verify_url = f"{MINI_APP_URL}/fp?user_id={user_id}"
                                 
-                                keyboard = [[InlineKeyboardButton(
-                                    "🔐 تحقق من جهازك",
-                                    web_app=WebAppInfo(url=verify_url)
-                                )]]
+                                keyboard = [[
+                                    InlineKeyboardButton(
+                                        "🔐 تحقق من جهازك",
+                                        web_app=WebAppInfo(url=verify_url)
+                                    )
+                                ],[
+                                    InlineKeyboardButton(
+                                        "✅ أكملت التحقق - متابعة",
+                                        callback_data=f"device_verified_{user_id}"
+                                    )
+                                ]]
                                 
                                 reply_markup = InlineKeyboardMarkup(keyboard)
                                 
@@ -1855,11 +1862,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     InlineKeyboardButton(
                                         "🔐 افتح صفحة التحقق",
                                         url=f"{MINI_APP_URL}/fp?user_id={user_id}"
-                                    )
-                                ],[
-                                    InlineKeyboardButton(
-                                        "✅ أكملت التحقق - متابعة",
-                                        callback_data=f"device_verified_{user_id}"
                                     )
                                 ],[
                                     InlineKeyboardButton(
