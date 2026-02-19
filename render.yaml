@@ -3,11 +3,12 @@ services:
   - type: web
     name: arabton-backend
     env: python
-    buildCommand: pip install -r requirements.txt
+    runtime: python
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: bash start_render.sh
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11
+        value: 3.11.8
       - key: DATABASE_PATH
         value: /opt/render/project/src/Arab_ton.db
       - key: FRONTEND_URL
