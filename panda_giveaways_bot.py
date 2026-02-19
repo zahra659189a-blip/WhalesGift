@@ -791,7 +791,7 @@ class DatabaseManager:
             tx_hash = await ton_wallet.send_ton(
                 withdrawal_dict['wallet_address'],
                 withdrawal_dict['amount'],
-                f"Panda Giveaways Withdrawal #{withdrawal_id}"
+                f"Arab Ton Gifts Withdrawal #{withdrawal_id}"
             )
             
             if tx_hash:
@@ -808,7 +808,7 @@ class DatabaseManager:
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> تم تحويل {withdrawal_dict['amount']:.4f} TON إلى محفظتك
 <tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> TX Hash: <code>{tx_hash}</code>
 
-شكراً لاستخدامك Panda Giveaways! <tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji>
+شكراً لاستخدامك Arab Ton Gifts! <tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji>
 """,
                         parse_mode=ParseMode.HTML
                     )
@@ -1676,7 +1676,7 @@ async def inline_query_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     # إذا كان النص فارغاً، استخدم النص الافتراضي
     if not query:
         ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
-        query = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+        query = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
     
     results = [
         InlineQueryResultArticle(
@@ -2083,7 +2083,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # رسالة الترحيب
     welcome_text = f"""
-<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Panda Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+<tg-emoji emoji-id='5202046839678866384'>🐼</tg-emoji> <b>مرحباً بك في Arab Ton Gifts!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
 
@@ -2108,13 +2108,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "افتح Panda Giveaway 🎁",
+        "افتح Arab Ton Gifts 🎁",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     # زر مشاركة رابط الدعوة (نسخ) - تغيير من startapp إلى start
     ref_link = generate_referral_link(user_id)
-    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
@@ -2122,8 +2122,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # زر إثباتات الدفع
     keyboard.append([InlineKeyboardButton(
-        "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        "📊 قناة السحوبات والإثباتات",
+        url="https://t.me/ArbTon_Draws"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
@@ -2144,7 +2144,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالج أمر /help"""
     help_text = """
-<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مساعدة Panda Giveaways</b>
+🎁 <b>مساعدة Arab Ton Gifts</b>
 
 <b><tg-emoji emoji-id='5197269100878907942'>📋</tg-emoji> الأوامر المتاحة:</b>
 /start - بدء البوت
@@ -2154,7 +2154,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /balance - عرض رصيدك
 
 <b><tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> كيف تعمل عجلة الحظ؟</b>
-• افتح Mini App من زر "افتح Panda Giveaway"
+• افتح Mini App من زر "افتح Arab Ton Gifts"
 • إستخدم لفاتك المتاحة
 • اربح TON فوراً!
 
@@ -2258,7 +2258,7 @@ async def referrals_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ref_text += f"\n\n<tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> <b>رابط الدعوة الخاص بك:</b>\n<code>{ref_link}</code>"
     
     keyboard = [[
-        InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Panda%20Giveaways%20واربح%20TON!")
+        InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Arab%20Ton%20Gifts%20واربح%20TON!")
     ]]
     
     await update.message.reply_text(
@@ -2328,7 +2328,7 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         verification_enabled = True
     
     admin_text = f"""
-<tg-emoji emoji-id='5776076747866904719'>⚙️</tg-emoji> <b>لوحة المالكين - Panda Giveaways</b>
+⚙️ <b>لوحة المالكين - Arab Ton Gifts</b>
 
 <tg-emoji emoji-id='5422360266618707867'>📊</tg-emoji> <b>الإحصائيات العامة:</b>
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> إجمالي المستخدمين: {stats['total_users']}
@@ -2595,7 +2595,7 @@ async def create_backup_callback(update: Update, context: ContextTypes.DEFAULT_T
         
         # إنشاء اسم الملف مع التاريخ والوقت
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_filename = f"panda_backup_{timestamp}.db"
+        backup_filename = f"arabton_backup_{timestamp}.db"
         backup_path = os.path.join(os.path.dirname(DATABASE_PATH), backup_filename)
         
         # نسخ قاعدة البيانات
@@ -2840,7 +2840,7 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
         db_user = db.create_or_update_user(user_id, username, full_name)
     
     welcome_text = f"""
-<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Panda Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Arab Ton Gifts!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
 
@@ -2859,20 +2859,20 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
     
     keyboard = []
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Panda Giveaway",
+        "🎰 افتح Arab Ton Gifts",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
-    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
     )])
     
     keyboard.append([InlineKeyboardButton(
-        "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        "� قناة السحوبات والإثباتات",
+        url="https://t.me/ArbTon_Draws"
     )])
     
     if is_admin(user_id):
@@ -3091,21 +3091,21 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     
     # رسالة الترحيب
     welcome_text = f"""
-<tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji> <b>مرحباً بك في Panda Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+🎁 <b>مرحباً بك في Arab Ton Gifts!</b> 🎁
 
-<b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
+<b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! 🌟
 
-<tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
-<tg-emoji emoji-id='5778315894706937436'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
-<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إحالاتك:</b> {db_user.total_referrals}
+💰 <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
+🎰 <b>لفاتك المتاحة:</b> {db_user.available_spins}
+👥 <b>إحالاتك:</b> {db_user.total_referrals}
 
-<b><tg-emoji emoji-id='5461009483314517035'>🎯</tg-emoji> كيف تربح؟</b>
+<b>🎯 كيف تربح؟</b>
 • قم بدعوة أصدقائك (كل {SPINS_PER_REFERRALS} إحالات = لفة مجانية)
 • أكمل المهام اليومية
 • إلعب عجلة الحظ واربح TON!
 • إسحب أرباحك مباشرة إلى محفظتك
 
-<b><tg-emoji emoji-id='5188481279963715781'>🚀</tg-emoji> ابدأ الآن واستمتع بالأرباح!</b>
+<b>🚀 ابدأ الآن واستمتع بالأرباح!</b>
 """
     
     # الأزرار
@@ -3113,22 +3113,22 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Panda Giveaway",
+        "🎰 افتح Arab Ton Gifts",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     # زر مشاركة رابط الدعوة
     ref_link = generate_referral_link(user_id)
-    ref_text = f"🎁 انضم لـ Panda Giveaways واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
     )])
     
-    # زر إثباتات الدفع
+    # زر قناة السحوبات والإثباتات  
     keyboard.append([InlineKeyboardButton(
-        "💎 إثباتات الدفع",
-        url="https://t.me/PandaGiveawaays"
+        "📊 قناة السحوبات والإثباتات",
+        url="https://t.me/ArbTon_Draws"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
@@ -3403,7 +3403,7 @@ async def check_pending_withdrawals_transactions(context: ContextTypes.DEFAULT_T
 💰 المبلغ: {value_ton:.4f} TON
 🔐 TX Hash: <code>{tx_hash[:16]}...</code>
 
-شكراً لاستخدامك Panda Giveaways! 🐼
+شكراً لاستخدامك Arab Ton Gifts! 🐼
 """,
                                     parse_mode=ParseMode.HTML
                                 )
@@ -3664,7 +3664,7 @@ async def approve_withdrawal_callback(update: Update, context: ContextTypes.DEFA
 
 <tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> <a href="https://tonscan.org/tx/{tx_hash}">عرض على TON Explorer</a>
 
-شكراً لاستخدامك Panda Giveaways! <tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji>
+شكراً لاستخدامك Arab Ton Gifts! <tg-emoji emoji-id='6008183145684277336'>🐼</tg-emoji>
 """,
                         parse_mode=ParseMode.HTML,
                         disable_web_page_preview=False
@@ -4622,7 +4622,7 @@ def health_check():
     """فحص صحة الخادم"""
     return jsonify({
         'status': 'ok',
-        'service': 'Panda Giveaways Verification Server',
+        'service': 'Arab Ton Gifts Verification Server',
         'timestamp': datetime.now().isoformat(),
         'endpoints': ['/verify-subscription', '/check-bot-admin', '/device-verified']
     })
@@ -4976,7 +4976,7 @@ def send_welcome_message():
             import requests as req
             
             welcome_text = f"""
-🎉 <b>مرحباً بك في Panda Giveaways!</b>
+🎉 <b>مرحباً بك في Arab Ton Gifts!</b>
 
 <b>{full_name}</b>، سعداء بانضمامك! 🎁
 

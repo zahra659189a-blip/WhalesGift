@@ -16,7 +16,7 @@ from datetime import datetime
 
 def check_bot_health():
     """فحص شامل لصحة البوت"""
-    print("🔍 Panda Giveaways Bot - Health Check")
+    print("🔍 Arab Ton Gifts - Health Check")
     print("=" * 50)
     
     # 1. فحص Flask Verification Server

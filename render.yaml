@@ -10,6 +10,8 @@ services:
         value: /opt/render/project/src/Arab_ton.db
       - key: FRONTEND_URL
         value: https://arabton.vercel.app
+      - key: PAYMENT_PROOF_CHANNEL
+        value: "@ArbTon_Draws"
     disk:
       name: arabton-data
       mountPath: /opt/render/project/src
