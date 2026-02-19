@@ -5579,10 +5579,10 @@ def main():
     
     try:
         logger.info("🚀 Launching bot polling...")
+        # python-telegram-bot 21.x compatible
         application.run_polling(
             allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True,
-            close_loop=False
+            drop_pending_updates=True
         )
         logger.info("✅ Polling started successfully")
     except KeyboardInterrupt:
