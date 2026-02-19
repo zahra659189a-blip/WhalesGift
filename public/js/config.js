@@ -9,7 +9,7 @@ const CONFIG = {
     BOT_USERNAME: 'Arab_ton_bot',
     
     // Admin IDs (استثناء من التحقق)
-    ADMIN_IDS: [1797127532,1856926531,1039319795,241576585],
+    ADMIN_IDS: [1797127532, 1856926531, 1039319795, 241576585],
     
     // Wheel Configuration - نفس النسب بالضبط من صفحة الأدمن
     WHEEL_PRIZES: [
@@ -18,9 +18,9 @@ const CONFIG = {
         { name: '1 TON', amount: 1, probability: 1, color: '#9370DB', emoji: '🎁', id: 3 },
         { name: '1.5 TON', amount: 1.5, probability: 0, color: '#32CD32', emoji: '🏆', id: 4 },
         { name: '2 TON', amount: 2, probability: 0, color: '#FF1493', emoji: '🎁', id: 5 },
-        { name: '3 TON', amount: 3, probability: 0, color: '#4169E1', emoji: '🎁', id: 6 },
-        { name: 'NFT', amount: 0, probability: 0, color: '#FFD700', emoji: '🖼️', id: 7 },
-        { name: '8 TON', amount: 8, probability: 0, color: '#FF4500', emoji: '💎', id: 8 }
+        { name: '3 TON', amount: 3, probability: 0, color: '#FFD700', emoji: '💰', id: 6 },
+        { name: 'NFT', amount: 0, probability: 0, color: '#00FFFF', emoji: '🖼️', id: 7 },
+        { name: '8 TON', amount: 8, probability: 0, color: '#FF0000', emoji: '🚀', id: 8 }
     ],
     
     // Referral & Tasks (تذاكر بدلاً من عملات)
@@ -34,11 +34,11 @@ const CONFIG = {
     REQUIRED_CHANNELS: [
         { id: '@arbton', name: 'Arb Ton', url: 'https://t.me/arbton' },
         { id: '@arbton2', name: 'ArbTon OTC', url: 'https://t.me/arbton2' },
-        { id: '@arbton_family', name: 'arbton شات', url: 'https://t.me/arbton_family' }
+        { id: '@arbton_family', name: 'Arb Ton شات', url: 'https://t.me/arbton_family' }
     ],
     
     // Admin IDs
-    ADMIN_IDS: [1797127532,1856926531,1039319795,241576585],
+    ADMIN_IDS: [1797127532, 1856926531, 1039319795, 241576585],
     
     // Security
     MAX_SPINS_PER_DAY: 100,  // حد أقصى للفات اليومية
@@ -678,7 +678,7 @@ window.hashData = hashData;
 window.extractTelegramUsername = extractTelegramUsername;
 window.createChannelPhotoHTML = createChannelPhotoHTML;
 
-console.log('✅ Panda Giveaways Config Loaded Successfully');
+console.log('✅ Arab Ton Gifts Config Loaded Successfully');
 console.log('📊 CONFIG:', {
     API_BASE_URL: CONFIG.API_BASE_URL,
     ADMIN_IDS: CONFIG.ADMIN_IDS,

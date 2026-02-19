@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
-// 🐼 ARAB TON GIFTS - MAIN APP
+// 🎁 ARAB TON GIFTS - MAIN APP
 // ═══════════════════════════════════════════════════════════════
 
-console.log('🐼 Arab Ton Gifts - Main App v2.7 Starting...');
+console.log('🎁 Arab Ton Gifts - Main App v2.7 Starting...');
 console.log('📦 Checking dependencies:');
 console.log('  - TelegramApp:', typeof TelegramApp !== 'undefined' ? '✅' : '❌');
 console.log('  - CONFIG:', typeof CONFIG !== 'undefined' ? '✅' : '❌');
@@ -1093,7 +1093,7 @@ function copyReferralLink() {
 function shareReferralLink() {
     const shareBtn = document.getElementById('share-link-btn');
     const refLink = document.getElementById('referral-link').value;
-    const text = '🐼 انضم معي في  Arab ton gifts واربح TON مجاناً! 🎁\n\nاستخدم رابطي الخاص وابدأ الربح الآن:';
+    const text = '🎁 انضم معي في Arab Ton Gifts واربح TON مجاناً! 🎁\n\nاستخدم رابطي الخاص وابدأ الربح الآن:';
     
     // Add loading state
     shareBtn.classList.add('loading');
@@ -1532,7 +1532,7 @@ async function sendWelcomeMessage() {
 window.registerPendingReferral = registerPendingReferral;
 window.loadUserData = loadUserData;
 
-console.log('🐼 Arab ton gifts App Loaded');
+console.log('🎁 Arab Ton Gifts App Loaded');
 
 // ═══════════════════════════════════════════════════════════════
 // 🚀 CONTINUE APP INITIALIZATION AFTER CHANNELS CHECK
