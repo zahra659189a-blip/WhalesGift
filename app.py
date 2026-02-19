@@ -444,6 +444,53 @@ def start_telegram_bot():
         print("🤖 Starting Telegram Bot in background...")
         sys.stdout.flush()
         
+        # Fix httpcore BEFORE any imports that use it
+        print("🔧 Applying Python 3.14 compatibility patch...")
+        sys.stdout.flush()
+        try:
+            import sysconfig
+            import site
+            
+            # Get site-packages directory
+            site_packages = sysconfig.get_path('purelib')
+            httpcore_init = os.path.join(site_packages, 'httpcore', '__init__.py')
+            
+            if not os.path.exists(httpcore_init):
+                # Try alternative locations
+                for path in site.getsitepackages():
+                    alt_path = os.path.join(path, 'httpcore', '__init__.py')
+                    if os.path.exists(alt_path):
+                        httpcore_init = alt_path
+                        break
+            
+            if os.path.exists(httpcore_init):
+                with open(httpcore_init, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Check if needs patching
+                if 'Python 3.14 compatibility' not in content:
+                    old = 'setattr(__locals[__name], "__module__", "httpcore")  # noqa'
+                    new = '''try:
+        setattr(__locals[__name], "__module__", "httpcore")  # noqa
+    except (AttributeError, TypeError):
+        pass  # Python 3.14 compatibility'''
+                    
+                    if old in content:
+                        content = content.replace(old, new)
+                        with open(httpcore_init, 'w', encoding='utf-8') as f:
+                            f.write(content)
+                        print(f"✅ Patched httpcore at: {httpcore_init}")
+                        sys.stdout.flush()
+                    else:
+                        print("⚠️ httpcore pattern not found")
+                        sys.stdout.flush()
+                else:
+                    print("✅ httpcore already patched")
+                    sys.stdout.flush()
+        except Exception as patch_error:
+            print(f"⚠️ Patch error: {patch_error}")
+            sys.stdout.flush()
+        
         # تعطيل Flask في البوت (app.py بيشغل Flask على بورت 10000)
         os.environ['DISABLE_BOT_FLASK'] = 'true'
         
