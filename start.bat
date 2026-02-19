@@ -1,8 +1,8 @@
 @echo off
-title Panda Giveaways Bot Launcher
+title Arab Ton Gifts Bot Launcher
 
 echo ╔══════════════════════════════════════════════════╗
-echo ║         🐼 PANDA GIVEAWAYS BOT 🐼                ║
+echo ║         🎁 ARAB TON GIFTS BOT 🎁                ║
 echo ║           Windows Launcher Script                ║
 echo ╚══════════════════════════════════════════════════╝
 echo.

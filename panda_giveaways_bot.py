@@ -143,15 +143,15 @@ SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # PostgreSQL
 # Use absolute path on Render to ensure consistency with Flask app
 if os.environ.get('RENDER'):
-    DATABASE_PATH = os.getenv("DATABASE_PATH", "/opt/render/project/src/panda_giveaways.db")
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "/opt/render/project/src/Arab_ton.db")
 else:
-    DATABASE_PATH = os.getenv("DATABASE_PATH", "panda_giveaways.db")
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "Arab_ton.db")
 
 print(f"📂 Bot using database at: {DATABASE_PATH}")
 
 # 🌐 API Configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "https://pandagiveawaays.onrender.com/api")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://panda-giveawaays.vercel.app")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://arabton.onrender.com/api")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://arabton.vercel.app")
 
 # � إعدادات البرودكاست
 BROADCAST_CONCURRENCY = 25  # عدد الرسائل المتزامنة

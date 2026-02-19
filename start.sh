@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# 🐼 Panda Giveaways Bot - Linux/Mac Launcher
+# 🎁 Arab Ton Gifts Bot - Linux/Mac Launcher
 
 echo "╔══════════════════════════════════════════════════╗"
-echo "║         🐼 PANDA GIVEAWAYS BOT 🐼                ║"
+echo "║         🎁 ARAB TON GIFTS BOT 🎁                ║"
 echo "║          Linux/Mac Launcher Script               ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
