@@ -1,7 +1,7 @@
 services:
   # Backend API Service - Flask Web + Telegram Bot
   - type: web
-    name: arabton-backend
+    name: panda-giveaways-backend
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: bash start_render.sh
@@ -9,10 +9,10 @@ services:
       - key: PYTHON_VERSION
         value: 3.11
       - key: DATABASE_PATH
-        value: /opt/render/project/src/Arab_ton.db
+        value: /opt/render/project/src/panda_giveaways.db
       - key: FRONTEND_URL
-        value: https://arabton.vercel.app
+        value: https://panda-giveawaays.vercel.app
     disk:
-      name: arabton-data
+      name: panda-data
       mountPath: /opt/render/project/src
       sizeGB: 1
