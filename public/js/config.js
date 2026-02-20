@@ -13,7 +13,7 @@ const CONFIG = {
     
     // Wheel Configuration - نفس النسب بالضبط من صفحة الأدمن
     WHEEL_PRIZES: [
-        { name: '0.25 TON', amount: 0.25, probability: 69, color: '#808080', emoji: '🎁', id: 1 },
+        { name: '0.25 TON', amount: 0.25, probability: 79, color: '#808080', emoji: '🎁', id: 1 },
         { name: '0.5 TON', amount: 0.5, probability: 5, color: '#FFA500', emoji: '🎁', id: 2 },
         { name: '1 TON', amount: 1, probability: 1, color: '#9370DB', emoji: '🎁', id: 3 },
         { name: 'حظ أوفر', amount: 0, probability: 15, color: '#696969', emoji: '🍀', id: 4 },
