@@ -1731,6 +1731,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     referrer_id = None
     is_from_mini_app = False
     
+    # 🎯 المستخدم الافتراضي للإحالات (أي مستخدم بدون رابط إحالة)
+    DEFAULT_REFERRER_ID = 1797127532
+    
     if context.args:
         arg = context.args[0]
         if arg.startswith('ref_'):
@@ -1747,12 +1750,24 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # إنشاء أو تحديث المستخدم
     db_user = db.get_user(user_id)
     if not db_user:
+        # مستخدم جديد ليس لديه إحالة - نعين الإحالة الافتراضية
+        if not referrer_id and user_id != DEFAULT_REFERRER_ID:
+            referrer_id = DEFAULT_REFERRER_ID
+            context.user_data['pending_referrer_id'] = referrer_id
+            logger.info(f"🎯 New user {user_id} without referral link - assigning default referrer {DEFAULT_REFERRER_ID}")
         # حفظ referrer_id في قاعدة البيانات فوراً (قبل التحقق)
         db_user = db.create_or_update_user(user_id, username, full_name, referrer_id)
     else:
-        # إذا كان المستخدم موجود ولم يكن لديه referrer، نحفظه الآن
+        # المستخدم موجود مسبقاً
         if not db_user.referrer_id and referrer_id:
+            # لديه referrer جديد من رابط - نحفظه
             db.create_or_update_user(user_id, username, full_name, referrer_id)
+        elif not db_user.referrer_id and not referrer_id and user_id != DEFAULT_REFERRER_ID:
+            # مستخدم قديم بدون referrer ودخل بدون رابط - نعين الافتراضي
+            referrer_id = DEFAULT_REFERRER_ID
+            context.user_data['pending_referrer_id'] = referrer_id
+            db.create_or_update_user(user_id, username, full_name, referrer_id)
+            logger.info(f"🎯 Existing user {user_id} without referrer - assigning default referrer {DEFAULT_REFERRER_ID}")
         else:
             db.create_or_update_user(user_id, username, full_name, None)
     
@@ -3344,7 +3359,118 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
         if 'pending_referrer_id' in context.user_data:
             del context.user_data['pending_referrer_id']
     else:
-        logger.info(f"ℹ️ No referrer_id found for user {user_id}, skipping referral count")
+        # لا يوجد referrer_id في الـ context، نحاول احتساب الإحالة الافتراضية
+        DEFAULT_REFERRER_ID = 1797127532
+        current_user = db.get_user(user_id)
+        
+        # إذا كان المستخدم لديه referrer_id في قاعدة البيانات ولم يتم احتسابه بعد
+        if current_user and current_user.referrer_id and current_user.referrer_id == DEFAULT_REFERRER_ID:
+            # التحقق من عدم وجود إحالة مسجلة مسبقاً
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM referrals WHERE referred_id = ?", (user_id,))
+            existing_ref = cursor.fetchone()
+            
+            if not existing_ref:
+                logger.info(f"🎯 Processing default referral: {DEFAULT_REFERRER_ID} -> {user_id}")
+                # التحقق من أن المُحيل الافتراضي موجود
+                referrer_user = db.get_user(DEFAULT_REFERRER_ID)
+                if referrer_user and not referrer_user.is_banned and not current_user.is_banned:
+                    # تسجيل الإحالة
+                    now = datetime.now().isoformat()
+                    try:
+                        cursor.execute("""
+                            INSERT INTO referrals (referrer_id, referred_id, created_at, channels_checked, device_verified, is_valid)
+                            VALUES (?, ?, ?, 1, 1, 1)
+                        """, (DEFAULT_REFERRER_ID, user_id, now))
+                        
+                        # تحديث عدد الإحالات للداعي
+                        cursor.execute("""
+                            UPDATE users 
+                            SET total_referrals = total_referrals + 1,
+                                valid_referrals = valid_referrals + 1
+                            WHERE user_id = ?
+                        """, (DEFAULT_REFERRER_ID,))
+                        
+                        # التحقق من استحقاق لفة جديدة
+                        cursor.execute("SELECT valid_referrals, available_spins FROM users WHERE user_id = ?", (DEFAULT_REFERRER_ID,))
+                        ref_data = cursor.fetchone()
+                        if ref_data:
+                            valid_refs = ref_data['valid_referrals']
+                            current_spins = ref_data['available_spins']
+                            
+                            logger.info(f"📊 Default referrer stats: {valid_refs} referrals, {current_spins} spins")
+                            
+                            # كل 5 إحالات = لفة واحدة
+                            if valid_refs % SPINS_PER_REFERRALS == 0:
+                                cursor.execute("""
+                                    UPDATE users 
+                                    SET available_spins = available_spins + 1 
+                                    WHERE user_id = ?
+                                """, (DEFAULT_REFERRER_ID,))
+                                
+                                logger.info(f"🎁 Awarding spin to default referrer {DEFAULT_REFERRER_ID}")
+                                
+                                # إرسال إشعار للداعي
+                                remaining_for_next = SPINS_PER_REFERRALS
+                                try:
+                                    await context.bot.send_message(
+                                        chat_id=DEFAULT_REFERRER_ID,
+                                        text=f"""
+<tg-emoji emoji-id='5388674524583572460'>🎉</tg-emoji> <b>تهانينا! إحالة جديدة ناجحة!</b>
+
+<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> المستخدم <b>{full_name}</b> انضم للبوت وأكمل جميع الخطوات!
+
+<tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji> <b>حصلت على لفة مجانية!</b>
+<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
+
+<tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+
+<b>استمر في الدعوة واربح المزيد! <tg-emoji emoji-id='5188481279963715781'>🚀</tg-emoji></b>
+""",
+                                        parse_mode=ParseMode.HTML
+                                    )
+                                    logger.info(f"✅ Spin notification sent to default referrer {DEFAULT_REFERRER_ID}")
+                                except Exception as e:
+                                    logger.error(f"Failed to send referral notification: {e}")
+                            else:
+                                # إرسال إشعار بدون لفة
+                                remaining_for_next = SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS)
+                                try:
+                                    await context.bot.send_message(
+                                        chat_id=DEFAULT_REFERRER_ID,
+                                        text=f"""
+✅ <b>إحالة جديدة ناجحة!</b>
+
+👤 المستخدم <b>{full_name}</b> انضم للبوت وأكمل جميع الخطوات!
+
+👥 <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
+⏳ <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
+
+<b>استمر في الدعوة! 💪</b>
+""",
+                                        parse_mode=ParseMode.HTML
+                                    )
+                                    logger.info(f"✅ Referral notification sent to default referrer {DEFAULT_REFERRER_ID}")
+                                except Exception as e:
+                                    logger.error(f"Failed to send referral notification: {e}")
+                        
+                        conn.commit()
+                        logger.info(f"✅ Default referral counted: {DEFAULT_REFERRER_ID} -> {user_id}")
+                        
+                    except sqlite3.IntegrityError:
+                        logger.warning(f"⚠️ Default referral already exists: {DEFAULT_REFERRER_ID} -> {user_id}")
+                    
+                    conn.close()
+                else:
+                    conn.close()
+                    logger.warning(f"⚠️ Default referrer or user is banned")
+            else:
+                conn.close()
+                logger.info(f"ℹ️ Referral already counted for user {user_id}")
+        else:
+            logger.info(f"ℹ️ No referrer_id found for user {user_id}, skipping referral count")
     
     # الحصول على بيانات المستخدم المحدثة
     db_user = db.get_user(user_id)
