@@ -785,9 +785,9 @@ def init_database():
     count = cursor.fetchone()[0]
     if count == 0:
         now = datetime.now().isoformat()
-        # الجوائز مطابقة لـ config.js: 0.25@69%, 0.5@5%, 1@1%, Better Luck@15%, باقي 0%
+        # الجوائز مطابقة لـ config.js: 0.25@79%, 0.5@5%, 1@1%, Better Luck@15%, باقي 0%
         default_prizes = [
-            ('0.25 TON', 0.25, 69, '#4CAF50', '🎯', 0),
+            ('0.25 TON', 0.25, 79, '#4CAF50', '🎯', 0),
             ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
             ('1 TON', 1, 1, '#FF9800', '⭐', 2),
             ('Better Luck', 0, 15, '#696969', '🍀', 3),
@@ -1262,7 +1262,7 @@ def perform_spin(authenticated_user_id=None, is_admin=False):
         
         # Define prizes with probabilities (مطابقة لـ config.js)
         prizes = [
-            {'name': '0.25 TON', 'amount': 0.25, 'probability': 69},
+            {'name': '0.25 TON', 'amount': 0.25, 'probability': 79},
             {'name': '0.5 TON', 'amount': 0.5, 'probability': 5},
             {'name': '1 TON', 'amount': 1, 'probability': 1},
             {'name': 'Better Luck', 'amount': 0, 'probability': 15},
