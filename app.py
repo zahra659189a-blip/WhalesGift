@@ -58,7 +58,7 @@ def calculate_egp_amount(ton_amount):
 
 # BOT TOKEN & ADMIN IDS
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
-ADMIN_IDS = [1797127532, 1856926531, 1039319795, 241576585]
+ADMIN_IDS = [1797127532, 6126141563]
 
 # 🔐 ADMIN LOGIN CREDENTIALS (من متغيرات البيئة)
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'OmarShehata@123')
@@ -414,7 +414,7 @@ CORS(app,
     resources={
         r"/api/*": {
             "origins": [
-                'https://arabton.vercel.app',
+                'https://whalesgift.vercel.app',
                 'http://localhost:3000',
                 'http://127.0.0.1:5000',
                 'http://localhost:5000'
@@ -546,9 +546,9 @@ sys.stdout.flush()
 
 # Use absolute path on Render to ensure both bot and Flask use same database
 if os.environ.get('RENDER'):
-    DATABASE_PATH = os.getenv('DATABASE_PATH', '/opt/render/project/src/Arab_ton.db')
+    DATABASE_PATH = os.getenv('DATABASE_PATH', '/opt/render/project/src/TopGiveaways.db')
 else:
-    DATABASE_PATH = os.getenv('DATABASE_PATH', 'Arab_ton.db')
+    DATABASE_PATH = os.getenv('DATABASE_PATH', 'TopGiveaways.db')
 
 print(f"📂 Using database at: {DATABASE_PATH}")
 
@@ -770,9 +770,13 @@ def init_database():
     if count == 0:
         now = datetime.now().isoformat()
         default_channels = [
-            ('@arbton', 'Arb Ton', 'https://t.me/arbton', 1797127532),
-            ('@arbton2', 'ArbTon OTC', 'https://t.me/arbton2', 1797127532),
-            ('@arbton_family', 'Arb Ton شات', 'https://t.me/arbton_family', 1797127532)
+            ('@hh6442', 'HH Channel', 'https://t.me/hh6442', 1797127532),
+            ('@CryptoWhales_Youtube', 'Crypto whales', 'https://t.me/CryptoWhales_Youtube', 1797127532),
+            ('@tig_cr', 'crypto tiger', 'https://t.me/tig_cr', 1797127532),
+            ('@crypto_1zed', 'Crypto zed', 'https://t.me/crypto_1zed', 1797127532),
+            ('@haqiqi100', 'قلعة المشاريع الربحية', 'https://t.me/haqiqi100', 1797127532),
+            ('@GiftNewsSA', 'Gift News AR', 'https://t.me/GiftNewsSA', 1797127532),
+            ('@PandaAdds', 'Panda Store', 'https://t.me/PandaAdds', 1797127532)
         ]
         for channel_id, name, url, admin_id in default_channels:
             cursor.execute("""
@@ -946,7 +950,7 @@ def get_bot_stats():
 def index():
     """إعادة توجيه للموقع في Vercel"""
     from flask import redirect
-    return redirect('https://arabton.vercel.app', code=302)
+    return redirect('https://whalesgift.vercel.app', code=302)
 
 @app.route('/admin')
 def admin():
@@ -989,7 +993,7 @@ def admin():
     # ✅ المستخدم أدمن مصادق عليه
     # إرسال init_data للفرونت إند للاستخدام في API requests
     return redirect(
-        f'https://arabton.vercel.app/admin#{request.query_string.decode()}',
+        f'https://whalesgift.vercel.app/admin#{request.query_string.decode()}',
         code=302
     )
 
@@ -1082,7 +1086,7 @@ def verify_admin_session(authenticated_user_id=None, is_admin=False, admin_usern
 def fingerprint_page():
     """إعادة توجيه لصفحة التحقق من الجهاز"""
     from flask import redirect
-    return redirect('https://arabton.vercel.app/fp.html', code=302)
+    return redirect('https://whalesgift.vercel.app/fp.html', code=302)
 
 # ═══════════════════════════════════════════════════════════════
 # 🔌 API ENDPOINTS
@@ -3455,7 +3459,7 @@ def update_settings():
 @app.route('/health')
 def health():
     """Health check لـ Render"""
-    return {'status': 'ok', 'service': 'Arab Ton Gifts Mini App'}, 200
+    return {'status': 'ok', 'service': 'Top Giveaways Mini App'}, 200
 
 # ═══════════════════════════════════════════════════════════════
 # 🚀 MAIN ENTRY POINT

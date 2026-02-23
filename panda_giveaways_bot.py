@@ -1,6 +1,6 @@
 """
 ╔══════════════════════════════════════════════════════════════════╗
-║                  🎁 ARAB TON GIFTS BOT 🎁                        ║
+║                  🎁 TOP GIVEAWAYS BOT 🎁                         ║
 ║           Professional Telegram Giveaway & Rewards Bot           ║
 ║                    Version 1.0.0 - Ultra Secure                  ║
 ╚══════════════════════════════════════════════════════════════════╝
@@ -93,8 +93,8 @@ load_dotenv()
 
 # 🤖 معلومات البوت
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-BOT_USERNAME = os.getenv("BOT_USERNAME", "Arab_ton_bot")
-MINI_APP_URL = os.getenv("MINI_APP_URL", "https://arabton.vercel.app")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "TopGiveawaysBot")
+MINI_APP_URL = os.getenv("MINI_APP_URL", "https://whalesgift.vercel.app")
 
 # 👥 الأدمن (يتم قراءتهم من .env)
 ADMIN_IDS_STR = os.getenv("ADMIN_IDS", "")
@@ -128,10 +128,10 @@ MIN_WITHDRAWAL_AMOUNT = 0.1  # 0.1 TON لكل طرق السحب
 
 # 💳 إعدادات محفظة TON (للتحقق من المعاملات فقط - لا إرسال)
 # ⛔ لن يتم استخدام WALLET_MNEMONIC بتاتاً لأسباب أمنية
-TON_WALLET_ADDRESS = os.getenv("TON_WALLET_ADDRESS", "UQAcDae1BvWVAD0TkhnGgDme4b7NH9Fz8JXce-78TW6ekmvN")  # محفظة الاستقبال فقط
+TON_WALLET_ADDRESS = os.getenv("TON_WALLET_ADDRESS", "UQBtSJoYxz_6ARnbnMrJlZyNrYMRC4umuqam-t5NDFmhTDXN")  # محفظة الاستقبال فقط
 
 # 💸 محفظة الأدمن للسحوبات (المحفظة التي ترسل منها المبالغ للعملاء)
-ADMIN_WITHDRAWAL_WALLET = os.getenv("ADMIN_WITHDRAWAL_WALLET", "UQDoMzp7XNu6LJbG7JCfCeDZb_ObDWB5AOSOvPueN8IsyqAj")  # محفظة الأدمن الجديدة
+ADMIN_WITHDRAWAL_WALLET = os.getenv("ADMIN_WITHDRAWAL_WALLET", "UQBtSJoYxz_6ARnbnMrJlZyNrYMRC4umuqam-t5NDFmhTDXN")  # محفظة الأدمن الجديدة
 
 TON_API_KEY = os.getenv("TON_API_KEY", "")  # للتحقق من المعاملات
 
@@ -145,15 +145,15 @@ SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # PostgreSQL
 # Use absolute path on Render to ensure consistency with Flask app
 if os.environ.get('RENDER'):
-    DATABASE_PATH = os.getenv("DATABASE_PATH", "/opt/render/project/src/Arab_ton.db")
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "/opt/render/project/src/TopGiveaways.db")
 else:
-    DATABASE_PATH = os.getenv("DATABASE_PATH", "Arab_ton.db")
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "TopGiveaways.db")
 
 print(f"📂 Bot using database at: {DATABASE_PATH}")
 
 # 🌐 API Configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "https://arabton.onrender.com/api")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://arabton.vercel.app")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://WhalesGift.onrender.com/api")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://whalesgift.vercel.app")
 
 # � إعدادات البرودكاست
 BROADCAST_CONCURRENCY = 25  # عدد الرسائل المتزامنة
@@ -232,7 +232,7 @@ class DatabaseManager:
     
     def __init__(self, db_path: str = DATABASE_PATH):
         self.db_path = db_path
-        logger.info("🗄️ Initializing Arab Ton Gifts Database...")
+        logger.info("🗄️ Initializing Top Giveaways Database...")
         self.init_database()
         logger.info("✅ Database initialized successfully")
     
@@ -792,7 +792,7 @@ class DatabaseManager:
             tx_hash = await ton_wallet.send_ton(
                 withdrawal_dict['wallet_address'],
                 withdrawal_dict['amount'],
-                f"Arab Ton Gifts Withdrawal #{withdrawal_id}"
+                f"Top Giveaways Withdrawal #{withdrawal_id}"
             )
             
             if tx_hash:
@@ -809,7 +809,7 @@ class DatabaseManager:
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> تم تحويل {withdrawal_dict['amount']:.4f} TON إلى محفظتك
 <tg-emoji emoji-id='5350619413533958825'>🔐</tg-emoji> TX Hash: <code>{tx_hash}</code>
 
-شكراً لاستخدامك Arab Ton Gifts! <tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji>
+شكراً لاستخدامك Top Giveaways! <tg-emoji emoji-id='6131808483604960712'>💎</tg-emoji>
 """,
                         parse_mode=ParseMode.HTML
                     )
@@ -1677,7 +1677,7 @@ async def inline_query_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     # إذا كان النص فارغاً، استخدم النص الافتراضي
     if not query:
         ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
-        query = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
+        query = f"🎁 انضم لـ Top Giveaways واربح TON مجاناً!\n\n{ref_link}"
     
     results = [
         InlineQueryResultArticle(
@@ -2061,7 +2061,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 <tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> المستخدم <b>{full_name}</b> انضم عبر رابطك!
 
 <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji> <b>حصلت على لفة مجانية!</b>
-<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
+<tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
 
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
 <tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
@@ -2113,12 +2113,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # رسالة الترحيب
     welcome_text = f"""
-<tg-emoji emoji-id='5202046839678866384'>💎</tg-emoji> <b>مرحباً بك في Arab Ton Gifts!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+<tg-emoji emoji-id='5188344996356448758'>💎</tg-emoji> <b>مرحباً بك في Top Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
 
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
-<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
+<tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إحالاتك:</b> {db_user.total_referrals}
 
 <b><tg-emoji emoji-id='5461009483314517035'>🎯</tg-emoji> كيف تربح؟</b>
@@ -2138,13 +2138,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "افتح Arab Ton Gifts 🎁",
+        "افتح Top Giveaways 🎁",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     # زر مشاركة رابط الدعوة (نسخ) - تغيير من startapp إلى start
     ref_link = generate_referral_link(user_id)
-    ref_text = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Top Giveaways واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
@@ -2153,7 +2153,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # زر إثباتات الدفع
     keyboard.append([InlineKeyboardButton(
         "📊 قناة السحوبات والإثباتات",
-        url="https://t.me/ArbTon_Draws"
+        url="https://t.me/PandaGiveawaays"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
@@ -2385,7 +2385,7 @@ async def device_verified_callback(update: Update, context: ContextTypes.DEFAULT
         welcome_text = f"""
 🎉 <b>تم التسجيل بنجاح!</b>
 
-عزيزي <b>{full_name}</b>، أهلاً بك في Arab Ton Gifts! 🌟
+عزيزي <b>{full_name}</b>، أهلاً بك في Top Giveaways! 🌟
 
 ✅ تم التحقق من جهازك
 ✅ تم التحقق من اشتراكك في القنوات
@@ -2421,7 +2421,7 @@ async def device_verified_callback(update: Update, context: ContextTypes.DEFAULT
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالج أمر /help"""
     help_text = """
-🎁 <b>مساعدة Arab Ton Gifts</b>
+🎁 <b>مساعدة Top Giveaways</b>
 
 <b><tg-emoji emoji-id='5197269100878907942'>📋</tg-emoji> الأوامر المتاحة:</b>
 /start - بدء البوت
@@ -2430,8 +2430,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /referrals - عرض إحالاتك
 /balance - عرض رصيدك
 
-<b><tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> كيف تعمل عجلة الحظ؟</b>
-• افتح Mini App من زر "افتح Arab Ton Gifts"
+<b><tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> كيف تعمل عجلة الحظ؟</b>
+• افتح Mini App من زر "افتح Top Giveaways"
 • إستخدم لفاتك المتاحة
 • اربح TON فوراً!
 
@@ -2447,7 +2447,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • انتظر موافقة الأدمن
 
 <b><tg-emoji emoji-id='5472201536727686043'>📞</tg-emoji> للدعم:</b>
-تواصل مع @FPIOG
+تواصل مع @myzsx
 """
     
     await update.message.reply_text(help_text.format(
@@ -2475,7 +2475,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 <tg-emoji emoji-id='5812093549042210992'>🆔</tg-emoji> <b>المعرف:</b> @{user.username}
 
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>الرصيد:</b> {user.balance:.4f} TON
-<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفات متاحة:</b> {user.available_spins}
+<tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> <b>لفات متاحة:</b> {user.available_spins}
 <tg-emoji emoji-id='5226513232549664618'>🔢</tg-emoji> <b>إجمالي اللفات:</b> {user.total_spins}
 
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>الإحالات:</b> {user.total_referrals}
@@ -2516,7 +2516,7 @@ async def referrals_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <tg-emoji emoji-id='5422360266618707867'>📊</tg-emoji> <b>إجمالي الإحالات:</b> {total_refs}
 <tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> <b>الإحالات الصحيحة:</b> {valid_refs}
-<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {user.available_spins}
+<tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {user.available_spins}
 <tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS) if valid_refs > 0 else SPINS_PER_REFERRALS}
 
 """
@@ -2535,7 +2535,7 @@ async def referrals_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ref_text += f"\n\n<tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> <b>رابط الدعوة الخاص بك:</b>\n<code>{ref_link}</code>"
     
     keyboard = [[
-        InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Arab%20Ton%20Gifts%20واربح%20TON!")
+        InlineKeyboardButton("📤 مشاركة الرابط", url=f"https://t.me/share/url?url={ref_link}&text=انضم%20معي%20في%20Top%20Giveaways%20واربح%20TON!")
     ]]
     
     await update.message.reply_text(
@@ -2605,13 +2605,13 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         verification_enabled = True
     
     admin_text = f"""
-⚙️ <b>لوحة المالكين - Arab Ton Gifts</b>
+⚙️ <b>لوحة المالكين - Top Giveaways</b>
 
 <tg-emoji emoji-id='5422360266618707867'>📊</tg-emoji> <b>الإحصائيات العامة:</b>
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> إجمالي المستخدمين: {stats['total_users']}
 <tg-emoji emoji-id='5345905193005371012'>⚡</tg-emoji> المستخدمون النشطون (7 أيام): {stats['active_users']}
 <tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> إجمالي الإحالات: {stats['total_referrals']}
-<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> إجمالي اللفات: {stats['total_spins']}
+<tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> إجمالي اللفات: {stats['total_spins']}
 
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>الإحصائيات المالية:</b>
 <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji> الأرباح الموزعة: {stats['total_distributed']:.2f} TON
@@ -2833,7 +2833,7 @@ async def admin_detailed_stats_callback(update: Update, context: ContextTypes.DE
 • الإجمالي: {stats['total_referrals']}
 • متوسط الإحالات/مستخدم: {(stats['total_referrals']/stats['total_users']) if stats['total_users'] > 0 else 0:.2f}
 
-<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>اللفات:</b>
+<tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> <b>اللفات:</b>
 • الإجمالي: {stats['total_spins']}
 • متوسط اللفات/مستخدم: {(stats['total_spins']/stats['total_users']) if stats['total_users'] > 0 else 0:.2f}
 
@@ -2872,7 +2872,7 @@ async def create_backup_callback(update: Update, context: ContextTypes.DEFAULT_T
         
         # إنشاء اسم الملف مع التاريخ والوقت
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_filename = f"arabton_backup_{timestamp}.db"
+        backup_filename = f"topgiveaways_backup_{timestamp}.db"
         backup_path = os.path.join(os.path.dirname(DATABASE_PATH), backup_filename)
         
         # نسخ قاعدة البيانات
@@ -3117,12 +3117,12 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
         db_user = db.create_or_update_user(user_id, username, full_name)
     
     welcome_text = f"""
-<tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji> <b>مرحباً بك في Arab Ton Gifts!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
+<tg-emoji emoji-id='6131808483604960712'>💎</tg-emoji> <b>مرحباً بك في Top Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! <tg-emoji emoji-id='5897920748101571572'>🌟</tg-emoji>
 
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> <b>رصيدك الحالي:</b> {db_user.balance:.2f} TON
-<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
+<tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {db_user.available_spins}
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إحالاتك:</b> {db_user.total_referrals}
 
 <b><tg-emoji emoji-id='5461009483314517035'>🎯</tg-emoji> كيف تربح؟</b>
@@ -3136,12 +3136,12 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
     
     keyboard = []
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Arab Ton Gifts",
+        "🎰 افتح Top Giveaways",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     ref_link = generate_referral_link(user_id)  # استخدام start بدلاً من startapp
-    ref_text = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Top Giveaways واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
@@ -3149,7 +3149,7 @@ async def back_to_start_callback(update: Update, context: ContextTypes.DEFAULT_T
     
     keyboard.append([InlineKeyboardButton(
         "� قناة السحوبات والإثباتات",
-        url="https://t.me/ArbTon_Draws"
+        url="https://t.me/PandaGiveawaays"
     )])
     
     if is_admin(user_id):
@@ -3309,7 +3309,7 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
 <tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> المستخدم <b>{full_name}</b> انضم عبر رابطك وأكمل جميع الخطوات!
 
 <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji> <b>حصلت على لفة مجانية!</b>
-<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
+<tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
 
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
 <tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
@@ -3422,7 +3422,7 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
 <tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> المستخدم <b>{full_name}</b> انضم للبوت وأكمل جميع الخطوات!
 
 <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji> <b>حصلت على لفة مجانية!</b>
-<tg-emoji emoji-id='5202046839678866384'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
+<tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {current_spins + 1}
 
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إجمالي إحالاتك الصحيحة:</b> {valid_refs}
 <tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {remaining_for_next} إحالات
@@ -3479,7 +3479,7 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     
     # رسالة الترحيب
     welcome_text = f"""
-🎁 <b>مرحباً بك في Arab Ton Gifts!</b> 🎁
+🎁 <b>مرحباً بك في Top Giveaways!</b> 🎁
 
 <b>{full_name}</b>، أهلاً بك في أفضل بوت للأرباح والهدايا! 🌟
 
@@ -3501,13 +3501,13 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     
     # زر فتح Mini App
     keyboard.append([InlineKeyboardButton(
-        "🎰 افتح Arab Ton Gifts",
+        "🎰 افتح Top Giveaways",
         web_app=WebAppInfo(url=f"{MINI_APP_URL}?user_id={user_id}")
     )])
     
     # زر مشاركة رابط الدعوة
     ref_link = generate_referral_link(user_id)
-    ref_text = f"🎁 انضم لـ Arab Ton Gifts واربح TON مجاناً!\n\n{ref_link}"
+    ref_text = f"🎁 انضم لـ Top Giveaways واربح TON مجاناً!\n\n{ref_link}"
     keyboard.append([InlineKeyboardButton(
         "📤 مشاركة رابط الدعوة",
         switch_inline_query=ref_text
@@ -3516,7 +3516,7 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     # زر قناة السحوبات والإثباتات  
     keyboard.append([InlineKeyboardButton(
         "📊 قناة السحوبات والإثباتات",
-        url="https://t.me/ArbTon_Draws"
+        url="https://t.me/PandaGiveawaays"
     )])
     
     # زر لوحة الأدمن (للأدمن فقط)
@@ -3648,7 +3648,7 @@ async def send_payment_proof_to_channel(context: ContextTypes.DEFAULT_TYPE,
 <tg-emoji emoji-id='6010227837879983163'>⏰</tg-emoji> التوقيت: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 ━━━━━━━━━━━━━━━
 
-<tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji> @{BOT_USERNAME}
+<tg-emoji emoji-id='6131808483604960712'>💎</tg-emoji> @{BOT_USERNAME}
 """
         
         # إرسال الرسالة للقناة
@@ -3797,7 +3797,7 @@ async def check_pending_withdrawals_transactions(context: ContextTypes.DEFAULT_T
 💰 المبلغ: {value_ton:.4f} TON
 🔐 TX Hash: <code>{tx_hash[:16]}...</code>
 
-شكراً لاستخدامك Arab Ton Gifts! 💎
+شكراً لاستخدامك Top Giveaways! 💎
 """,
                                     parse_mode=ParseMode.HTML
                                 )
@@ -4058,7 +4058,7 @@ async def approve_withdrawal_callback(update: Update, context: ContextTypes.DEFA
 
 <tg-emoji emoji-id='5271604874419647061'>🔗</tg-emoji> <a href="https://tonscan.org/tx/{tx_hash}">عرض على TON Explorer</a>
 
-شكراً لاستخدامك Arab Ton Gifts! <tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji>
+شكراً لاستخدامك Top Giveaways! <tg-emoji emoji-id='6131808483604960712'>💎</tg-emoji>
 """,
                         parse_mode=ParseMode.HTML,
                         disable_web_page_preview=False
@@ -4170,7 +4170,7 @@ async def approve_withdrawal_callback(update: Update, context: ContextTypes.DEFA
 <tg-emoji emoji-id='5278467510604160626'>💰</tg-emoji> المبلغ: {withdrawal['amount']:.4f} TON
 <tg-emoji emoji-id='5373236586760651455'>📅</tg-emoji> سيتم التحويل خلال 24 ساعة
 
-شكراً لصبرك! <tg-emoji emoji-id='5202158689217187713'>💎</tg-emoji>
+شكراً لصبرك! <tg-emoji emoji-id='6131808483604960712'>💎</tg-emoji>
 """,
             parse_mode=ParseMode.HTML
         )
@@ -5016,7 +5016,7 @@ def health_check():
     """فحص صحة الخادم"""
     return jsonify({
         'status': 'ok',
-        'service': 'Arab Ton Gifts Verification Server',
+        'service': 'Top Giveaways Verification Server',
         'timestamp': datetime.now().isoformat(),
         'endpoints': ['/verify-subscription', '/check-bot-admin', '/device-verified']
     })
@@ -5410,7 +5410,7 @@ def send_welcome_message():
             import requests as req
             
             welcome_text = f"""
-🎉 <b>مرحباً بك في Arab Ton Gifts!</b>
+🎉 <b>مرحباً بك في Top Giveaways!</b>
 
 <b>{full_name}</b>، سعداء بانضمامك! 🎁
 
@@ -5832,7 +5832,7 @@ def main():
         logger.error("❌ Please set your BOT_TOKEN!")
         return
     
-    logger.info("🎁 Starting Arab Ton Gifts Bot...")
+    logger.info("🎁 Starting Top Giveaways Bot...")
     logger.info(f"🤖 Bot Username: @{BOT_USERNAME}")
     logger.info(f"🌐 Mini App URL: {MINI_APP_URL}")
     logger.info(f"👥 Admins: {ADMIN_IDS}")

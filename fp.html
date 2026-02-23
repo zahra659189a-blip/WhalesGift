@@ -52,7 +52,7 @@ footer {margin-top:30px;text-align:center;font-size:.7rem;opacity:.55;}
 <script>
 // إعدادات الـ API
 const API_CONFIG = {
-  BASE_URL: 'https://arabton.onrender.com',
+  BASE_URL: 'https://WhalesGift.onrender.com',
   getApiUrl: function() {
     // استخدم دائماً الـ full URL للتواصل مع السيرفر
     return this.BASE_URL;
@@ -196,9 +196,9 @@ function getReferrerIdFromUrl(){
       const referrerId = getReferrerIdFromUrl();
       
       // إنشاء fallback link
-      let fallbackLink = 'https://t.me/Arab_ton_bot';
+      let fallbackLink = 'https://t.me/TopGiveawaysBot';
       if(referrerId) {
-        fallbackLink = `https://t.me/Arab_ton_bot?start=ref_${referrerId}`;
+        fallbackLink = `https://t.me/TopGiveawaysBot?start=ref_${referrerId}`;
         console.log('📎 Referrer found:', referrerId, 'Fallback link:', fallbackLink);
       }
       
