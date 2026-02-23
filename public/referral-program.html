@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta name="robots" content="noindex,follow">
-    <title>برنامج الإحالة - 🎁 Arab Ton Gifts</title>
+    <title>برنامج الإحالة - 🎁 Top Giveaways</title>
     
     <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -135,7 +135,7 @@
                         <div class="referral-link-wrapper">
                             <div>رابط الإحالة الخاص بك:</div>
                             <div class="icon-before icon-referral tm-field tm-referral-field js-stars-referral-field">
-                                <input type="text" id="user-referral-link" value="Loading..." class="form-control tm-input tm-referral-input" name="referral_link" placeholder="https://t.me/Arab_ton_bot?start=ref_..." autocomplete="off" spellcheck="false" readonly>
+                                <input type="text" id="user-referral-link" value="Loading..." class="form-control tm-input tm-referral-input" name="referral_link" placeholder="https://t.me/TopGiveawaysBot?start=ref_..." autocomplete="off" spellcheck="false" readonly>
                                 <span class="icon-before icon-referral-copy tm-referral-copy js-form-copy"></span>
                             </div>
                         </div>
@@ -347,7 +347,7 @@
             }
             
             // Generate referral link (format: https://t.me/BotUsername?start=ref_12345)
-            const botUsername = 'Arab_ton_bot'; // يمكنك تغيير اسم البوت هنا
+            const botUsername = 'TopGiveawaysBot'; // يمكنك تغيير اسم البوت هنا
             const referralLink = `https://t.me/${botUsername}?start=ref_${userData.id}`;
             $('#user-referral-link').val(referralLink);
             DebugError.add(`Generated referral link for user ${userData.id}: ${referralLink}`, 'info');
