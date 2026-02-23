@@ -4,12 +4,12 @@
 
 const CONFIG = {
     // API Endpoints
-    API_BASE_URL: 'https://arabton.onrender.com/api',
-    FRONTEND_URL: 'https://arabton.vercel.app/api',
-    BOT_USERNAME: 'Arab_ton_bot',
+    API_BASE_URL: 'https://WhalesGift.onrender.com/api',
+    FRONTEND_URL: 'https://whalesgift.vercel.app/api',
+    BOT_USERNAME: 'TopGiveawaysBot',
     
     // Admin IDs (استثناء من التحقق)
-    ADMIN_IDS: [1797127532, 1856926531, 1039319795, 241576585],
+    ADMIN_IDS: [1797127532, 6126141563],
     
     // Wheel Configuration - نفس النسب بالضبط من صفحة الأدمن
     WHEEL_PRIZES: [
@@ -33,13 +33,17 @@ const CONFIG = {
     
     // Required Channels
     REQUIRED_CHANNELS: [
-        { id: '@arbton', name: 'Arb Ton', url: 'https://t.me/arbton' },
-        { id: '@arbton2', name: 'ArbTon OTC', url: 'https://t.me/arbton2' },
-        { id: '@arbton_family', name: 'Arb Ton شات', url: 'https://t.me/arbton_family' }
+        { id: '@hh6442', name: 'HH Channel', url: 'https://t.me/hh6442' },
+        { id: '@CryptoWhales_Youtube', name: 'CryptoWhales Youtube', url: 'https://t.me/CryptoWhales_Youtube' },
+        { id: '@tig_cr', name: 'Tig CR', url: 'https://t.me/tig_cr' },
+        { id: '@crypto_1zed', name: 'Crypto 1zed', url: 'https://t.me/crypto_1zed' },
+        { id: '@haqiqi100', name: 'Haqiqi100', url: 'https://t.me/haqiqi100' },
+        { id: '@GiftNewsSA', name: 'Gift News SA', url: 'https://t.me/GiftNewsSA' },
+        { id: '@PandaAdds', name: 'Panda Adds', url: 'https://t.me/PandaAdds' }
     ],
     
     // Admin IDs
-    ADMIN_IDS: [1797127532, 1856926531, 1039319795, 241576585],
+    ADMIN_IDS: [1797127532, 6126141563],
     
     // Security
     MAX_SPINS_PER_DAY: 100,  // حد أقصى للفات اليومية
@@ -679,7 +683,7 @@ window.hashData = hashData;
 window.extractTelegramUsername = extractTelegramUsername;
 window.createChannelPhotoHTML = createChannelPhotoHTML;
 
-console.log('✅ Arab Ton Gifts Config Loaded Successfully');
+console.log('✅ Top Giveaways Config Loaded Successfully');
 console.log('📊 CONFIG:', {
     API_BASE_URL: CONFIG.API_BASE_URL,
     ADMIN_IDS: CONFIG.ADMIN_IDS,

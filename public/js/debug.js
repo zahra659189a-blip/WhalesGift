@@ -5,7 +5,7 @@
 // استرجاع الـ logs القديمة من localStorage
 window.appStartupLogs = [];
 try {
-    const savedLogs = localStorage.getItem('arabtonStartupLogs');
+    const savedLogs = localStorage.getItem('topgiveawaysStartupLogs');
     if (savedLogs) {
         window.appStartupLogs = JSON.parse(savedLogs);
     }
@@ -22,12 +22,12 @@ function saveLogs() {
     try {
         // حفظ آخر 500 log فقط لتجنب امتلاء الذاكرة
         const logsToSave = window.appStartupLogs.slice(-500);
-        localStorage.setItem('arabtonStartupLogs', JSON.stringify(logsToSave));
+        localStorage.setItem('topgiveawaysStartupLogs', JSON.stringify(logsToSave));
     } catch (e) {
         // localStorage ممتلئ - نحذف النصف الأول
         try {
             window.appStartupLogs = window.appStartupLogs.slice(250);
-            localStorage.setItem('arabtonStartupLogs', JSON.stringify(window.appStartupLogs));
+            localStorage.setItem('topgiveawaysStartupLogs', JSON.stringify(window.appStartupLogs));
         } catch (e2) {
             console.error('Failed to save logs:', e2);
         }
@@ -168,7 +168,7 @@ window.searchLogs = function(keyword) {
 // دالة لمسح جميع الـ logs
 window.clearAllLogs = function() {
     window.appStartupLogs = [];
-    localStorage.removeItem('arabtonStartupLogs');
+    localStorage.removeItem('topgiveawaysStartupLogs');
     console.clear();
     window.originalConsoleLog('%c✅ تم مسح جميع الـ logs!', 'color: #00ff88; font-size: 14px; font-weight: bold');
 };

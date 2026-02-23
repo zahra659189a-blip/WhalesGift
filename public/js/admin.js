@@ -1,5 +1,5 @@
 /**
- * 🔧 ARAB TON GIFTS - ADMIN PANEL SCRIPT
+ * 🔧 TOP GIVEAWAYS - ADMIN PANEL SCRIPT
  * Admin Dashboard Management
  */
 
