@@ -1960,29 +1960,32 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 not_subscribed.append(channel)
         
         if not_subscribed:
-            # عرض أول قناة فقط
-            first_channel = not_subscribed[0]
+            # عرض كل القنوات دفعة واحدة
+            channels_list = "\n".join([f"• <b>{ch['channel_name']}</b>" for ch in not_subscribed])
             
             subscription_text = f"""
 <tg-emoji emoji-id='5370599459661045441'>🤍</tg-emoji> <b>اشتراك إجباري</b>
 
-عزيزي <b>{full_name}</b>، للاستمرار في استخدام البوت، يجب الاشتراك في القناة التالية:
+عزيزي <b>{full_name}</b>، للاستمرار في استخدام البوت، يجب الاشتراك في القنوات التالية:
 
-• <b>{first_channel['channel_name']}</b>
+{channels_list}
 
-بعد الاشتراك، اضغط على زر "<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> تحققت من الاشتراك" أدناه.
+اشترك في جميع القنوات أعلاه، ثم اضغط على زر "<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> تحققت من الاشتراك" أدناه.
 """
             
-            keyboard = [
-                [InlineKeyboardButton(
-                    f"{first_channel['channel_name']}",
-                    url=first_channel['channel_url']
-                )],
-                [InlineKeyboardButton(
-                    "✅ تحققت من الاشتراك",
-                    callback_data="check_subscription"
-                )]
-            ]
+            # إنشاء أزرار لكل القنوات
+            keyboard = []
+            for channel in not_subscribed:
+                keyboard.append([InlineKeyboardButton(
+                    f"📢 {channel['channel_name']}",
+                    url=channel['channel_url']
+                )])
+            
+            # زر التحقق في النهاية
+            keyboard.append([InlineKeyboardButton(
+                "✅ تحققت من الاشتراك",
+                callback_data="check_subscription"
+            )])
             
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -1992,7 +1995,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=reply_markup
             )
             
-            db.log_activity(user_id, "subscription_required", f"Channel: {first_channel['channel_name']}")
+            db.log_activity(user_id, "subscription_required", f"Channels: {len(not_subscribed)} channels")
             return
     
     # ══════════════════════════════════════════════════════════
@@ -2248,31 +2251,34 @@ async def device_verified_callback(update: Update, context: ContextTypes.DEFAULT
                     not_subscribed.append(channel)
             
             if not_subscribed:
-                # عرض أول قناة غير مشترك فيها
-                first_channel = not_subscribed[0]
+                # عرض كل القنوات دفعة واحدة
+                channels_list = "\n".join([f"• <b>{ch['channel_name']}</b>" for ch in not_subscribed])
                 
-                await query.answer("يجب الاشتراك في القناة أولاً!", show_alert=True)
+                await query.answer("يجب الاشتراك في جميع القنوات أولاً!", show_alert=True)
                 
                 subscription_text = f"""
 🤍 <b>خطوة أخيرة - اشتراك إجباري</b>
 
 عزيزي <b>{full_name}</b>، لإكمال التسجيل واحتساب الإحالة:
 
-• <b>{first_channel['channel_name']}</b>
+{channels_list}
 
-بعد الاشتراك، اضغط على زر "✅ تحققت من الاشتراك" أدناه.
+اشترك في جميع القنوات أعلاه، ثم اضغط على زر "✅ تحققت من الاشتراك" أدناه.
 """
                 
-                keyboard = [
-                    [InlineKeyboardButton(
-                        f"{first_channel['channel_name']}",
-                        url=first_channel['channel_url']
-                    )],
-                    [InlineKeyboardButton(
-                        "✅ تحققت من الاشتراك",
-                        callback_data="check_subscription"
-                    )]
-                ]
+                # إنشاء أزرار لكل القنوات
+                keyboard = []
+                for channel in not_subscribed:
+                    keyboard.append([InlineKeyboardButton(
+                        f"📢 {channel['channel_name']}",
+                        url=channel['channel_url']
+                    )])
+                
+                # زر التحقق في النهاية
+                keyboard.append([InlineKeyboardButton(
+                    "✅ تحققت من الاشتراك",
+                    callback_data="check_subscription"
+                )])
                 
                 await query.edit_message_text(
                     subscription_text,
@@ -2280,7 +2286,7 @@ async def device_verified_callback(update: Update, context: ContextTypes.DEFAULT
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
                 
-                db.log_activity(user_id, "subscription_required", f"Channel: {first_channel['channel_name']}")
+                db.log_activity(user_id, "subscription_required", f"Channels: {len(not_subscribed)} channels")
                 return
         
         # المستخدم مشترك - احتساب الإحالة إذا وجدت
@@ -3193,31 +3199,34 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
                 not_subscribed.append(channel)
         
         if not_subscribed:
-            # عرض أول قناة غير مشترك فيها
-            first_channel = not_subscribed[0]
+            # عرض كل القنوات دفعة واحدة
+            channels_list = "\n".join([f"• <b>{ch['channel_name']}</b>" for ch in not_subscribed])
             
-            await query.answer("⚠️ يجب الاشتراك في القناة أولاً!", show_alert=True)
+            await query.answer("⚠️ يجب الاشتراك في جميع القنوات أولاً!", show_alert=True)
             
             subscription_text = f"""
 <tg-emoji emoji-id='5370599459661045441'>🤍</tg-emoji> <b>اشتراك إجباري</b>
 
-عزيزي <b>{full_name}</b>، يجب الاشتراك في القناة التالية:
+عزيزي <b>{full_name}</b>، يجب الاشتراك في القنوات التالية:
 
-• <b>{first_channel['channel_name']}</b>
+{channels_list}
 
-بعد الاشتراك، اضغط على زر "<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> تحققت من الاشتراك" مرة أخرى.
+اشترك في جميع القنوات أعلاه، ثم اضغط على زر "<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> تحققت من الاشتراك" مرة أخرى.
 """
             
-            keyboard = [
-                [InlineKeyboardButton(
-                    f"<tg-emoji emoji-id='5370599459661045441'>🤍</tg-emoji> {first_channel['channel_name']}",
-                    url=first_channel['channel_url']
-                )],
-                [InlineKeyboardButton(
-                    "✅ تحققت من الاشتراك",
-                    callback_data="check_subscription"
-                )]
-            ]
+            # إنشاء أزرار لكل القنوات
+            keyboard = []
+            for channel in not_subscribed:
+                keyboard.append([InlineKeyboardButton(
+                    f"📢 {channel['channel_name']}",
+                    url=channel['channel_url']
+                )])
+            
+            # زر التحقق في النهاية
+            keyboard.append([InlineKeyboardButton(
+                "✅ تحققت من الاشتراك",
+                callback_data="check_subscription"
+            )])
             
             await query.edit_message_text(
                 subscription_text,
@@ -5615,31 +5624,34 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
                                 not_subscribed.append(channel)
                         
                         if not_subscribed:
-                            # المستخدم غير مشترك - إرسال رسالة اشتراك إجباري
-                            first_channel = not_subscribed[0]
+                            # عرض كل القنوات دفعة واحدة
+                            channels_list = "\n".join([f"• <b>{ch['channel_name']}</b>" for ch in not_subscribed])
                             
                             subscription_text = f"""
 <tg-emoji emoji-id='5370599459661045441'>🤍</tg-emoji> <b>خطوة أخيرة!</b>
 
 عزيزي <b>{full_name}</b>، تم التحقق من جهازك بنجاح! ✅
 
-الآن، يجب الاشتراك في القناة التالية للمتابعة:
+الآن، يجب الاشتراك في القنوات التالية للمتابعة:
 
-• <b>{first_channel['channel_name']}</b>
+{channels_list}
 
-بعد الاشتراك، اضغط على زر "✅ تحققت من الاشتراك" أدناه.
+اشترك في جميع القنوات أعلاه، ثم اضغط على زر "<tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> تحققت من الاشتراك" أدناه.
 """
                             
-                            keyboard = [
-                                [InlineKeyboardButton(
-                                    f"<tg-emoji emoji-id='5370599459661045441'>🤍</tg-emoji> {first_channel['channel_name']}",
-                                    url=first_channel['channel_url']
-                                )],
-                                [InlineKeyboardButton(
-                                    "✅ تحققت من الاشتراك",
-                                    callback_data="check_subscription"
-                                )]
-                            ]
+                            # إنشاء أزرار لكل القنوات
+                            keyboard = []
+                            for channel in not_subscribed:
+                                keyboard.append([InlineKeyboardButton(
+                                    f"📢 {channel['channel_name']}",
+                                    url=channel['channel_url']
+                                )])
+                            
+                            # زر التحقق في النهاية
+                            keyboard.append([InlineKeyboardButton(
+                                "✅ تحققت من الاشتراك",
+                                callback_data="check_subscription"
+                            )])
                             
                             await update.message.reply_text(
                                 subscription_text,

@@ -770,7 +770,6 @@ def init_database():
     if count == 0:
         now = datetime.now().isoformat()
         default_channels = [
-            ('@hh6442', 'كتيبة العملات الرقمية', 'https://t.me/hh6442', 1797127532),
             ('@CryptoWhales_Youtube', 'Crypto whales', 'https://t.me/CryptoWhales_Youtube', 1797127532),
             ('@tig_cr', 'crypto tiger', 'https://t.me/tig_cr', 1797127532),
             ('@crypto_1zed', 'Crypto zed', 'https://t.me/crypto_1zed', 1797127532),
