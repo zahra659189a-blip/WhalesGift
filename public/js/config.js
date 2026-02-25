@@ -33,7 +33,6 @@ const CONFIG = {
     
     // Required Channels
     REQUIRED_CHANNELS: [
-        { id: '@hh6442', name: 'HH Channel', url: 'https://t.me/hh6442' },
         { id: '@CryptoWhales_Youtube', name: 'CryptoWhales Youtube', url: 'https://t.me/CryptoWhales_Youtube' },
         { id: '@tig_cr', name: 'Tig CR', url: 'https://t.me/tig_cr' },
         { id: '@crypto_1zed', name: 'Crypto 1zed', url: 'https://t.me/crypto_1zed' },
