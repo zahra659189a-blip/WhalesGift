@@ -1675,7 +1675,8 @@ async def check_and_validate_referral(user_id: int, update: Update = None) -> bo
         
         return False
         
-    except Exception as e:        logger.error(f"❌ Error in check_and_validate_referral: {e}")
+    except Exception as e:
+        logger.error(f"❌ Error in check_and_validate_referral: {e}")
         return False
 
 # تحميل الجوائز من قاعدة البيانات وإنشاء العجلة
