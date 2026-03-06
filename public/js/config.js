@@ -11,21 +11,23 @@ const CONFIG = {
     // Admin IDs (استثناء من التحقق)
     ADMIN_IDS: [1797127532, 6126141563],
     
-    // Wheel Configuration - نفس النسب بالضبط من صفحة الأدمن
+    // Wheel Configuration - يتم تحميلها ديناميكياً من API (/api/prizes)
+    // هذه قيم افتراضية فقط في حالة فشل تحميل API
     WHEEL_PRIZES: [
-        { name: '0.25 TON', amount: 0.25, probability: 79, color: '#808080', emoji: '🎁', id: 1 },
-        { name: '0.5 TON', amount: 0.5, probability: 5, color: '#FFA500', emoji: '🎁', id: 2 },
-        { name: '1 TON', amount: 1, probability: 1, color: '#9370DB', emoji: '🎁', id: 3 },
-        { name: 'حظ أوفر', amount: 0, probability: 15, color: '#696969', emoji: '🍀', id: 4 },
-        { name: '1.5 TON', amount: 1.5, probability: 0, color: '#32CD32', emoji: '🏆', id: 5 },
-        { name: '2 TON', amount: 2, probability: 0, color: '#FF1493', emoji: '🎁', id: 6 },
-        { name: '3 TON', amount: 3, probability: 0, color: '#FFD700', emoji: '💰', id: 7 },
-        { name: 'NFT', amount: 0, probability: 0, color: '#00FFFF', emoji: '🖼️', id: 8 },
-        { name: '8 TON', amount: 8, probability: 0, color: '#FF0000', emoji: '🚀', id: 9 }
+        { name: '0.05 TON', amount: 0.05, probability: 94, color: '#4CAF50', emoji: '🎯', id: 1 },
+        { name: '0.1 TON', amount: 0.1, probability: 5, color: '#2196F3', emoji: '💎', id: 2 },
+        { name: '0.15 TON', amount: 0.15, probability: 1, color: '#FF9800', emoji: '⭐', id: 3 },
+        { name: '0.5 TON', amount: 0.5, probability: 0, color: '#9C27B0', emoji: '🌟', id: 4 },
+        { name: '1.0 TON', amount: 1.0, probability: 0, color: '#FFD700', emoji: '💰', id: 5 },
+        { name: '0.25 TON', amount: 0.25, probability: 0, color: '#E91E63', emoji: '✨', id: 6 },
+        { name: '2 TON', amount: 2.0, probability: 0, color: '#00BCD4', emoji: '💎', id: 7 },
+        { name: '4 TON', amount: 4.0, probability: 0, color: '#673AB7', emoji: '🏆', id: 8 },
+        { name: '8 TON', amount: 8.0, probability: 0, color: '#FF0000', emoji: '🚀', id: 9 },
+        { name: 'NFT', amount: 0, probability: 0, color: '#00FFFF', emoji: '🖼️', id: 10 }
     ],
     
-    // Referral & Tasks (تذاكر بدلاً من عملات)
-    SPINS_PER_REFERRALS: 5,        // عدد الإحالات للحصول على لفة
+    // Referral & Tasks (يتم تحميلها من API أيضاً)
+    SPINS_PER_REFERRALS: 5,        // عدد الإحالات للحصول على لفة - يتم تحديثها من /api/settings
     TICKETS_PER_TASK: 1,           // عدد التذاكر لكل مهمة
     TICKETS_FOR_SPIN: 5,           // عدد التذاكر للحصول على لفة
     REFERRALS_FOR_SPIN: 5,         // عدد الإحالات للحصول على لفة
@@ -33,6 +35,7 @@ const CONFIG = {
     
     // Required Channels
     REQUIRED_CHANNELS: [
+        { id: '@hh6442', name: 'كتيبة العملات الرقمية', url: 'https://t.me/hh6442' },
         { id: '@CryptoWhales_Youtube', name: 'CryptoWhales Youtube', url: 'https://t.me/CryptoWhales_Youtube' },
         { id: '@tig_cr', name: 'Tig CR', url: 'https://t.me/tig_cr' },
         { id: '@crypto_1zed', name: 'Crypto 1zed', url: 'https://t.me/crypto_1zed' },

@@ -378,6 +378,7 @@ const MockAPI = {
     ],
     
     tasks: [
+        { id: 1, task_type: 'join_channel', task_name: 'انضم لقناة كتيبة العملات', task_description: 'انضم لقناتنا على تيليجرام', channel_id: '@hh6442', is_active: 1 },
         { id: 2, task_type: 'join_channel', task_name: 'انضم لقناة CryptoWhales', task_description: 'انضم لقناتنا على تيليجرام', channel_id: '@CryptoWhales_Youtube', is_active: 1 },
         { id: 3, task_type: 'join_channel', task_name: 'انضم لقناة العروض', task_description: 'لا تفوت أحدث العروض', channel_id: '@tig_cr', is_active: 1 },
         { id: 4, task_type: 'share_bot', task_name: 'شارك البوت', task_description: 'شارك البوت مع 5 أصدقاء', is_active: 1 }

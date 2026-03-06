@@ -823,6 +823,47 @@ function updateUI() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// 🎁 LOAD DYNAMIC PRIZES & SETTINGS FROM DATABASE
+// ═══════════════════════════════════════════════════════════════
+
+async function loadPrizesAndSettings() {
+    console.log('🎁 Loading prizes and settings from database...');
+    
+    try {
+        // تحميل الجوائز من API
+        const prizesResponse = await fetch(`${CONFIG.API_BASE_URL}/prizes`);
+        if (prizesResponse.ok) {
+            const prizesData = await prizesResponse.json();
+            if (prizesData.success && prizesData.prizes && prizesData.prizes.length > 0) {
+                CONFIG.WHEEL_PRIZES = prizesData.prizes.map((prize, index) => ({
+                    name: prize.name,
+                    amount: prize.amount || prize.value,
+                    probability: prize.probability,
+                    color: prize.color,
+                    emoji: prize.emoji,
+                    id: index + 1
+                }));
+                console.log(`✅ Loaded ${CONFIG.WHEEL_PRIZES.length} prizes from database`);
+            }
+        }
+        
+        // تحميل الإعدادات من API
+        const settingsResponse = await fetch(`${CONFIG.API_BASE_URL}/settings`);
+        if (settingsResponse.ok) {
+            const settingsData = await settingsResponse.json();
+            if (settingsData.success && settingsData.settings) {
+                if (settingsData.settings.spins_per_referrals) {
+                    CONFIG.SPINS_PER_REFERRALS = parseInt(settingsData.settings.spins_per_referrals);
+                    console.log(`✅ Updated SPINS_PER_REFERRALS: ${CONFIG.SPINS_PER_REFERRALS}`);
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Failed to load prizes/settings from API, using defaults:', error);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // 📊 LOAD INITIAL DATA
 // ═══════════════════════════════════════════════════════════════
 
@@ -830,6 +871,9 @@ async function loadInitialData() {
     console.log('🔄 Loading initial data modules...');
     
     try {
+        // تحميل الجوائز والإعدادات أولاً
+        await loadPrizesAndSettings();
+        
         // Channels already verified in main init
         await Promise.race([
             Promise.allSettled([
