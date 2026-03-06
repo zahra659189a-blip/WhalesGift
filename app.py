@@ -748,6 +748,12 @@ def init_database():
         VALUES ('verification_enabled', 'true', ?)
     """, (datetime.now().isoformat(),))
     
+    # إضافة إعداد عدد الإحالات لكل لفة
+    cursor.execute("""
+        INSERT OR IGNORE INTO system_settings (setting_key, setting_value, updated_at)
+        VALUES ('spins_per_referrals', '5', ?)
+    """, (datetime.now().isoformat(),))
+    
     # جدول جوائز العجلة
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS wheel_prizes (
@@ -770,6 +776,7 @@ def init_database():
     if count == 0:
         now = datetime.now().isoformat()
         default_channels = [
+            ('@hh6442', 'كتيبة العملات الرقمية', 'https://t.me/hh6442', 1797127532),
             ('@CryptoWhales_Youtube', 'Crypto whales', 'https://t.me/CryptoWhales_Youtube', 1797127532),
             ('@tig_cr', 'crypto tiger', 'https://t.me/tig_cr', 1797127532),
             ('@crypto_1zed', 'Crypto zed', 'https://t.me/crypto_1zed', 1797127532),
@@ -788,17 +795,18 @@ def init_database():
     count = cursor.fetchone()[0]
     if count == 0:
         now = datetime.now().isoformat()
-        # الجوائز مطابقة لـ config.js: 0.25@79%, 0.5@5%, 1@1%, Better Luck@15%, باقي 0%
+        # الجوائز الجديدة: 0.05@94%, 0.1@5%, 0.15@1%, باقي 0%
         default_prizes = [
-            ('0.25 TON', 0.25, 79, '#4CAF50', '🎯', 0),
-            ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
-            ('1 TON', 1, 1, '#FF9800', '⭐', 2),
-            ('Better Luck', 0, 15, '#696969', '🍀', 3),
-            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 4),
-            ('2 TON', 2, 0, '#E91E63', '✨', 5),
-            ('3 TON', 3, 0, '#FFD700', '💰', 6),
-            ('NFT', 0, 0, '#00FFFF', '🖼️', 7),
-            ('8 TON', 8, 0, '#FF0000', '🚀', 8)
+            ('0.05 TON', 0.05, 94, '#4CAF50', '🎯', 0),
+            ('0.1 TON', 0.1, 5, '#2196F3', '💎', 1),
+            ('0.15 TON', 0.15, 1, '#FF9800', '⭐', 2),
+            ('0.5 TON', 0.5, 0, '#9C27B0', '🌟', 3),
+            ('1.0 TON', 1.0, 0, '#FFD700', '💰', 4),
+            ('0.25 TON', 0.25, 0, '#E91E63', '✨', 5),
+            ('2 TON', 2.0, 0, '#00BCD4', '💎', 6),
+            ('4 TON', 4.0, 0, '#673AB7', '🏆', 7),
+            ('8 TON', 8.0, 0, '#FF0000', '🚀', 8),
+            ('NFT', 0, 0, '#00FFFF', '🖼️', 9)
         ]
         for name, value, prob, color, emoji, pos in default_prizes:
             cursor.execute("""
@@ -1263,18 +1271,31 @@ def perform_spin(authenticated_user_id=None, is_admin=False):
         if user['available_spins'] <= 0:
             return jsonify({'success': False, 'error': 'ليس لديك لفات متاحة'}), 400
         
-        # Define prizes with probabilities (مطابقة لـ config.js)
-        prizes = [
-            {'name': '0.25 TON', 'amount': 0.25, 'probability': 79},
-            {'name': '0.5 TON', 'amount': 0.5, 'probability': 5},
-            {'name': '1 TON', 'amount': 1, 'probability': 1},
-            {'name': 'Better Luck', 'amount': 0, 'probability': 15},
-            {'name': '1.5 TON', 'amount': 1.5, 'probability': 0},
-            {'name': '2 TON', 'amount': 2, 'probability': 0},
-            {'name': '3 TON', 'amount': 3, 'probability': 0},
-            {'name': 'NFT', 'amount': 0, 'probability': 0},
-            {'name': '8 TON', 'amount': 8, 'probability': 0}
-        ]
+        # جلب الجوائز من قاعدة البيانات
+        conn_prizes = get_db_connection()
+        cursor_prizes = conn_prizes.cursor()
+        cursor_prizes.execute("""
+            SELECT name, value, probability
+            FROM wheel_prizes
+            WHERE is_active = 1
+            ORDER BY position
+        """)
+        prizes = []
+        for row in cursor_prizes.fetchall():
+            prizes.append({
+                'name': row['name'],
+                'amount': float(row['value']),
+                'probability': float(row['probability'])
+            })
+        conn_prizes.close()
+        
+        # إذا لم توجد جوائز، استخدم الافتراضية
+        if not prizes:
+            prizes = [
+                {'name': '0.05 TON', 'amount': 0.05, 'probability': 94},
+                {'name': '0.1 TON', 'amount': 0.1, 'probability': 5},
+                {'name': '0.15 TON', 'amount': 0.15, 'probability': 1}
+            ]
         
         # Select prize based on probability
         total_probability = sum(p['probability'] for p in prizes)
@@ -2119,6 +2140,74 @@ def verify_all_channels():
     except Exception as e:
         print(f"Error in verify_all_channels: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/prizes', methods=['GET'])
+def get_active_prizes():
+    """الحصول على الجوائز النشطة من قاعدة البيانات"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, name, value, probability, color, emoji, position
+            FROM wheel_prizes
+            WHERE is_active = 1
+            ORDER BY position
+        """)
+        
+        prizes = []
+        for row in cursor.fetchall():
+            prizes.append({
+                'id': row['id'],
+                'name': row['name'],
+                'amount': float(row['value']),
+                'value': float(row['value']),
+                'probability': float(row['probability']),
+                'color': row['color'],
+                'emoji': row['emoji'],
+                'position': row['position']
+            })
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'prizes': prizes
+        })
+        
+    except Exception as e:
+        print(f"Error in get_active_prizes: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/settings', methods=['GET'])
+def get_system_settings():
+    """الحصول على إعدادات النظام (عدد الإحالات، إلخ)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # الحصول على عدد الإحالات لكل لفة
+        cursor.execute("""
+            SELECT setting_value
+            FROM system_settings
+            WHERE setting_key = 'spins_per_referrals'
+        """)
+        row = cursor.fetchone()
+        spins_per_referrals = int(row['setting_value']) if row else 5
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'settings': {
+                'spins_per_referrals': spins_per_referrals,
+                'referrals_for_spin': spins_per_referrals  # اسم بديل للتوافق
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error in get_system_settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ═══════════════════════════════════════════════════════════════
 # 🔐 DEVICE VERIFICATION ENDPOINTS
@@ -3033,18 +3122,19 @@ def reset_prizes_to_default(authenticated_user_id, is_admin, admin_username=None
         # حذف جميع الجوائز الحالية
         cursor.execute("DELETE FROM wheel_prizes")
         
-        # إضافة الجوائز الافتراضية (مطابقة لـ config.js)
+        # إضافة الجوائز الافتراضية الجديدة
         now = datetime.now().isoformat()
         default_prizes = [
-            ('0.25 TON', 0.25, 84, '#4CAF50', '🎯', 0),
-            ('0.5 TON', 0.5, 5, '#2196F3', '💎', 1),
-            ('1 TON', 1, 1, '#FF9800', '⭐', 2),
-            ('Better Luck', 0, 10, '#696969', '🍀', 3),
-            ('1.5 TON', 1.5, 0, '#9C27B0', '🌟', 4),
-            ('2 TON', 2, 0, '#E91E63', '✨', 5),
-            ('3 TON', 3, 0, '#FFD700', '💰', 6),
-            ('NFT', 0, 0, '#00FFFF', '🖼️', 7),
-            ('8 TON', 8, 0, '#FF0000', '🚀', 8)
+            ('0.05 TON', 0.05, 94, '#4CAF50', '🎯', 0),
+            ('0.1 TON', 0.1, 5, '#2196F3', '💎', 1),
+            ('0.15 TON', 0.15, 1, '#FF9800', '⭐', 2),
+            ('0.5 TON', 0.5, 0, '#9C27B0', '🌟', 3),
+            ('1.0 TON', 1.0, 0, '#FFD700', '💰', 4),
+            ('0.25 TON', 0.25, 0, '#E91E63', '✨', 5),
+            ('2 TON', 2.0, 0, '#00BCD4', '💎', 6),
+            ('4 TON', 4.0, 0, '#673AB7', '🏆', 7),
+            ('8 TON', 8.0, 0, '#FF0000', '🚀', 8),
+            ('NFT', 0, 0, '#00FFFF', '🖼️', 9)
         ]
         
         for name, value, prob, color, emoji, pos in default_prizes:
@@ -3064,6 +3154,59 @@ def reset_prizes_to_default(authenticated_user_id, is_admin, admin_username=None
         
     except Exception as e:
         print(f"Error in reset_prizes_to_default: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/settings', methods=['GET', 'POST'])
+@require_telegram_auth
+@require_admin_auth
+def manage_system_settings(authenticated_user_id, is_admin, admin_username=None, admin_user_id=None):
+    """إدارة إعدادات النظام (عدد الإحالات لكل لفة، إلخ)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if request.method == 'GET':
+            # الحصول على جميع الإعدادات
+            cursor.execute("SELECT setting_key, setting_value FROM system_settings")
+            settings = {}
+            for row in cursor.fetchall():
+                settings[row['setting_key']] = row['setting_value']
+            
+            conn.close()
+            return jsonify({
+                'success': True,
+                'settings': settings
+            })
+        
+        elif request.method == 'POST':
+            # تحديث الإعدادات
+            data = request.get_json()
+            setting_key = data.get('setting_key')
+            setting_value = data.get('setting_value')
+            
+            if not setting_key or setting_value is None:
+                conn.close()
+                return jsonify({'success': False, 'error': 'Missing parameters'}), 400
+            
+            now = datetime.now().isoformat()
+            
+            cursor.execute("""
+                INSERT OR REPLACE INTO system_settings (setting_key, setting_value, updated_at, updated_by)
+                VALUES (?, ?, ?, ?)
+            """, (setting_key, str(setting_value), now, authenticated_user_id))
+            
+            conn.commit()
+            conn.close()
+            
+            print(f"✅ Setting updated: {setting_key} = {setting_value} by {admin_username}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'تم تحديث الإعداد بنجاح'
+            })
+    
+    except Exception as e:
+        print(f"Error in manage_system_settings: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ═══════════════════════════════════════════════════════════════

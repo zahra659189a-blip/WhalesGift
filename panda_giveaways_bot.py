@@ -106,21 +106,23 @@ PAYMENT_PROOF_CHANNEL = os.getenv("PAYMENT_PROOF_CHANNEL")
 # 📢 قنوات الاشتراك الإجباري (سيتم تحميلها من قاعدة البيانات)
 MANDATORY_CHANNELS = []
 
-# 🎁 إعدادات عجلة الحظ (النسب والجوائز - مطابقة لـ config.js)
+# 🎁 إعدادات عجلة الحظ (النسب والجوائز - تحديث ديناميكي من قاعدة البيانات)
+# هذه قيم افتراضية فقط - يتم تحميل القيم الفعلية من قاعدة البيانات
 WHEEL_PRIZES = [
-    {"name": "0.25 TON", "amount": 0.25, "probability": 79},   # 79% (تم خصم 5% لصالح حظ أوفر)
-    {"name": "0.5 TON", "amount": 0.5, "probability": 5},      # 5%
-    {"name": "1 TON", "amount": 1, "probability": 1},          # 1%
-    {"name": "حظ أوفر", "amount": 0, "probability": 15},   # 15% (حظ أوفر)
-    {"name": "1.5 TON", "amount": 1.5, "probability": 0},      # 0%
-    {"name": "2 TON", "amount": 2, "probability": 0},          # 0%
-    {"name": "3 TON", "amount": 3, "probability": 0},          # 0%
-    {"name": "NFT", "amount": 0, "probability": 0},            # 0%
-    {"name": "8 TON", "amount": 8, "probability": 0}           # 0%
+    {"name": "0.05 TON", "amount": 0.05, "probability": 94},
+    {"name": "0.1 TON", "amount": 0.1, "probability": 5},
+    {"name": "0.15 TON", "amount": 0.15, "probability": 1},
+    {"name": "0.5 TON", "amount": 0.5, "probability": 0},
+    {"name": "1.0 TON", "amount": 1.0, "probability": 0},
+    {"name": "0.25 TON", "amount": 0.25, "probability": 0},
+    {"name": "2 TON", "amount": 2.0, "probability": 0},
+    {"name": "4 TON", "amount": 4.0, "probability": 0},
+    {"name": "8 TON", "amount": 8.0, "probability": 0},
+    {"name": "NFT", "amount": 0, "probability": 0}
 ]
 
-# 💰 إعدادات الإحالات والمهام
-SPINS_PER_REFERRALS = 5  # عدد الإحالات للحصول على لفة
+# 💰 إعدادات الإحالات والمهام (يتم تحديثها من قاعدة البيانات)
+SPINS_PER_REFERRALS = 5  # قيمة افتراضية - يتم تحميل القيمة الفعلية من قاعدة البيانات
 TICKETS_PER_TASK = 1  # عدد التذاكر لكل مهمة
 TICKETS_FOR_SPIN = 5  # عدد التذاكر للحصول على لفة
 REFERRALS_FOR_SPIN = 5  # عدد الإحالات للحصول على لفة
@@ -688,8 +690,10 @@ class DatabaseManager:
                 cursor.execute("SELECT valid_referrals FROM users WHERE user_id = ?", (referrer_id,))
                 valid_refs = cursor.fetchone()['valid_referrals']
                 
-                # كل 5 إحالات = لفة واحدة
-                if valid_refs % SPINS_PER_REFERRALS == 0:
+                # جلب عدد الإحالات لكل لفة من قاعدة البيانات
+                spins_per_refs = get_spins_per_referrals_from_db()
+                
+                if valid_refs % spins_per_refs == 0:
                     cursor.execute("""
                         UPDATE users 
                         SET available_spins = available_spins + 1 
@@ -1168,7 +1172,73 @@ class DatabaseManager:
         conn.close()
 
 # ═══════════════════════════════════════════════════════════════
-# 🎰 WHEEL OF FORTUNE LOGIC
+# � DYNAMIC PRIZES & SETTINGS LOADER
+# ═══════════════════════════════════════════════════════════════
+
+def load_wheel_prizes_from_db():
+    """جلب الجوائز من قاعدة البيانات"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT name, value, probability
+            FROM wheel_prizes
+            WHERE is_active = 1
+            ORDER BY position
+        """)
+        
+        prizes = []
+        for row in cursor.fetchall():
+            prizes.append({
+                'name': row['name'],
+                'amount': float(row['value']),
+                'probability': float(row['probability'])
+            })
+        
+        conn.close()
+        
+        # إذا لم توجد جوائز، استخدم الافتراضية
+        if not prizes:
+            logger.warning("⚠️ No prizes found in DB, using defaults")
+            prizes = WHEEL_PRIZES  # الجوائز الافتراضية
+        
+        logger.info(f"✅ Loaded {len(prizes)} prizes from database")
+        return prizes
+        
+    except Exception as e:
+        logger.error(f"❌ Error loading prizes from DB: {e}")
+        return WHEEL_PRIZES  # fallback
+
+def get_spins_per_referrals_from_db():
+    """جلب عدد الإحالات لكل لفة من قاعدة البيانات"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT setting_value
+            FROM system_settings
+            WHERE setting_key = 'spins_per_referrals'
+        """)
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            value = int(row['setting_value'])
+            logger.info(f"✅ Loaded spins_per_referrals from DB: {value}")
+            return value
+        else:
+            logger.warning("⚠️ spins_per_referrals not found in DB, using default: 5")
+            return 5
+            
+    except Exception as e:
+        logger.error(f"❌ Error loading spins_per_referrals from DB: {e}")
+        return 5  # fallback
+
+# ═══════════════════════════════════════════════════════════════
+# �🎰 WHEEL OF FORTUNE LOGIC
 # ═══════════════════════════════════════════════════════════════
 
 class WheelOfFortune:
@@ -1605,10 +1675,18 @@ async def check_and_validate_referral(user_id: int, update: Update = None) -> bo
         
         return False
         
-    except Exception as e:
-        logger.error(f"❌ Error in check_and_validate_referral: {e}")
+    except Exception as e:        logger.error(f"❌ Error in check_and_validate_referral: {e}")
         return False
-wheel = WheelOfFortune(WHEEL_PRIZES)
+
+# تحميل الجوائز من قاعدة البيانات وإنشاء العجلة
+try:
+    initial_prizes = load_wheel_prizes_from_db()
+    wheel = WheelOfFortune(initial_prizes)
+    logger.info("✅ Wheel initialized with prizes from database")
+except Exception as e:
+    logger.error(f"❌ Error initializing wheel: {e}")
+    wheel = WheelOfFortune(WHEEL_PRIZES)
+    logger.info("✅ Wheel initialized with default prizes")
 
 # ⛔ تم تعطيل الدفع التلقائي نهائياً لأسباب أمنية
 # ❌ لن يتم استخدام WALLET_MNEMONIC بتاتاً
@@ -2045,8 +2123,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                 valid_refs = ref_data['valid_referrals']
                                 current_spins = ref_data['available_spins']
                                 
-                                # كل 5 إحالات = لفة واحدة
-                                if valid_refs % SPINS_PER_REFERRALS == 0:
+                                # جلب عدد الإحالات لكل لفة من قاعدة البيانات
+                                spins_per_refs = get_spins_per_referrals_from_db()
+                                
+                                if valid_refs % spins_per_refs == 0:
                                     cursor.execute("""
                                         UPDATE users 
                                         SET available_spins = available_spins + 1 
@@ -2054,7 +2134,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     """, (final_referrer,))
                                     
                                     # إرسال إشعار للداعي
-                                    remaining_for_next = SPINS_PER_REFERRALS
+                                    remaining_for_next = spins_per_refs
                                     try:
                                         await context.bot.send_message(
                                             chat_id=final_referrer,
@@ -2077,7 +2157,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                         logger.error(f"Failed to send referral notification: {e}")
                                 else:
                                     # إرسال إشعار بدون لفة
-                                    remaining_for_next = SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS)
+                                    remaining_for_next = spins_per_refs - (valid_refs % spins_per_refs)
                                     try:
                                         await context.bot.send_message(
                                             chat_id=final_referrer,
@@ -2114,6 +2194,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # إنشاء رابط الدعوة للمستخدم
     user_ref_link = generate_referral_link(user_id)
     
+    # جلب عدد الإحالات لكل لفة من قاعدة البيانات
+    spins_per_refs_display = get_spins_per_referrals_from_db()
+    
     # رسالة الترحيب
     welcome_text = f"""
 <tg-emoji emoji-id='5188344996356448758'>💎</tg-emoji> <b>مرحباً بك في Top Giveaways!</b> <tg-emoji emoji-id='5472096095280569232'>🎁</tg-emoji>
@@ -2125,7 +2208,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>إحالاتك:</b> {db_user.total_referrals}
 
 <b><tg-emoji emoji-id='5461009483314517035'>🎯</tg-emoji> كيف تربح؟</b>
-• قم بدعوة أصدقائك (كل {SPINS_PER_REFERRALS} إحالات = لفة مجانية)
+• قم بدعوة أصدقائك (كل {spins_per_refs_display} إحالات = لفة مجانية)
 • أكمل المهام اليومية
 • إلعب عجلة الحظ واربح TON!
 • إسحب أرباحك مباشرة إلى محفظتك
@@ -2352,7 +2435,8 @@ async def device_verified_callback(update: Update, context: ContextTypes.DEFAULT
                                 except Exception as e:
                                     logger.error(f"Failed to send referral notification: {e}")
                             else:
-                                remaining_for_next = SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS)
+                                spins_per_refs_notify = get_spins_per_referrals_from_db()
+                                remaining_for_next = spins_per_refs_notify - (valid_refs % spins_per_refs_notify)
                                 try:
                                     await context.bot.send_message(
                                         chat_id=referrer_id,
@@ -2442,7 +2526,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • اربح TON فوراً!
 
 <b><tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> نظام الإحالات:</b>
-• كل {SPINS_PER_REFERRALS} إحالات صحيحة = لفة مجانية
+• كل {get_spins_per_referrals_from_db()} إحالات صحيحة = لفة مجانية
 • شارك رابطك مع الأصدقاء
 • تأكد من اشتراكهم بالقنوات
 
@@ -2472,7 +2556,8 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # حساب الإحالات المتبقية للفة القادمة
     valid_refs = user.total_referrals
-    next_spin_in = SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS)
+    spins_per_refs_stats = get_spins_per_referrals_from_db()
+    next_spin_in = spins_per_refs_stats - (valid_refs % spins_per_refs_stats)
     
     stats_text = f"""
 <tg-emoji emoji-id='5422360266618707867'>📊</tg-emoji> <b>إحصائياتك الشخصية</b>
@@ -2517,13 +2602,17 @@ async def referrals_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_refs = len(referrals)
     valid_refs = sum(1 for r in referrals if r['is_valid'])
     
+    # جلب عدد الإحالات المطلوبة للفة
+    spins_per_refs_list = get_spins_per_referrals_from_db()
+    next_spin_remaining = spins_per_refs_list - (valid_refs % spins_per_refs_list) if valid_refs > 0 else spins_per_refs_list
+    
     ref_text = f"""
 <tg-emoji emoji-id='5453957997418004470'>👥</tg-emoji> <b>قائمة المدعوين</b>
 
 <tg-emoji emoji-id='5422360266618707867'>📊</tg-emoji> <b>إجمالي الإحالات:</b> {total_refs}
 <tg-emoji emoji-id='5260463209562776385'>✅</tg-emoji> <b>الإحالات الصحيحة:</b> {valid_refs}
 <tg-emoji emoji-id='5188344996356448758'>🎰</tg-emoji> <b>لفاتك المتاحة:</b> {user.available_spins}
-<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {SPINS_PER_REFERRALS - (valid_refs % SPINS_PER_REFERRALS) if valid_refs > 0 else SPINS_PER_REFERRALS}
+<tg-emoji emoji-id='5217697679030637222'>⏳</tg-emoji> <b>متبقي للفة القادمة:</b> {next_spin_remaining}
 
 """
     
